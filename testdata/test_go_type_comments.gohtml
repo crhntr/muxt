@@ -1,0 +1,51 @@
+{{- define "with no space after colon" -}}
+  {{- /* gotype:github.com/crhntr/templatesource/internal/example.Website */ -}}
+	<header>
+		{{.Name}}
+	</header>
+{{- end -}}
+
+{{- define "with space after colon" -}}
+	{{- /* gotype: github.com/crhntr/templatesource/internal/example.Numbers */ -}}
+	<table>
+		<thead>
+		<tr>
+			<th>Number</th>
+		</tr>
+		</thead>
+		<tbody>
+			{{range .Rows}}
+				<tr><td>{{.}}</td></tr>{{- /* some comment */ -}}
+			{{end}}
+		</tbody>
+	</table>
+{{- end -}}
+
+{{- define "with a standard library type" -}}
+    {{- /* gotype: html/template.Node */ -}}
+		<footer></footer>
+{{- end -}}
+
+{{- define "with no gotype comment" -}}
+    {{- /* no go type comment */ -}}
+{{- end -}}
+
+{{- define "with wrong cased gotype comment" -}}
+		{{- /* gotype: github.com/crhntr/templatesource/internal/example.Website */ -}}
+    {{- printf "%q" .Name -}}
+{{- end -}}
+
+{{- define "with just the identifier" -}}
+    {{- /* gotype: Website */ -}}
+    {{- printf "%q" .Name -}}
+{{- end -}}
+
+{{- define "with the dot missing" -}}
+    {{- /* gotype: github.com/crhntr/templatesource/internal/example Website */ -}}
+    {{- printf "%q" .Name -}}
+{{- end -}}
+
+{{- define "with just the package path" -}}
+    {{- /* gotype: github.com/crhntr/templatesource/internal/example */ -}}
+		<footer></footer>
+{{- end -}}
