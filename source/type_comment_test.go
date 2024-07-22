@@ -1,4 +1,4 @@
-package templatesource_test
+package source_test
 
 import (
 	"fmt"
@@ -17,34 +17,34 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/crhntr/templatesource"
+	"github.com/crhntr/template/source"
 )
 
 func TestParseTree(t *testing.T) {
 	t.Run("simple template", func(t *testing.T) {
 		set := make(map[string]*parse.Tree)
-		tree, err := templatesource.CreateParseTree("simple", "Hello, World!", "{{", "}}", set)
+		tree, err := source.CreateParseTree("simple", "Hello, World!", "{{", "}}", set)
 		assert.NoError(t, err)
 		assert.NotNil(t, tree)
 		assert.Len(t, set, 1)
 	})
 	t.Run("simple with actions", func(t *testing.T) {
 		set := make(map[string]*parse.Tree)
-		tree, err := templatesource.CreateParseTree("greeting", `(.Hello), (.World)!`, "(", ")", set)
+		tree, err := source.CreateParseTree("greeting", `(.Hello), (.World)!`, "(", ")", set)
 		assert.NoError(t, err)
 		assert.NotNil(t, tree)
 		assert.Len(t, set, 1)
 	})
 	t.Run("with templates", func(t *testing.T) {
 		set := make(map[string]*parse.Tree)
-		tree, err := templatesource.CreateParseTree("template", `(define "greeting")(.Hello), (.World)!(end -) outside defined template`, "(", ")", set)
+		tree, err := source.CreateParseTree("template", `(define "greeting")(.Hello), (.World)!(end -) outside defined template`, "(", ")", set)
 		assert.NoError(t, err)
 		assert.NotNil(t, tree)
 		assert.Len(t, set, 2)
 	})
 	t.Run("with standard delimiters", func(t *testing.T) {
 		set := make(map[string]*parse.Tree)
-		tree, err := templatesource.CreateParseTree("template", `{{.Greeting}}`, "", "", set)
+		tree, err := source.CreateParseTree("template", `{{.Greeting}}`, "", "", set)
 		assert.NoError(t, err)
 		assert.NotNil(t, tree)
 		assert.Len(t, set, 1)
@@ -60,7 +60,7 @@ func TestGoTypeComments(t *testing.T) {
 				log.Fatal(err)
 			}
 			set := make(map[string]*parse.Tree)
-			_, err = templatesource.CreateParseTree(path.Base(filePath), string(buf), "", "", set)
+			_, err = source.CreateParseTree(path.Base(filePath), string(buf), "", "", set)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -73,7 +73,7 @@ func TestGoTypeComments(t *testing.T) {
 			file, ok := set[filepath.Base(filePath)]
 			require.True(t, ok)
 
-			comments, err := templatesource.FindTypeComments(filePath, file)
+			comments, err := source.FindTypeComments(filePath, file)
 			require.NoError(t, err)
 			require.Len(t, comments, 0)
 		})
@@ -81,7 +81,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.NoError(t, err)
 			require.Len(t, comments, 1)
 		})
@@ -89,7 +89,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.NoError(t, err)
 			require.Len(t, comments, 1)
 		})
@@ -97,7 +97,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.NoError(t, err)
 			require.Len(t, comments, 1)
 		})
@@ -105,7 +105,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.NoError(t, err)
 			require.Len(t, comments, 0)
 		})
@@ -113,7 +113,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.NoError(t, err)
 			require.Len(t, comments, 1)
 		})
@@ -121,7 +121,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.Error(t, err)
 			require.Len(t, comments, 0)
 		})
@@ -129,7 +129,7 @@ func TestGoTypeComments(t *testing.T) {
 			set, filePath := setup()
 			tree := templateTree(t, set)
 
-			comments, err := templatesource.FindTypeComments(filePath, tree)
+			comments, err := source.FindTypeComments(filePath, tree)
 			require.Error(t, err)
 			require.Len(t, comments, 0)
 		})
@@ -137,20 +137,20 @@ func TestGoTypeComments(t *testing.T) {
 }
 
 func TestResolveCommentTypes(t *testing.T) {
-	setup := sync.OnceValue(func() []templatesource.TypeComment {
+	setup := sync.OnceValue(func() []source.TypeComment {
 		filePath := filepath.FromSlash("testdata/resolve_go_comment_types.gohtml")
 		buf, err := os.ReadFile(filepath.FromSlash(filePath))
 		if err != nil {
 			log.Fatal(err)
 		}
 		set := make(map[string]*parse.Tree)
-		_, err = templatesource.CreateParseTree(path.Base(filePath), string(buf), "", "", set)
+		_, err = source.CreateParseTree(path.Base(filePath), string(buf), "", "", set)
 		if err != nil {
 			log.Fatal(err)
 		}
-		var comments []templatesource.TypeComment
+		var comments []source.TypeComment
 		for _, tree := range set {
-			results, err := templatesource.FindTypeComments(filePath, tree)
+			results, err := source.FindTypeComments(filePath, tree)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -161,65 +161,65 @@ func TestResolveCommentTypes(t *testing.T) {
 
 	t.Run("with missing GOROOT", func(t *testing.T) {
 		comments := setup()
-		comments = []templatesource.TypeComment{findComment(t, comments)}
+		comments = []source.TypeComment{findComment(t, comments)}
 		t.Setenv("GOROOT", "/tmp/missing-"+strconv.Itoa(int(time.Now().Unix())))
-		err := templatesource.ResolveCommentTypes(comments, nil)
+		err := source.ResolveCommentTypes(comments, nil)
 		require.ErrorContains(t, err, `load packages failed`)
 	})
 
 	t.Run("with malformed package identifier", func(t *testing.T) {
 		comments := setup()
-		comments = []templatesource.TypeComment{findComment(t, comments)}
-		err := templatesource.ResolveCommentTypes(comments, nil)
+		comments = []source.TypeComment{findComment(t, comments)}
+		err := source.ResolveCommentTypes(comments, nil)
 		require.ErrorContains(t, err, `malformed import path`)
 	})
 
 	t.Run("with no comments", func(t *testing.T) {
-		err := templatesource.ResolveCommentTypes(nil, nil)
+		err := source.ResolveCommentTypes(nil, nil)
 		require.NoError(t, err)
 	})
 
 	t.Run("with no packages on comments", func(t *testing.T) {
-		err := templatesource.ResolveCommentTypes(make([]templatesource.TypeComment, 5), nil)
+		err := source.ResolveCommentTypes(make([]source.TypeComment, 5), nil)
 		require.NoError(t, err)
 	})
 
 	t.Run("nil resolver", func(t *testing.T) {
 		t.Run("with a findable type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
 			require.NoError(t, err)
 		})
 
 		t.Run("with a standard library type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
 			require.NoError(t, err)
 		})
 		t.Run("with an unknown package", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
-			require.ErrorContains(t, err, `load package "github.com/crhntr/templatesource/internal/missing" failed`)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
+			require.ErrorContains(t, err, `load package "github.com/crhntr/template/internal/missing" failed`)
 		})
 		t.Run("with an unknown identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
 			require.ErrorContains(t, err, `lookup of MicroService failed in package`)
 		})
 		t.Run("with function identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
 			require.ErrorContains(t, err, `gotype comment error: unexpected kind for identifier Function (got func) in package`)
 		})
 		t.Run("with variable identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, nil)
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, nil)
 			require.ErrorContains(t, err, `gotype comment error: unexpected kind for identifier Variable (got var) in package`)
 		})
 	})
@@ -227,8 +227,8 @@ func TestResolveCommentTypes(t *testing.T) {
 	t.Run("return err resolver", func(t *testing.T) {
 		t.Run("with a findable type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
 			require.NoError(t, err)
@@ -236,40 +236,40 @@ func TestResolveCommentTypes(t *testing.T) {
 
 		t.Run("with a standard library type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
 			require.NoError(t, err)
 		})
 		t.Run("with an unknown package", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
-			require.ErrorContains(t, err, `load package "github.com/crhntr/templatesource/internal/missing" failed`)
+			require.ErrorContains(t, err, `load package "github.com/crhntr/template/internal/missing" failed`)
 		})
 		t.Run("with an unknown identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
 			require.ErrorContains(t, err, `lookup of MicroService failed in package`)
 		})
 		t.Run("with function identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
 			require.ErrorContains(t, err, `gotype comment error: unexpected kind for identifier Function (got func) in package`)
 		})
 		t.Run("with variable identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return err
 			})
 			require.ErrorContains(t, err, `gotype comment error: unexpected kind for identifier Variable (got var) in package`)
@@ -279,8 +279,8 @@ func TestResolveCommentTypes(t *testing.T) {
 	t.Run("return errors ignored", func(t *testing.T) {
 		t.Run("with a findable type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
@@ -288,40 +288,40 @@ func TestResolveCommentTypes(t *testing.T) {
 
 		t.Run("with a standard library type", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
 		})
 		t.Run("with an unknown package", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
 		})
 		t.Run("with an unknown identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
 		})
 		t.Run("with function identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
 		})
 		t.Run("with variable identifier", func(t *testing.T) {
 			comments := setup()
-			comments = []templatesource.TypeComment{findComment(t, comments)}
-			err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+			comments = []source.TypeComment{findComment(t, comments)}
+			err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 				return nil
 			})
 			require.NoError(t, err)
@@ -330,8 +330,8 @@ func TestResolveCommentTypes(t *testing.T) {
 
 	t.Run("with resolver error", func(t *testing.T) {
 		comments := setup()
-		comments = []templatesource.TypeComment{findComment(t, comments)}
-		err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+		comments = []source.TypeComment{findComment(t, comments)}
+		err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 			return fmt.Errorf("banana")
 		})
 		require.ErrorContains(t, err, "banana")
@@ -350,7 +350,7 @@ func templateName(t *testing.T) string {
 	return strings.Replace(path.Base(t.Name()), "_", " ", -1)
 }
 
-func findComment(t *testing.T, comments []templatesource.TypeComment) templatesource.TypeComment {
+func findComment(t *testing.T, comments []source.TypeComment) source.TypeComment {
 	t.Helper()
 	for _, comment := range comments {
 		if comment.Tree.Name == templateName(t) {
@@ -358,5 +358,5 @@ func findComment(t *testing.T, comments []templatesource.TypeComment) templateso
 		}
 	}
 	t.Fatalf("missing %q", templateName(t))
-	return templatesource.TypeComment{}
+	return source.TypeComment{}
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crhntr/templatesource"
+	"github.com/crhntr/template/source"
 )
 
 func AssertTypeCommentsAreFound(t assert.TestingT, leftDelim, rightDelim string, patterns ...string) bool {
@@ -31,19 +31,19 @@ func AssertTypeCommentsAreFound(t assert.TestingT, leftDelim, rightDelim string,
 	slices.Sort(filePaths)
 	filePaths = slices.Compact(filePaths)
 
-	var comments []templatesource.TypeComment
+	var comments []source.TypeComment
 	set := make(map[string]*parse.Tree)
 	for _, filePath := range filePaths {
 		buf, err := os.ReadFile(filePath)
 		if !assert.NoError(t, err) {
 			return false
 		}
-		_, err = templatesource.CreateParseTree(filepath.Base(filePath), string(buf), leftDelim, rightDelim, set)
+		_, err = source.CreateParseTree(filepath.Base(filePath), string(buf), leftDelim, rightDelim, set)
 		if !assert.NoError(t, err) {
 			return false
 		}
 		for _, tree := range set {
-			results, err := templatesource.FindTypeComments(filePath, tree)
+			results, err := source.FindTypeComments(filePath, tree)
 			if !assert.NoError(t, err) {
 				return false
 			}
@@ -52,7 +52,7 @@ func AssertTypeCommentsAreFound(t assert.TestingT, leftDelim, rightDelim string,
 	}
 
 	var list []error
-	err := templatesource.ResolveCommentTypes(comments, func(comment templatesource.TypeComment, resolvedType types.Type, err error) error {
+	err := source.ResolveCommentTypes(comments, func(comment source.TypeComment, resolvedType types.Type, err error) error {
 		if err != nil {
 			list = append(list, err)
 		}

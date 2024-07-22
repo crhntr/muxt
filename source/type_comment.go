@@ -1,4 +1,4 @@
-package templatesource
+package source
 
 import (
 	"errors"

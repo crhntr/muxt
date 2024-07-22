@@ -1,5 +1,5 @@
 {{- define "with a findable type" -}}
-    {{- /* gotype:github.com/crhntr/templatesource/internal/example.Website */ -}}
+    {{- /* gotype:github.com/crhntr/template/internal/example.Website */ -}}
 		<p>{{.Name}}</p>
 {{- end -}}
 
@@ -9,22 +9,22 @@
 {{- end -}}
 
 {{- define "with an unknown package" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/missing.Data */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/missing.Data */ -}}
 		<p>{{.Value}}</p>
 {{- end -}}
 
 {{- define "with an unknown identifier" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example.MicroService */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example.MicroService */ -}}
 		<p>{{.Cost}}</p>
 {{- end -}}
 
 {{- define "with function identifier" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example.Function */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example.Function */ -}}
 		<p>{{.}}</p>
 {{- end -}}
 
 {{- define "with variable identifier" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example.Variable */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example.Variable */ -}}
 		<p>{{.}}</p>
 {{- end -}}
 
@@ -40,7 +40,7 @@
 
 
 {{- define "with missing GOROOT" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example.Website */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example.Website */ -}}
 {{- end -}}
 
 
@@ -49,6 +49,6 @@
 {{- end -}}
 
 {{- define "with resolver error" -}}
-    {{- /* gotype:github.com/crhntr/templatesource/internal/example.Website */ -}}
+    {{- /* gotype:github.com/crhntr/template/internal/example.Website */ -}}
 		<p>{{.Name}}</p>
 {{- end -}}

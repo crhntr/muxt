@@ -1,12 +1,12 @@
 {{- define "with no space after colon" -}}
-  {{- /* gotype:github.com/crhntr/templatesource/internal/example.Website */ -}}
+  {{- /* gotype:github.com/crhntr/template/internal/example.Website */ -}}
 	<header>
 		{{.Name}}
 	</header>
 {{- end -}}
 
 {{- define "with space after colon" -}}
-	{{- /* gotype: github.com/crhntr/templatesource/internal/example.Numbers */ -}}
+	{{- /* gotype: github.com/crhntr/template/internal/example.Numbers */ -}}
 	<table>
 		<thead>
 		<tr>
@@ -31,7 +31,7 @@
 {{- end -}}
 
 {{- define "with wrong cased gotype comment" -}}
-		{{- /* gotype: github.com/crhntr/templatesource/internal/example.Website */ -}}
+		{{- /* gotype: github.com/crhntr/template/internal/example.Website */ -}}
     {{- printf "%q" .Name -}}
 {{- end -}}
 
@@ -41,11 +41,11 @@
 {{- end -}}
 
 {{- define "with the dot missing" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example Website */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example Website */ -}}
     {{- printf "%q" .Name -}}
 {{- end -}}
 
 {{- define "with just the package path" -}}
-    {{- /* gotype: github.com/crhntr/templatesource/internal/example */ -}}
+    {{- /* gotype: github.com/crhntr/template/internal/example */ -}}
 		<footer></footer>
 {{- end -}}

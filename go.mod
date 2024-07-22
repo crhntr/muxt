@@ -1,4 +1,4 @@
-module github.com/crhntr/templatesource
+module github.com/crhntr/template
 
 go 1.22
 

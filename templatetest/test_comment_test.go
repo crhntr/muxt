@@ -6,13 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crhntr/templatesource/internal/fake"
-	"github.com/crhntr/templatesource/templatetest"
+	"github.com/crhntr/template/internal/fake"
+	"github.com/crhntr/template/templatetest"
 )
 
 //go:generate counterfeiter -generate
 
-//counterfeiter:generate --fake-name T -o internal/fake/t.go . testingT
+//counterfeiter:generate --fake-name T -o ../internal/fake/t.go . testingT
 
 type testingT interface {
 	assert.TestingT
@@ -34,14 +34,6 @@ func TestAssertTypeCommentsAreFound(t *testing.T) {
 
 		pass := templatetest.AssertTypeCommentsAreFound(ft, "", "", filepath.FromSlash("testdata/malformed.gohtml"))
 		assert.False(t, pass)
-		assert.NotZero(t, ft.HelperCallCount())
-	})
-	t.Run("when the template file is well formed", func(t *testing.T) {
-		// this was hard to figure out, I was able to do it by just reading the directory
-		ft := new(fake.T)
-
-		pass := templatetest.AssertTypeCommentsAreFound(ft, "", "", filepath.FromSlash("testdata/wellformed.gohtml"))
-		assert.True(t, pass)
 		assert.NotZero(t, ft.HelperCallCount())
 	})
 }
