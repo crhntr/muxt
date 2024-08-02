@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/crhntr/dom/domtest"
@@ -36,6 +37,7 @@ type (
 		NumAuthors() int
 		CheckAuth(req *http.Request) (string, error)
 		Handler(http.ResponseWriter, *http.Request) template.HTML
+		LogLines(*slog.Logger) int
 	}
 )
 
@@ -566,6 +568,36 @@ func TestRoutes(t *testing.T) {
 
 		res := rec.Result()
 		assert.Equal(t, http.StatusCreated, res.StatusCode)
+	})
+
+	t.Run("handler uses a logger", func(t *testing.T) {
+		ts := template.Must(template.New("simple path").Parse(`{{define "POST /stdin s.LogLines(logger)"}}{{printf "lines: %d" .}}{{end}}`))
+		logBuffer := bytes.NewBuffer(nil)
+		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+		mux := http.NewServeMux()
+		s := new(fake.ArticleService)
+
+		s.LogLinesStub = func(logger *slog.Logger) int {
+			logger.Info("some message")
+			return 42
+		}
+
+		err := templatehandler.Routes(mux, ts, logger, map[string]any{
+			"s": s,
+		})
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/stdin", strings.NewReader(""))
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+
+		assert.Contains(t, logBuffer.String(), "some message")
 	})
 }
 

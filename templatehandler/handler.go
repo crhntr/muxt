@@ -103,7 +103,7 @@ func callMethodHandler(ts *template.Template, logger *slog.Logger, services map[
 			return nil, fmt.Errorf("ellipsis call not allowed")
 		}
 
-		inputs, err := generateInputsFunction(call, services, pathParams)
+		inputs, err := generateInputsFunction(call, logger, services, pathParams)
 		if err != nil {
 			return nil, err
 		}
@@ -147,11 +147,12 @@ func keys[K comparable, V any, M ~map[K]V](s M) []K {
 	return sn
 }
 
-func generateInputsFunction(call *ast.CallExpr, services map[string]any, pathParams []string) (func(res http.ResponseWriter, req *http.Request) []reflect.Value, error) {
+func generateInputsFunction(call *ast.CallExpr, logger *slog.Logger, services map[string]any, pathParams []string) (func(res http.ResponseWriter, req *http.Request) []reflect.Value, error) {
 	const (
 		requestIdentifier  = "request"
 		contextIdentifier  = "ctx"
 		responseIdentifier = "response"
+		loggerIdentifier   = "logger"
 	)
 
 	if len(call.Args) == 0 {
@@ -167,7 +168,7 @@ func generateInputsFunction(call *ast.CallExpr, services map[string]any, pathPar
 			return nil, fmt.Errorf("method arguments must be identifiers: argument %d is not an identifier got %s", i, printNode(exp))
 		}
 		switch an := arg.Name; an {
-		case requestIdentifier, contextIdentifier, responseIdentifier:
+		case requestIdentifier, contextIdentifier, responseIdentifier, loggerIdentifier:
 			args = append(args, arg.Name)
 		default:
 			if _, found := services[arg.Name]; found {
@@ -191,6 +192,8 @@ func generateInputsFunction(call *ast.CallExpr, services map[string]any, pathPar
 				in = append(in, reflect.ValueOf(req.Context()))
 			case responseIdentifier:
 				in = append(in, reflect.ValueOf(res))
+			case loggerIdentifier:
+				in = append(in, reflect.ValueOf(logger))
 			default:
 				s, ok := services[arg]
 				if ok {

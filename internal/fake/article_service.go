@@ -4,6 +4,7 @@ package fake
 import (
 	"context"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -63,6 +64,17 @@ type ArticleService struct {
 	listArticlesReturnsOnCall map[int]struct {
 		result1 []example.Article
 		result2 error
+	}
+	LogLinesStub        func(*slog.Logger) int
+	logLinesMutex       sync.RWMutex
+	logLinesArgsForCall []struct {
+		arg1 *slog.Logger
+	}
+	logLinesReturns struct {
+		result1 int
+	}
+	logLinesReturnsOnCall map[int]struct {
+		result1 int
 	}
 	NumAuthorsStub        func() int
 	numAuthorsMutex       sync.RWMutex
@@ -384,6 +396,67 @@ func (fake *ArticleService) ListArticlesReturnsOnCall(i int, result1 []example.A
 	}{result1, result2}
 }
 
+func (fake *ArticleService) LogLines(arg1 *slog.Logger) int {
+	fake.logLinesMutex.Lock()
+	ret, specificReturn := fake.logLinesReturnsOnCall[len(fake.logLinesArgsForCall)]
+	fake.logLinesArgsForCall = append(fake.logLinesArgsForCall, struct {
+		arg1 *slog.Logger
+	}{arg1})
+	stub := fake.LogLinesStub
+	fakeReturns := fake.logLinesReturns
+	fake.recordInvocation("LogLines", []interface{}{arg1})
+	fake.logLinesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *ArticleService) LogLinesCallCount() int {
+	fake.logLinesMutex.RLock()
+	defer fake.logLinesMutex.RUnlock()
+	return len(fake.logLinesArgsForCall)
+}
+
+func (fake *ArticleService) LogLinesCalls(stub func(*slog.Logger) int) {
+	fake.logLinesMutex.Lock()
+	defer fake.logLinesMutex.Unlock()
+	fake.LogLinesStub = stub
+}
+
+func (fake *ArticleService) LogLinesArgsForCall(i int) *slog.Logger {
+	fake.logLinesMutex.RLock()
+	defer fake.logLinesMutex.RUnlock()
+	argsForCall := fake.logLinesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *ArticleService) LogLinesReturns(result1 int) {
+	fake.logLinesMutex.Lock()
+	defer fake.logLinesMutex.Unlock()
+	fake.LogLinesStub = nil
+	fake.logLinesReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *ArticleService) LogLinesReturnsOnCall(i int, result1 int) {
+	fake.logLinesMutex.Lock()
+	defer fake.logLinesMutex.Unlock()
+	fake.LogLinesStub = nil
+	if fake.logLinesReturnsOnCall == nil {
+		fake.logLinesReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.logLinesReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *ArticleService) NumAuthors() int {
 	fake.numAuthorsMutex.Lock()
 	ret, specificReturn := fake.numAuthorsReturnsOnCall[len(fake.numAuthorsArgsForCall)]
@@ -694,6 +767,8 @@ func (fake *ArticleService) Invocations() map[string][][]interface{} {
 	defer fake.handlerMutex.RUnlock()
 	fake.listArticlesMutex.RLock()
 	defer fake.listArticlesMutex.RUnlock()
+	fake.logLinesMutex.RLock()
+	defer fake.logLinesMutex.RUnlock()
 	fake.numAuthorsMutex.RLock()
 	defer fake.numAuthorsMutex.RUnlock()
 	fake.parseMutex.RLock()
