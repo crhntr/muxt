@@ -52,11 +52,24 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
 
 func callMethodHandler(ts *template.Template, logger *slog.Logger, services map[string]any, pattern Pattern, templateName string, call *ast.CallExpr) (http.HandlerFunc, error) {
+	scope, _, pathParams, err := generateScope(pattern, services)
+	if err != nil {
+		return nil, err
+	}
+	switch function := call.Fun.(type) {
+	default:
+		return nil, fmt.Errorf("expected method call on some service %s known service names are %v", pattern.Handler, keys(services))
+	case *ast.SelectorExpr:
+		return createSelectorHandler(ts, templateName, call, function, services, scope, pathParams, logger)
+	}
+}
+
+func generateScope(pattern Pattern, services map[string]any) ([]string, []string, []string, error) {
 	scope := append([]string{"ctx", "request"})
 	var serviceNames []string
 	for n := range services {
 		if slices.Contains(scope, n) {
-			return nil, fmt.Errorf("identifier already declared %q", n)
+			return nil, nil, nil, fmt.Errorf("identifier already declared %q", n)
 		}
 		scope = append(scope, n)
 		serviceNames = append(serviceNames, n)
@@ -66,71 +79,90 @@ func callMethodHandler(ts *template.Template, logger *slog.Logger, services map[
 		n := matches[1]
 		n = strings.TrimSuffix(n, "...")
 		if slices.Contains(scope, n) {
-			return nil, fmt.Errorf("identifier already declared %q", n)
+			return nil, nil, nil, fmt.Errorf("identifier already declared %q", n)
 		}
 		if !token.IsIdentifier(n) {
-			return nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
+			return nil, nil, nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
 		}
 		scope = append(scope, n)
 		pathParams = append(pathParams, n)
 	}
+	return scope, serviceNames, pathParams, nil
+}
 
-	switch function := call.Fun.(type) {
-	default:
-		return nil, fmt.Errorf("expected method call on some service %s known service names are %v", pattern.Handler, keys(services))
-	case *ast.SelectorExpr:
-		receiver, ok := function.X.(*ast.Ident)
-		if !ok {
-			return nil, fmt.Errorf("unexpected method receiver expected one of %q but got: %s", scope, printNode(function.X))
-		}
-		if len(services) == 0 {
-			return nil, fmt.Errorf("no services provided")
-		}
-		s, ok := services[receiver.Name]
-		if !ok {
-			return nil, fmt.Errorf("service with identifier %q not found", receiver.Name)
-		}
-		if s == nil {
-			return nil, fmt.Errorf("service %q must not be nil", receiver.Name)
-		}
-		service := reflect.ValueOf(s)
-		method := service.MethodByName(function.Sel.Name)
-		if !method.IsValid() {
-			return nil, fmt.Errorf("method %s not found on %s", function.Sel.Name, service.Type())
-		}
-
-		if call.Ellipsis != token.NoPos {
-			return nil, fmt.Errorf("ellipsis call not allowed")
-		}
-
-		inputs, err := generateInputsFunction(call, logger, services, pathParams)
-		if err != nil {
-			return nil, err
-		}
-
-		switch on := method.Type().NumOut(); on {
-		case 1:
-			return func(res http.ResponseWriter, req *http.Request) {
-				in := inputs(res, req)
-				out := method.Call(in)
-				execute(res, req, logger, ts, templateName, out[0].Interface())
-			}, nil
-		case 2:
-			return func(res http.ResponseWriter, req *http.Request) {
-				in := inputs(res, req)
-				out := method.Call(in)
-				callRes, callErr := out[0], out[1]
-				if !callErr.IsNil() {
-					logger.Error("service call failed", "method", req.Method, "path", req.URL.Path, "error", err)
-					http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
-				}
-				execute(res, req, logger, ts, templateName, callRes.Interface())
-			}, nil
-		default:
-			return nil, fmt.Errorf("method must either return (T) or (T, error)")
-		}
+func createSelectorHandler(ts *template.Template, templateName string, call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
+	method, err := serviceMethod(call, function, services, scope)
+	if err != nil {
+		return nil, err
 	}
+	inputs, err := generateInputsFunction(method.Type(), call, logger, services, pathParams)
+	if err != nil {
+		return nil, err
+	}
+	return generateOutputsFunction(logger, ts, templateName, method, inputs)
+}
+
+type inputsFunc = func(res http.ResponseWriter, req *http.Request) []reflect.Value
+
+func generateOutputsFunction(logger *slog.Logger, ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
+	switch num := method.Type().NumOut(); num {
+	case 1:
+		return valueResultHandler(ts, templateName, method, inputs, logger), nil
+	case 2:
+		return valuesResultHandler(ts, templateName, method, inputs, logger), nil
+	default:
+		return nil, fmt.Errorf("method must either return (T) or (T, error)")
+	}
+}
+
+func valueResultHandler(ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		in := inputs(res, req)
+		out := method.Call(in)
+		execute(res, req, logger, ts, templateName, out[0].Interface())
+	}
+}
+
+func valuesResultHandler(ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		in := inputs(res, req)
+		out := method.Call(in)
+		callRes, callErr := out[0], out[1]
+		if !callErr.IsNil() {
+			err := callErr.Interface().(error)
+			logger.Error("service call failed", "method", req.Method, "path", req.URL.Path, "error", err)
+			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		execute(res, req, logger, ts, templateName, callRes.Interface())
+	}
+}
+
+func serviceMethod(call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope []string) (reflect.Value, error) {
+	if call.Ellipsis != token.NoPos {
+		return reflect.Value{}, fmt.Errorf("ellipsis call not allowed")
+	}
+	receiver, ok := function.X.(*ast.Ident)
+	if !ok {
+		return reflect.Value{}, fmt.Errorf("unexpected method receiver expected one of %q but got: %s", scope, printNode(function.X))
+	}
+	if len(services) == 0 {
+		return reflect.Value{}, fmt.Errorf("no services provided")
+	}
+	s, ok := services[receiver.Name]
+	if !ok {
+		return reflect.Value{}, fmt.Errorf("service with identifier %q not found", receiver.Name)
+	}
+	if s == nil {
+		return reflect.Value{}, fmt.Errorf("service %q must not be nil", receiver.Name)
+	}
+	service := reflect.ValueOf(s)
+	method := service.MethodByName(function.Sel.Name)
+	if !method.IsValid() {
+		return reflect.Value{}, fmt.Errorf("method %s not found on %s", function.Sel.Name, service.Type())
+	}
+
+	return method, nil
 }
 
 func printNode(node ast.Node) string {
@@ -147,52 +179,41 @@ func keys[K comparable, V any, M ~map[K]V](s M) []K {
 	return sn
 }
 
-func generateInputsFunction(call *ast.CallExpr, logger *slog.Logger, services map[string]any, pathParams []string) (func(res http.ResponseWriter, req *http.Request) []reflect.Value, error) {
-	const (
-		requestIdentifier  = "request"
-		contextIdentifier  = "ctx"
-		responseIdentifier = "response"
-		loggerIdentifier   = "logger"
-	)
+const (
+	requestArgumentIdentifier  = "request"
+	contextArgumentIdentifier  = "ctx"
+	responseArgumentIdentifier = "response"
+	loggerArgumentIdentifier   = "logger"
+)
 
+func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slog.Logger, services map[string]any, pathParams []string) (inputsFunc, error) {
+	if method.NumIn() != len(call.Args) {
+		return nil, fmt.Errorf("wrong number of arguments")
+	}
 	if len(call.Args) == 0 {
 		return func(http.ResponseWriter, *http.Request) []reflect.Value {
 			return nil
 		}, nil
 	}
-
 	var args []string
 	for i, exp := range call.Args {
-		arg, ok := exp.(*ast.Ident)
-		if !ok {
-			return nil, fmt.Errorf("method arguments must be identifiers: argument %d is not an identifier got %s", i, printNode(exp))
+		arg, err := typeCheckMethodParameters(pathParams, services, i, method.In(i), exp)
+		if err != nil {
+			return nil, err
 		}
-		switch an := arg.Name; an {
-		case requestIdentifier, contextIdentifier, responseIdentifier, loggerIdentifier:
-			args = append(args, arg.Name)
-		default:
-			if _, found := services[arg.Name]; found {
-				args = append(args, arg.Name)
-				continue
-			}
-			if slices.Contains(pathParams, arg.Name) {
-				args = append(args, arg.Name)
-				continue
-			}
-			return nil, fmt.Errorf("unknown argument %d %s", i, an)
-		}
+		args = append(args, arg)
 	}
 	return func(res http.ResponseWriter, req *http.Request) []reflect.Value {
 		var in []reflect.Value
 		for _, arg := range args {
 			switch arg {
-			case requestIdentifier:
+			case requestArgumentIdentifier:
 				in = append(in, reflect.ValueOf(req))
-			case contextIdentifier:
+			case contextArgumentIdentifier:
 				in = append(in, reflect.ValueOf(req.Context()))
-			case responseIdentifier:
+			case responseArgumentIdentifier:
 				in = append(in, reflect.ValueOf(res))
-			case loggerIdentifier:
+			case loggerArgumentIdentifier:
 				in = append(in, reflect.ValueOf(logger))
 			default:
 				s, ok := services[arg]
@@ -207,6 +228,31 @@ func generateInputsFunction(call *ast.CallExpr, logger *slog.Logger, services ma
 		}
 		return in
 	}, nil
+}
+
+func typeCheckMethodParameters(pathParams []string, services map[string]any, i int, tp reflect.Type, exp ast.Expr) (string, error) {
+	arg, ok := exp.(*ast.Ident)
+	if !ok {
+		return "", fmt.Errorf("method arguments must be identifiers: argument %d is not an identifier got %s", i, printNode(exp))
+	}
+	switch an := arg.Name; an {
+	case requestArgumentIdentifier:
+		return an, nil
+	case contextArgumentIdentifier:
+		return an, nil
+	case responseArgumentIdentifier:
+		return an, nil
+	case loggerArgumentIdentifier:
+		return an, nil
+	default:
+		if _, found := services[arg.Name]; found {
+			return an, nil
+		}
+		if slices.Contains(pathParams, arg.Name) {
+			return an, nil
+		}
+		return "", fmt.Errorf("unknown argument %d %s", i, an)
+	}
 }
 
 func simpleTemplateHandler(ts *template.Template, logger *slog.Logger, name string) http.HandlerFunc {

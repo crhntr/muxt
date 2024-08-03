@@ -599,6 +599,20 @@ func TestRoutes(t *testing.T) {
 
 		assert.Contains(t, logBuffer.String(), "some message")
 	})
+
+	t.Run("wrong number of arguments", func(t *testing.T) {
+		ts := template.Must(template.New("simple path").Parse(`{{define "POST /stdin s.LogLines(ctx, logger)"}}{{printf "lines: %d" .}}{{end}}`))
+		logBuffer := bytes.NewBuffer(nil)
+		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+		mux := http.NewServeMux()
+
+		err := templatehandler.Routes(mux, ts, logger, map[string]any{
+			"s": new(fake.ArticleService),
+		})
+		require.ErrorContains(t, err, "wrong number of arguments")
+	})
 }
 
 type errorWriter struct {
