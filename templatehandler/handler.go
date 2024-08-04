@@ -32,12 +32,12 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 		}
 
 		if pattern.Handler == "" {
-			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(ts, logger, t.Name()))
+			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, logger))
 			continue
 		}
 		switch exp := pattern.handler.(type) {
 		case *ast.CallExpr:
-			h, err := callMethodHandler(ts, logger, services, pattern, t.Name(), exp)
+			h, err := callMethodHandler(t, logger, services, pattern, exp)
 			if err != nil {
 				return fmt.Errorf("failed to create handler for %q: %w", pattern.Pattern, err)
 			}
@@ -51,7 +51,7 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 
 var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
 
-func callMethodHandler(ts *template.Template, logger *slog.Logger, services map[string]any, pattern Pattern, templateName string, call *ast.CallExpr) (http.HandlerFunc, error) {
+func callMethodHandler(t *template.Template, logger *slog.Logger, services map[string]any, pattern Pattern, call *ast.CallExpr) (http.HandlerFunc, error) {
 	scope, _, pathParams, err := generateScope(pattern, services)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func callMethodHandler(ts *template.Template, logger *slog.Logger, services map[
 	default:
 		return nil, fmt.Errorf("expected method call on some service %s known service names are %v", pattern.Handler, keys(services))
 	case *ast.SelectorExpr:
-		return createSelectorHandler(ts, templateName, call, function, services, scope, pathParams, logger)
+		return createSelectorHandler(t, call, function, services, scope, pathParams, logger)
 	}
 }
 
@@ -90,7 +90,7 @@ func generateScope(pattern Pattern, services map[string]any) ([]string, []string
 	return scope, serviceNames, pathParams, nil
 }
 
-func createSelectorHandler(ts *template.Template, templateName string, call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
+func createSelectorHandler(t *template.Template, call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
 	method, err := serviceMethod(call, function, services, scope)
 	if err != nil {
 		return nil, err
@@ -99,31 +99,31 @@ func createSelectorHandler(ts *template.Template, templateName string, call *ast
 	if err != nil {
 		return nil, err
 	}
-	return generateOutputsFunction(logger, ts, templateName, method, inputs)
+	return generateOutputsFunction(t, logger, method, inputs)
 }
 
 type inputsFunc = func(res http.ResponseWriter, req *http.Request) []reflect.Value
 
-func generateOutputsFunction(logger *slog.Logger, ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
+func generateOutputsFunction(t *template.Template, logger *slog.Logger, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
 	switch num := method.Type().NumOut(); num {
 	case 1:
-		return valueResultHandler(ts, templateName, method, inputs, logger), nil
+		return valueResultHandler(t, method, inputs, logger), nil
 	case 2:
-		return valuesResultHandler(ts, templateName, method, inputs, logger), nil
+		return valuesResultHandler(t, method, inputs, logger), nil
 	default:
 		return nil, fmt.Errorf("method must either return (T) or (T, error)")
 	}
 }
 
-func valueResultHandler(ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
+func valueResultHandler(t *template.Template, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		in := inputs(res, req)
 		out := method.Call(in)
-		execute(res, req, logger, ts, templateName, out[0].Interface())
+		execute(res, req, t, logger, out[0].Interface())
 	}
 }
 
-func valuesResultHandler(ts *template.Template, templateName string, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
+func valuesResultHandler(t *template.Template, method reflect.Value, inputs inputsFunc, logger *slog.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		in := inputs(res, req)
 		out := method.Call(in)
@@ -134,7 +134,7 @@ func valuesResultHandler(ts *template.Template, templateName string, method refl
 			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		execute(res, req, logger, ts, templateName, callRes.Interface())
+		execute(res, req, t, logger, callRes.Interface())
 	}
 }
 
@@ -255,15 +255,15 @@ func typeCheckMethodParameters(pathParams []string, services map[string]any, i i
 	}
 }
 
-func simpleTemplateHandler(ts *template.Template, logger *slog.Logger, name string) http.HandlerFunc {
+func simpleTemplateHandler(t *template.Template, logger *slog.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		execute(res, req, logger, ts, name, req)
+		execute(res, req, t, logger, req)
 	}
 }
 
-func execute(res http.ResponseWriter, req *http.Request, logger *slog.Logger, ts *template.Template, name string, data any) {
+func execute(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any) {
 	var buf bytes.Buffer
-	if err := ts.ExecuteTemplate(&buf, name, data); err != nil {
+	if err := t.Execute(&buf, data); err != nil {
 		logger.Error("failed to render page", "method", req.Method, "path", req.URL.Path, "error", err)
 		http.Error(res, "failed to render page", http.StatusInternalServerError)
 		return
