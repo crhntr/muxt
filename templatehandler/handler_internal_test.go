@@ -1,7 +1,6 @@
 package templatehandler
 
 import (
-	"go/ast"
 	"net/http"
 	"testing"
 
@@ -93,39 +92,6 @@ func Test_endpoint(t *testing.T) {
 			ExpMatch:     true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, "OPTIONS method not allowed")
-			},
-		},
-		{
-			Name:         "handle method call with path parameter",
-			TemplateName: "GET /article/{articleID} x.ReadArticle(req, articleID)",
-			ExpMatch:     true,
-			Error: func(t *testing.T, err error) {
-				assert.NoError(t, err)
-			},
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, "GET", pat.Method)
-				assert.Equal(t, "/article/{articleID}", pat.Path)
-				assert.Equal(t, "x.ReadArticle(req, articleID)", pat.Handler)
-				assert.Equal(t, &ast.CallExpr{
-					Fun: &ast.SelectorExpr{
-						X:   &ast.Ident{Name: "x", NamePos: 1},
-						Sel: &ast.Ident{NamePos: 3, Name: "ReadArticle"},
-					},
-					Lparen: 14,
-					Args: []ast.Expr{
-						&ast.Ident{Name: "req", NamePos: 15},
-						&ast.Ident{Name: "articleID", NamePos: 20},
-					},
-					Rparen: 29,
-				}, pat.handler)
-			},
-		},
-		{
-			Name:         "handler is not an expression",
-			TemplateName: "GET /article/{articleID} T int",
-			ExpMatch:     true,
-			Error: func(t *testing.T, err error) {
-				assert.ErrorContains(t, err, "failed to parse handler expression")
 			},
 		},
 	} {

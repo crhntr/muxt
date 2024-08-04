@@ -157,6 +157,17 @@ func TestRoutes(t *testing.T) {
 		}
 	})
 
+	t.Run("selector must be an expression", func(t *testing.T) {
+		ts := template.Must(template.New("simple path").Parse(`{{define "GET / var x int" }}{{.}}{{end}}`))
+		logBuffer := bytes.NewBuffer(nil)
+		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+		mux := http.NewServeMux()
+		err := templatehandler.Routes(mux, ts, logger, nil)
+		require.ErrorContains(t, err, "failed to parse handler expression")
+	})
+
 	t.Run("selector must be a service", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / func().Method(req)" }}{{.}}{{end}}`))
 		logBuffer := bytes.NewBuffer(nil)

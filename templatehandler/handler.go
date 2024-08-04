@@ -35,7 +35,11 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, logger))
 			continue
 		}
-		switch exp := pattern.handler.(type) {
+		ex, err := parser.ParseExpr(pattern.Handler)
+		if err != nil {
+			return fmt.Errorf("failed to parse handler expression: %w", err)
+		}
+		switch exp := ex.(type) {
 		case *ast.CallExpr:
 			h, err := callMethodHandler(t, logger, services, pattern, exp)
 			if err != nil {
@@ -277,8 +281,6 @@ func execute(res http.ResponseWriter, req *http.Request, t *template.Template, l
 type Pattern struct {
 	Method, Host, Path, Pattern string
 	Handler                     string
-
-	handler ast.Expr
 }
 
 var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+ )?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
@@ -300,14 +302,6 @@ func endpoint(in string) (Pattern, error, bool) {
 	default:
 		return p, fmt.Errorf("%s method not allowed", p.Method), true
 	case "", http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
-	}
-
-	if p.Handler != "" {
-		ex, err := parser.ParseExpr(p.Handler)
-		if err != nil {
-			return p, fmt.Errorf("failed to parse handler expression: %w", err), true
-		}
-		p.handler = ex
 	}
 
 	return p, nil, true
