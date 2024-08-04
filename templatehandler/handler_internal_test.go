@@ -31,6 +31,20 @@ func Test_endpoint(t *testing.T) {
 			},
 		},
 		{
+			Name:         "multiple spaces after method",
+			TemplateName: "GET  /",
+			ExpMatch:     true,
+			Pattern: func(t *testing.T, pat Pattern) {
+				assert.Equal(t, Pattern{
+					Method:  http.MethodGet,
+					Host:    "",
+					Path:    "/",
+					Pattern: "GET  /",
+					Handler: "",
+				}, pat)
+			},
+		},
+		{
 			Name:         "post root",
 			TemplateName: "POST /",
 			ExpMatch:     true,

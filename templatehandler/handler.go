@@ -283,7 +283,7 @@ type Pattern struct {
 	Handler                     string
 }
 
-var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+ )?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
+var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
 
 func endpoint(in string) (Pattern, error, bool) {
 	if !templateNameMux.MatchString(in) {
