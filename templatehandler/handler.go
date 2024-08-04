@@ -23,12 +23,12 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 		}
 	}
 	for _, t := range ts.Templates() {
-		pattern, err, match := endpoint(t.Name())
+		pattern, err, match := NewEndpointDefinition(t.Name())
 		if !match {
 			continue
 		}
 		if err != nil {
-			return fmt.Errorf("failed to parse endpoint for template %q: %w", t.Name(), err)
+			return fmt.Errorf("failed to parse NewPattern for template %q: %w", t.Name(), err)
 		}
 
 		if pattern.Handler == "" {
@@ -55,7 +55,7 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 
 var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
 
-func callMethodHandler(t *template.Template, logger *slog.Logger, services map[string]any, pattern Pattern, call *ast.CallExpr) (http.HandlerFunc, error) {
+func callMethodHandler(t *template.Template, logger *slog.Logger, services map[string]any, pattern EndpointDefinition, call *ast.CallExpr) (http.HandlerFunc, error) {
 	scope, _, pathParams, err := generateScope(pattern, services)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func callMethodHandler(t *template.Template, logger *slog.Logger, services map[s
 	}
 }
 
-func generateScope(pattern Pattern, services map[string]any) ([]string, []string, []string, error) {
+func generateScope(pattern EndpointDefinition, services map[string]any) ([]string, []string, []string, error) {
 	scope := append([]string{"ctx", "request"})
 	var serviceNames []string
 	for n := range services {
@@ -278,19 +278,19 @@ func execute(res http.ResponseWriter, req *http.Request, t *template.Template, l
 	}
 }
 
-type Pattern struct {
+type EndpointDefinition struct {
 	Method, Host, Path, Pattern string
 	Handler                     string
 }
 
 var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
 
-func endpoint(in string) (Pattern, error, bool) {
+func NewEndpointDefinition(in string) (EndpointDefinition, error, bool) {
 	if !templateNameMux.MatchString(in) {
-		return Pattern{}, nil, false
+		return EndpointDefinition{}, nil, false
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
-	p := Pattern{
+	p := EndpointDefinition{
 		Method:  strings.TrimSpace(matches[templateNameMux.SubexpIndex("Method")]),
 		Host:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("Host")]),
 		Path:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("Path")]),

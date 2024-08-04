@@ -13,15 +13,15 @@ func Test_endpoint(t *testing.T) {
 		Name         string
 		TemplateName string
 		ExpMatch     bool
-		Pattern      func(t *testing.T, pat Pattern)
+		Pattern      func(t *testing.T, pat EndpointDefinition)
 		Error        func(t *testing.T, err error)
 	}{
 		{
 			Name:         "get root",
 			TemplateName: "GET /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodGet,
 					Host:    "",
 					Path:    "/",
@@ -34,8 +34,8 @@ func Test_endpoint(t *testing.T) {
 			Name:         "multiple spaces after method",
 			TemplateName: "GET  /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodGet,
 					Host:    "",
 					Path:    "/",
@@ -48,8 +48,8 @@ func Test_endpoint(t *testing.T) {
 			Name:         "post root",
 			TemplateName: "POST /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodPost,
 					Host:    "",
 					Path:    "/",
@@ -62,8 +62,8 @@ func Test_endpoint(t *testing.T) {
 			Name:         "patch root",
 			TemplateName: "PATCH /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodPatch,
 					Host:    "",
 					Path:    "/",
@@ -76,8 +76,8 @@ func Test_endpoint(t *testing.T) {
 			Name:         "delete root",
 			TemplateName: "DELETE /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodDelete,
 					Host:    "",
 					Path:    "/",
@@ -90,8 +90,8 @@ func Test_endpoint(t *testing.T) {
 			Name:         "put root",
 			TemplateName: "PUT /",
 			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat Pattern) {
-				assert.Equal(t, Pattern{
+			Pattern: func(t *testing.T, pat EndpointDefinition) {
+				assert.Equal(t, EndpointDefinition{
 					Method:  http.MethodPut,
 					Host:    "",
 					Path:    "/",
@@ -110,7 +110,7 @@ func Test_endpoint(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			pat, err, match := endpoint(tt.TemplateName)
+			pat, err, match := NewEndpointDefinition(tt.TemplateName)
 			require.Equal(t, tt.ExpMatch, match)
 			if tt.Error != nil {
 				tt.Error(t, err)

@@ -130,7 +130,7 @@ func TestRoutes(t *testing.T) {
 		}))
 		mux := http.NewServeMux()
 		err := templatehandler.Routes(mux, ts, logger, nil)
-		require.ErrorContains(t, err, `failed to parse endpoint for template "CONNECT /articles": CONNECT method not allowed`)
+		require.ErrorContains(t, err, `failed to parse NewPattern for template "CONNECT /articles": CONNECT method not allowed`)
 	})
 
 	t.Run("no method", func(t *testing.T) {
