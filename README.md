@@ -5,8 +5,12 @@ This is especially helpful when you are writing HTMX.
 ## Example
 
 The "define" blocks in the following template register handlers with the server mux.
+
 The http method, http host, and path semantics match those of in the HTTP package.
+
 This library extends this to add custom data handler invocations see "PATCH /fruits/{fruit}". It is configured to call EditRow on template parse time provided receiver.
+
+When no handler method is specified in the "declare" string (as is the case with "GET /fruits/{fruit}/edit" in the example), the template receives the *http.Request.  
 
 ```html
 <!DOCTYPE html>
