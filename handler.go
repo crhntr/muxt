@@ -345,7 +345,6 @@ func (def EndpointDefinition) pathParams() ([]string, error) {
 		}
 	}
 	return result, nil
-
 }
 
 var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
