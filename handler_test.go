@@ -448,6 +448,28 @@ func TestRoutes(t *testing.T) {
 		err := muxt.Handlers(mux, ts, muxt.WithReceiver(new(fake.Receiver)))
 		require.ErrorContains(t, err, "wrong number of arguments")
 	})
+
+	t.Run("custom execute function", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			/* language=gotemplate */
+			`{{define "GET /" }}<h1>Hello, friend!</h1>{{end}}`,
+		))
+		mux := http.NewServeMux()
+		err := muxt.Handlers(mux, ts, muxt.WithExecuteFunc(func(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any) {
+			res.WriteHeader(http.StatusBadRequest)
+		}))
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	})
 }
 
 type errorWriter struct {
