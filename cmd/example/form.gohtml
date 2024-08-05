@@ -8,61 +8,50 @@
 	        crossorigin="anonymous"></script>
 	<script src="https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js"></script>
 
-	<style>
-	  #error {
-		  background: lightcoral;
-		  font-weight: bold;
-		  padding: .25rem;
-		  border-radius: .25rem;
-	  }
-
-	  #error:empty {
-		  display: none;
-	  }
-	</style>
-
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 </head>
 <body hx-ext="response-targets">
-<table>
-	<thead>
-	<tr>
-		<th>Fruit</th>
-		<th>Count</th>
-	</tr>
-	</thead>
-	<tbody>
-
-  {{- range . -}}
-      {{- block "fruit row" . -}}
-				<tr>
-					<td>{{ .Fruit }}</td>
-					<td hx-get="/fruits/{{.Fruit}}/edit" hx-include="this" hx-swap="outerHTML" hx-target="closest tr">{{ .Count }}
-						<input type="hidden" name="count" value="{{.Count}}">
-					</td>
-				</tr>
-      {{- end -}}
-  {{- end -}}
-
-
-  {{- define "GET /fruits/{fruit}/edit" -}}
+<main class="container">
+	<table>
+		<thead>
 		<tr>
-			<td>{{ .PathValue "fruit" }}</td>
-			<td>
-				<form hx-patch="/fruits/{{.PathValue " fruit
-        "}}" hx-target-error="#error">
-				<input aria-label="Count" type="number" name="count" value="{{ .FormValue " count" }}" step="1" min="0">
-				<input type="submit" value="Update">
-				</form>
-				<p id="error"></p>
-			</td>
+			<th>Fruit</th>
+			<th>Count</th>
 		</tr>
-  {{- end -}}
+		</thead>
+		<tbody>
 
-  {{- define "PATCH /fruits/{fruit} EditRow(response, request, fruit)" }}
-      {{template "fruit row" .}}
-  {{ end -}}
+    {{- range . -}}
+        {{- block "fruit row" . -}}
+					<tr>
+						<td>{{ .Fruit }}</td>
+						<td hx-get="/fruits/{{.Fruit}}/edit" hx-include="this" hx-swap="outerHTML" hx-target="closest tr">{{ .Count }}
+							<input type="hidden" name="count" value="{{.Count}}">
+						</td>
+					</tr>
+        {{- end -}}
+    {{- end -}}
 
-	</tbody>
-</table>
+
+    {{- define "GET /fruits/{fruit}/edit" -}}
+			<tr>
+				<td>{{ .PathValue "fruit" }}</td>
+				<td>
+					<form hx-patch='/fruits/{{.PathValue "fruit" }}' hx-target-error="#error">
+						<input aria-label="Count" type="number" name="count" value='{{ .FormValue "count" }}' step="1" min="0">
+						<input type="submit" value="Update">
+					</form>
+					<p id="error"></p>
+				</td>
+			</tr>
+    {{- end -}}
+
+    {{- define "PATCH /fruits/{fruit} EditRow(response, request, fruit)" }}
+        {{template "fruit row" .}}
+    {{ end -}}
+
+		</tbody>
+	</table>
+</main>
 </body>
 </html>
