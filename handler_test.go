@@ -457,7 +457,7 @@ func TestRoutes(t *testing.T) {
 			`{{define "GET /" }}<h1>Hello, friend!</h1>{{end}}`,
 		))
 		mux := http.NewServeMux()
-		err := muxt.Handlers(mux, ts, muxt.WithExecuteFunc(func(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any) {
+		err := muxt.Handlers(mux, ts, muxt.WithDataFunc(func(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any) {
 			res.WriteHeader(http.StatusBadRequest)
 		}))
 		require.NoError(t, err)

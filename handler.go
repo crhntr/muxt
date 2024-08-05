@@ -39,7 +39,7 @@ func newOptions() Options {
 
 func WithStructuredLogger(log *slog.Logger) Options { return newOptions().WithStructuredLogger(log) }
 func WithReceiver(r any) Options                    { return newOptions().WithReceiver(r) }
-func WithExecuteFunc(ex ExecuteFunc[any]) Options   { return newOptions().WithExecuteFunc(ex) }
+func WithDataFunc(ex ExecuteFunc[any]) Options      { return newOptions().WithDataFunc(ex) }
 func WithErrorFunc(ex ExecuteFunc[error]) Options   { return newOptions().WithErrorFunc(ex) }
 
 func (o Options) WithStructuredLogger(log *slog.Logger) Options {
@@ -52,7 +52,7 @@ func (o Options) WithReceiver(r any) Options {
 	return o
 }
 
-func (o Options) WithExecuteFunc(ex ExecuteFunc[any]) Options {
+func (o Options) WithDataFunc(ex ExecuteFunc[any]) Options {
 	o.execute = ex
 	return o
 }
