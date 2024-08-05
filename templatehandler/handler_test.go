@@ -26,6 +26,8 @@ import (
 //go:generate counterfeiter -generate
 //counterfeiter:generate -o ../internal/fake/receiver.go --fake-name Receiver . receiver
 
+var _ receiver = (*fake.Receiver)(nil)
+
 type (
 	receiver interface {
 		ListArticles(ctx context.Context) ([]example.Article, error)
