@@ -367,7 +367,7 @@ func (def EndpointDefinition) pathParams() ([]string, error) {
 	return result, nil
 }
 
-var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
+var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(((?P<Method>[A-Z]+)\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
 
 func NewEndpointDefinition(in string) (EndpointDefinition, error, bool) {
 	if !templateNameMux.MatchString(in) {
@@ -375,11 +375,11 @@ func NewEndpointDefinition(in string) (EndpointDefinition, error, bool) {
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
 	p := EndpointDefinition{
-		Method:  strings.TrimSpace(matches[templateNameMux.SubexpIndex("Method")]),
-		Host:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("Host")]),
-		Path:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("Path")]),
-		Handler: strings.TrimSpace(matches[templateNameMux.SubexpIndex("Handler")]),
-		Pattern: strings.TrimSpace(matches[templateNameMux.SubexpIndex("Pattern")]),
+		Method:  matches[templateNameMux.SubexpIndex("Method")],
+		Host:    matches[templateNameMux.SubexpIndex("Host")],
+		Path:    matches[templateNameMux.SubexpIndex("Path")],
+		Handler: matches[templateNameMux.SubexpIndex("Handler")],
+		Pattern: matches[templateNameMux.SubexpIndex("Pattern")],
 	}
 
 	switch p.Method {
