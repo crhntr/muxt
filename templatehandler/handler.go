@@ -2,12 +2,14 @@ package templatehandler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"go/ast"
 	"go/format"
 	"go/parser"
 	"go/token"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -17,8 +19,49 @@ import (
 	"sync"
 )
 
-func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, receiver any) error {
-	receiverValue := sync.OnceValue(func() reflect.Value { return reflect.ValueOf(receiver) })
+type Options struct {
+	logger   *slog.Logger
+	receiver any
+}
+
+func newOptions() Options {
+	return Options{
+		logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelError,
+		})),
+		receiver: nil,
+	}
+}
+
+func WithStructuredLogger(log *slog.Logger) Options {
+	return newOptions().WithStructuredLogger(log)
+}
+
+func WithReceiver(r any) Options {
+	return newOptions().WithReceiver(r)
+}
+
+func (o Options) WithStructuredLogger(log *slog.Logger) Options {
+	o.logger = log
+	return o
+}
+
+func (o Options) WithReceiver(r any) Options {
+	o.receiver = r
+	return o
+}
+
+func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) error {
+	opts := newOptions()
+	for _, o := range options {
+		if o.logger != nil {
+			opts.logger = o.logger
+		}
+		if o.receiver != nil {
+			opts.receiver = o.receiver
+		}
+	}
+	receiver := reflect.ValueOf(opts.receiver)
 	for _, t := range ts.Templates() {
 		pattern, err, match := NewEndpointDefinition(t.Name())
 		if !match {
@@ -27,10 +70,12 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, rece
 		if err != nil {
 			return fmt.Errorf("failed to parse NewPattern for template %q: %w", t.Name(), err)
 		}
-
 		if pattern.Handler == "" {
-			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, logger))
+			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, opts.logger))
 			continue
+		}
+		if opts.receiver == nil {
+			return fmt.Errorf("receiver is nil")
 		}
 		ex, err := parser.ParseExpr(pattern.Handler)
 		if err != nil {
@@ -38,12 +83,9 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, rece
 		}
 		switch exp := ex.(type) {
 		case *ast.CallExpr:
-			if receiver == nil {
-				return fmt.Errorf("receiver is nil")
-			}
-			h, err := callMethodHandler(t, logger, receiverValue(), pattern, exp)
+			h, err := callMethodHandler(t, opts.logger, receiver, pattern, exp)
 			if err != nil {
-				return fmt.Errorf("failed to create handler for %q: %w", pattern.Pattern, err)
+				return fmt.Errorf("failed to create handler for %q: %w", pattern.Pattern+" "+pattern.Handler, err)
 			}
 			mux.HandleFunc(pattern.Pattern, h)
 		default:
@@ -169,9 +211,9 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 	}
 	var args []string
 	for i, exp := range call.Args {
-		arg, err := typeCheckMethodParameters(pathParams, i, exp)
+		arg, err := typeCheckMethodParameters(pathParams, method.In(i), exp)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("method argument at index %d: %w", i, err)
 		}
 		args = append(args, arg)
 	}
@@ -197,26 +239,46 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 	}, nil
 }
 
-func typeCheckMethodParameters(pathParams []string, i int, exp ast.Expr) (string, error) {
+var argumentType = sync.OnceValue(func() func(argName string, pathParams []string) (reflect.Type, error) {
+	requestType := reflect.TypeFor[*http.Request]()
+	contextType := reflect.TypeFor[context.Context]()
+	responseType := reflect.TypeFor[http.ResponseWriter]()
+	loggerType := reflect.TypeFor[*slog.Logger]()
+	stringType := reflect.TypeFor[string]()
+	return func(argName string, pathParams []string) (reflect.Type, error) {
+		var argType reflect.Type
+		switch argName {
+		case requestArgumentIdentifier:
+			argType = requestType
+		case contextArgumentIdentifier:
+			argType = contextType
+		case responseArgumentIdentifier:
+			argType = responseType
+		case loggerArgumentIdentifier:
+			argType = loggerType
+		default:
+			if !slices.Contains(pathParams, argName) {
+				return nil, fmt.Errorf("unknown argument type for %s", argName)
+			}
+			argType = stringType
+		}
+		return argType, nil
+	}
+})
+
+func typeCheckMethodParameters(pathParams []string, paramType reflect.Type, exp ast.Expr) (string, error) {
 	arg, ok := exp.(*ast.Ident)
 	if !ok {
-		return "", fmt.Errorf("method arguments must be identifiers: argument %d is not an identifier got %s", i, printNode(exp))
+		return "", fmt.Errorf("argument is not an identifier got %s", printNode(exp))
 	}
-	switch an := arg.Name; an {
-	case requestArgumentIdentifier:
-		return an, nil
-	case contextArgumentIdentifier:
-		return an, nil
-	case responseArgumentIdentifier:
-		return an, nil
-	case loggerArgumentIdentifier:
-		return an, nil
-	default:
-		if slices.Contains(pathParams, arg.Name) {
-			return an, nil
-		}
-		return "", fmt.Errorf("unknown argument %d %s", i, an)
+	argType, err := argumentType()(arg.Name, pathParams)
+	if err != nil {
+		return arg.Name, err
 	}
+	if !argType.AssignableTo(paramType) {
+		return arg.Name, fmt.Errorf("argument %s %s is not assignable to parameter type %s", arg.Name, argType, paramType)
+	}
+	return arg.Name, nil
 }
 
 func simpleTemplateHandler(t *template.Template, logger *slog.Logger) http.HandlerFunc {

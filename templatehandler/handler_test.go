@@ -48,12 +48,8 @@ func TestRoutes(t *testing.T) {
 			/* language=gotemplate */
 			`{{define "GET /" }}<h1>Hello, friend!</h1>{{end}}`,
 		))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, nil)
+		err := templatehandler.Handlers(mux, ts)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -71,10 +67,6 @@ func TestRoutes(t *testing.T) {
 			/* language=gotemplate */
 			`{{define "GET /articles ListArticles(ctx)" }}<ul>{{range .}}<li data-id="{{.ID}}">{{.Title}}</li>{{end}}</ul>{{end}}`,
 		))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		as := new(fake.Receiver)
 		articles := []example.Article{
 			{ID: 1, Title: "Hello"},
@@ -82,7 +74,7 @@ func TestRoutes(t *testing.T) {
 		}
 		as.ListArticlesReturns(articles, nil)
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, as)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(as))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/articles", nil)
@@ -108,24 +100,16 @@ func TestRoutes(t *testing.T) {
 	t.Run("unexpected method", func(t *testing.T) {
 		//
 		ts := template.Must(template.New("simple path").Parse(`{{define "CONNECT /articles" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, nil)
+		err := templatehandler.Handlers(mux, ts)
 		require.ErrorContains(t, err, `failed to parse NewPattern for template "CONNECT /articles": CONNECT method not allowed`)
 	})
 
 	t.Run("no method", func(t *testing.T) {
 		//
 		ts := template.Must(template.New("simple path").Parse(`{{define "/x/y" }}{{.Method}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, nil)
+		err := templatehandler.Handlers(mux, ts)
 		require.NoError(t, err)
 
 		for _, method := range []string{http.MethodGet, http.MethodPost} {
@@ -143,94 +127,61 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("selector must be an expression", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / var x int" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, nil)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(new(fake.Receiver)))
 		require.ErrorContains(t, err, "failed to parse handler expression")
 	})
 
 	t.Run("function must be an identifier", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / func().Method(req)" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		rec := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, rec)
-		require.ErrorContains(t, err, `failed to create handler for "GET /": expected method call on receiver`)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(rec))
+		require.ErrorContains(t, err, `expected method call on receiver`)
 	})
 
 	t.Run("receiver is nil and a method is expected", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / Method(req)" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, nil)
+		err := templatehandler.Handlers(mux, ts)
 		require.ErrorContains(t, err, "receiver is nil")
 	})
 
 	t.Run("method not found on basic type", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / Foo(req)" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		err := templatehandler.Routes(mux, ts, logger, 100)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(100))
 		require.ErrorContains(t, err, `method Foo not found on int`)
 	})
 
 	t.Run("ellipsis not allowed", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /{name} ToUpper(name...)" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.ErrorContains(t, err, `ellipsis call not allowed`)
 	})
 
 	t.Run("duplicate path param identifier", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /articles/{id}/comment/{id} GetComment(ctx, id, id)" }}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.ErrorContains(t, err, `identifier already declared`)
 	})
 
 	t.Run("path param is not an identifier ", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /{key-id} SomeString(ctx, key-id)"}}KEY{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.ErrorContains(t, err, `path parameter name not permitted: "key-id" is not a Go identifier`)
 	})
 
 	t.Run("path param is not an identifier ", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /{key-id} SomeString(ctx, key-id)"}}KEY{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(new(fake.Receiver)))
 		require.ErrorContains(t, err, `path parameter name not permitted: "key-id" is not a Go identifier`)
 	})
 
@@ -238,13 +189,9 @@ func TestRoutes(t *testing.T) {
 		ts := template.Must(template.New("simple path").Funcs(template.FuncMap{
 			"errorNow": func() (string, error) { return "", fmt.Errorf("BANANA") },
 		}).Parse(`{{define "GET / ListArticles(ctx)"}}{{ errorNow }}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -262,28 +209,7 @@ func TestRoutes(t *testing.T) {
 			Level: slog.LevelDebug,
 		}))
 		mux := http.NewServeMux()
-		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
-		require.NoError(t, err)
-
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		rec := httptest.NewRecorder()
-
-		mux.ServeHTTP(errorWriter{ResponseWriter: rec}, req)
-		res := rec.Result()
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Contains(t, logBuffer.String(), "failed to write full response")
-	})
-
-	t.Run("write fails", func(t *testing.T) {
-		ts := template.Must(template.New("simple path").Parse(`{{define "GET /"}}{{printf "%d" 199}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
-		mux := http.NewServeMux()
-		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithStructuredLogger(logger))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -297,13 +223,8 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("too many results", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / TooManyResults()" }}{{.}}{{end}}"`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(new(fake.Receiver)))
 		require.ErrorContains(t, err, `method must either return (T) or (T, error)`)
 	})
 
@@ -316,7 +237,7 @@ func TestRoutes(t *testing.T) {
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.ListArticlesReturns(nil, fmt.Errorf("banana"))
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s).WithStructuredLogger(logger))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/number-of-articles", nil)
@@ -334,26 +255,18 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("not a function call", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /number-of-articles <-c"}}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.ErrorContains(t, err, "unexpected handler expression")
 	})
 
 	t.Run("single return", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /number-of-authors NumAuthors()"}}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.NumAuthorsReturns(234)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/number-of-authors", nil)
@@ -370,14 +283,10 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("request as a parameter", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /auth CheckAuth(request)"}}OK{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.NumAuthorsReturns(234)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/auth", nil)
@@ -394,27 +303,19 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("non identifier params", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /site-owner GetComment(ctx, 3, 1+2)"}}OK{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.NumAuthorsReturns(234)
-		err := templatehandler.Routes(mux, ts, logger, s)
-		require.ErrorContains(t, err, "method arguments must be identifiers: argument 1 is not an identifier got 3")
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
+		require.ErrorContains(t, err, `method argument at index 1: argument is not an identifier got 3`)
 	})
 
 	t.Run("query param", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET /input/{in} Parse(in)"}}{{.}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.NumAuthorsReturns(234)
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/input/peach", nil)
@@ -428,15 +329,11 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("unknown identifier", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "GET / Parse(enemy)"}}@{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		s.NumAuthorsReturns(234)
-		err := templatehandler.Routes(mux, ts, logger, s)
-		require.ErrorContains(t, err, "unknown argument 0 enemy")
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s))
+		require.ErrorContains(t, err, `method argument at index 0: unknown argument type for enemy`)
 	})
 
 	t.Run("full handler func signature", func(t *testing.T) {
@@ -454,7 +351,7 @@ func TestRoutes(t *testing.T) {
 			return "<strong>Progressive</strong>"
 		}
 
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(s).WithStructuredLogger(logger))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/input/peach", nil)
@@ -480,7 +377,7 @@ func TestRoutes(t *testing.T) {
 			return 42
 		}
 
-		err := templatehandler.Routes(mux, ts, logger, s)
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithStructuredLogger(logger).WithReceiver(s))
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/stdin", strings.NewReader(""))
@@ -496,13 +393,8 @@ func TestRoutes(t *testing.T) {
 
 	t.Run("wrong number of arguments", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Parse(`{{define "POST /stdin LogLines(ctx, logger)"}}{{printf "lines: %d" .}}{{end}}`))
-		logBuffer := bytes.NewBuffer(nil)
-		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		}))
 		mux := http.NewServeMux()
-
-		err := templatehandler.Routes(mux, ts, logger, new(fake.Receiver))
+		err := templatehandler.Handlers(mux, ts, templatehandler.WithReceiver(new(fake.Receiver)))
 		require.ErrorContains(t, err, "wrong number of arguments")
 	})
 }
