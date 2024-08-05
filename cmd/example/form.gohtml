@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+{{block "head" "example"}}
 <head>
 	<meta charset="UTF-8"/>
 	<title>Hello, world!</title>
@@ -10,6 +11,7 @@
 
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 </head>
+{{end}}
 <body hx-ext="response-targets">
 <main class="container">
 	<table>
@@ -55,3 +57,15 @@
 </main>
 </body>
 </html>
+
+{{define "GET /help"}}
+	<!DOCTYPE html>
+	<html lang="us-en">
+	{{template "head" "Help"}}
+	<body>
+		<main class="container">
+			Hello, help!
+		</main>
+	</body>
+	</html>
+{{end}}
