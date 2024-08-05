@@ -41,6 +41,7 @@ type (
 		LogLines(*slog.Logger) int
 		Template(*template.Template) template.HTML
 		Type(any) string
+		Tuple() (string, string)
 	}
 )
 
@@ -270,7 +271,7 @@ func TestRoutes(t *testing.T) {
 		body, _ := io.ReadAll(res.Body)
 		assert.NotContains(t, string(body), "banana")
 
-		assert.Contains(t, logBuffer.String(), "service call failed")
+		assert.Contains(t, logBuffer.String(), "banana")
 	})
 
 	t.Run("not a function call", func(t *testing.T) {
@@ -468,6 +469,42 @@ func TestRoutes(t *testing.T) {
 
 		res := rec.Result()
 
+		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	})
+	t.Run("custom execute function", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			`{{define "GET / Tuple()" }}<h1>{{.}}</h1>{{end}}`,
+		))
+		mux := http.NewServeMux()
+		err := muxt.Handlers(mux, ts, muxt.WithReceiver(new(fake.Receiver)))
+		require.ErrorContains(t, err, "the second result must be an error")
+	})
+
+	t.Run("when teh error handler is overwritten", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			`{{define "GET / ListArticles(ctx)" }}<h1>{{len .}}</h1>{{end}}`,
+		))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+		listErr := fmt.Errorf("banana")
+		s.ListArticlesReturns(nil, listErr)
+		const userFacingError = "🍌"
+		err := muxt.Handlers(mux, ts, muxt.WithErrorFunc(func(res http.ResponseWriter, req *http.Request, ts *template.Template, logger *slog.Logger, err error) {
+			assert.Equal(t, "GET / ListArticles(ctx)", ts.Name())
+			assert.NotNil(t, logger)
+			assert.Error(t, err)
+			assert.Equal(t, err, listErr)
+			res.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(res, userFacingError)
+		}).WithReceiver(s))
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		res := rec.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 }

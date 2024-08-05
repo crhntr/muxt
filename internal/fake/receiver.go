@@ -147,6 +147,18 @@ type Receiver struct {
 		result2 int
 		result3 int
 	}
+	TupleStub        func() (string, string)
+	tupleMutex       sync.RWMutex
+	tupleArgsForCall []struct {
+	}
+	tupleReturns struct {
+		result1 string
+		result2 string
+	}
+	tupleReturnsOnCall map[int]struct {
+		result1 string
+		result2 string
+	}
 	TypeStub        func(any) string
 	typeMutex       sync.RWMutex
 	typeArgsForCall []struct {
@@ -839,6 +851,62 @@ func (fake *Receiver) TooManyResultsReturnsOnCall(i int, result1 int, result2 in
 	}{result1, result2, result3}
 }
 
+func (fake *Receiver) Tuple() (string, string) {
+	fake.tupleMutex.Lock()
+	ret, specificReturn := fake.tupleReturnsOnCall[len(fake.tupleArgsForCall)]
+	fake.tupleArgsForCall = append(fake.tupleArgsForCall, struct {
+	}{})
+	stub := fake.TupleStub
+	fakeReturns := fake.tupleReturns
+	fake.recordInvocation("Tuple", []interface{}{})
+	fake.tupleMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *Receiver) TupleCallCount() int {
+	fake.tupleMutex.RLock()
+	defer fake.tupleMutex.RUnlock()
+	return len(fake.tupleArgsForCall)
+}
+
+func (fake *Receiver) TupleCalls(stub func() (string, string)) {
+	fake.tupleMutex.Lock()
+	defer fake.tupleMutex.Unlock()
+	fake.TupleStub = stub
+}
+
+func (fake *Receiver) TupleReturns(result1 string, result2 string) {
+	fake.tupleMutex.Lock()
+	defer fake.tupleMutex.Unlock()
+	fake.TupleStub = nil
+	fake.tupleReturns = struct {
+		result1 string
+		result2 string
+	}{result1, result2}
+}
+
+func (fake *Receiver) TupleReturnsOnCall(i int, result1 string, result2 string) {
+	fake.tupleMutex.Lock()
+	defer fake.tupleMutex.Unlock()
+	fake.TupleStub = nil
+	if fake.tupleReturnsOnCall == nil {
+		fake.tupleReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 string
+		})
+	}
+	fake.tupleReturnsOnCall[i] = struct {
+		result1 string
+		result2 string
+	}{result1, result2}
+}
+
 func (fake *Receiver) Type(arg1 any) string {
 	fake.typeMutex.Lock()
 	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
@@ -925,6 +993,8 @@ func (fake *Receiver) Invocations() map[string][][]interface{} {
 	defer fake.toUpperMutex.RUnlock()
 	fake.tooManyResultsMutex.RLock()
 	defer fake.tooManyResultsMutex.RUnlock()
+	fake.tupleMutex.RLock()
+	defer fake.tupleMutex.RUnlock()
 	fake.typeMutex.RLock()
 	defer fake.typeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -22,7 +22,8 @@ import (
 type Options struct {
 	logger   *slog.Logger
 	receiver any
-	execute  func(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any)
+	execute  ExecuteFunc[any]
+	error    ExecuteFunc[error]
 }
 
 func newOptions() Options {
@@ -32,12 +33,14 @@ func newOptions() Options {
 		})),
 		receiver: nil,
 		execute:  defaultExecute,
+		error:    defaultError,
 	}
 }
 
 func WithStructuredLogger(log *slog.Logger) Options { return newOptions().WithStructuredLogger(log) }
 func WithReceiver(r any) Options                    { return newOptions().WithReceiver(r) }
-func WithExecuteFunc(execute executeFunc) Options   { return newOptions().WithExecuteFunc(execute) }
+func WithExecuteFunc(ex ExecuteFunc[any]) Options   { return newOptions().WithExecuteFunc(ex) }
+func WithErrorFunc(ex ExecuteFunc[error]) Options   { return newOptions().WithErrorFunc(ex) }
 
 func (o Options) WithStructuredLogger(log *slog.Logger) Options {
 	o.logger = log
@@ -49,8 +52,13 @@ func (o Options) WithReceiver(r any) Options {
 	return o
 }
 
-func (o Options) WithExecuteFunc(execute func(http.ResponseWriter, *http.Request, *template.Template, *slog.Logger, any)) Options {
-	o.execute = execute
+func (o Options) WithExecuteFunc(ex ExecuteFunc[any]) Options {
+	o.execute = ex
+	return o
+}
+
+func (o Options) WithErrorFunc(ex ExecuteFunc[error]) Options {
+	o.error = ex
 	return o
 }
 
@@ -65,6 +73,9 @@ func applyOptions(options []Options) *Options {
 		}
 		if o.execute != nil {
 			result.execute = o.execute
+		}
+		if o.error != nil {
+			result.error = o.error
 		}
 	}
 	return &result
@@ -130,10 +141,14 @@ func createSelectorHandler(o *Options, t *template.Template, call *ast.CallExpr,
 type inputsFunc = func(res http.ResponseWriter, req *http.Request) []reflect.Value
 
 func generateOutputsFunction(o *Options, t *template.Template, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
-	switch num := method.Type().NumOut(); num {
+	methodType := method.Type()
+	switch num := methodType.NumOut(); num {
 	case 1:
 		return valueResultHandler(o, t, method, inputs), nil
 	case 2:
+		if !methodType.Out(1).AssignableTo(reflect.TypeFor[error]()) {
+			return nil, fmt.Errorf("the second result must be an error")
+		}
 		return valuesResultHandler(o, t, method, inputs), nil
 	default:
 		return nil, fmt.Errorf("method must either return (T) or (T, error)")
@@ -155,8 +170,7 @@ func valuesResultHandler(o *Options, t *template.Template, method reflect.Value,
 		callRes, callErr := out[0], out[1]
 		if !callErr.IsNil() {
 			err := callErr.Interface().(error)
-			o.logger.Error("service call failed", "method", req.Method, "path", req.URL.Path, "error", err)
-			http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			o.error(res, req, t, o.logger, err)
 			return
 		}
 		o.execute(res, req, t, o.logger, callRes.Interface())
@@ -302,7 +316,7 @@ func typeCheckMethodParameters(pathParams []string, paramType reflect.Type, exp 
 	return arg.Name, nil
 }
 
-func simpleTemplateHandler(ex executeFunc, t *template.Template, logger *slog.Logger) http.HandlerFunc {
+func simpleTemplateHandler(ex ExecuteFunc[any], t *template.Template, logger *slog.Logger) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		ex(res, req, t, logger, req)
 	}
@@ -358,7 +372,7 @@ func NewEndpointDefinition(in string) (EndpointDefinition, error, bool) {
 	return p, nil, true
 }
 
-type executeFunc func(http.ResponseWriter, *http.Request, *template.Template, *slog.Logger, any)
+type ExecuteFunc[T any] func(http.ResponseWriter, *http.Request, *template.Template, *slog.Logger, T)
 
 func defaultExecute(res http.ResponseWriter, req *http.Request, t *template.Template, logger *slog.Logger, data any) {
 	var buf bytes.Buffer
@@ -371,4 +385,9 @@ func defaultExecute(res http.ResponseWriter, req *http.Request, t *template.Temp
 		logger.Error("failed to write full response", "method", req.Method, "path", req.URL.Path, "error", err)
 		return
 	}
+}
+
+func defaultError(res http.ResponseWriter, _ *http.Request, t *template.Template, logger *slog.Logger, err error) {
+	logger.Error("handler error", "error", err, "template", t.Name())
+	http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
