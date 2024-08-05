@@ -1,4 +1,4 @@
-package templatehandler
+package muxt
 
 import (
 	"bytes"
