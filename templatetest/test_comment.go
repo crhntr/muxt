@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crhntr/template/source"
+	"github.com/crhntr/muxt/source"
 )
 
 func AssertTypeCommentsAreFound(t assert.TestingT, leftDelim, rightDelim string, patterns ...string) bool {

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/crhntr/template/internal/example"
+	"github.com/crhntr/muxt/internal/example"
 )
 
 type Receiver struct {

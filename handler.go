@@ -51,17 +51,21 @@ func (o Options) WithReceiver(r any) Options {
 	return o
 }
 
-func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) error {
-	opts := newOptions()
+func applyOptions(options []Options) *Options {
+	result := newOptions()
 	for _, o := range options {
 		if o.logger != nil {
-			opts.logger = o.logger
+			result.logger = o.logger
 		}
 		if o.receiver != nil {
-			opts.receiver = o.receiver
+			result.receiver = o.receiver
 		}
 	}
-	receiver := reflect.ValueOf(opts.receiver)
+	return &result
+}
+
+func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) error {
+	o := applyOptions(options)
 	for _, t := range ts.Templates() {
 		pattern, err, match := NewEndpointDefinition(t.Name())
 		if !match {
@@ -71,11 +75,8 @@ func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) err
 			return fmt.Errorf("failed to parse NewPattern for template %q: %w", t.Name(), err)
 		}
 		if pattern.Handler == "" {
-			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, opts.logger))
+			mux.HandleFunc(pattern.Pattern, simpleTemplateHandler(t, o.logger))
 			continue
-		}
-		if opts.receiver == nil {
-			return fmt.Errorf("receiver is nil")
 		}
 		ex, err := parser.ParseExpr(pattern.Handler)
 		if err != nil {
@@ -83,7 +84,7 @@ func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) err
 		}
 		switch exp := ex.(type) {
 		case *ast.CallExpr:
-			h, err := callMethodHandler(t, opts.logger, receiver, pattern, exp)
+			h, err := callMethodHandler(o, t, pattern, exp)
 			if err != nil {
 				return fmt.Errorf("failed to create handler for %q: %w", pattern.Pattern+" "+pattern.Handler, err)
 			}
@@ -95,10 +96,8 @@ func Handlers(mux *http.ServeMux, ts *template.Template, options ...Options) err
 	return nil
 }
 
-var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-
-func callMethodHandler(t *template.Template, logger *slog.Logger, receiver reflect.Value, pattern EndpointDefinition, call *ast.CallExpr) (http.HandlerFunc, error) {
-	scope, pathParams, err := generateScope(pattern)
+func callMethodHandler(o *Options, t *template.Template, pattern EndpointDefinition, call *ast.CallExpr) (http.HandlerFunc, error) {
+	pathParams, err := pattern.pathParams()
 	if err != nil {
 		return nil, err
 	}
@@ -106,48 +105,30 @@ func callMethodHandler(t *template.Template, logger *slog.Logger, receiver refle
 	default:
 		return nil, fmt.Errorf("expected method call on receiver")
 	case *ast.Ident:
-		return createSelectorHandler(t, call, function, receiver, scope, pathParams, logger)
+		return createSelectorHandler(o, t, call, function, pathParams)
 	}
 }
 
-func generateScope(pattern EndpointDefinition) ([]string, []string, error) {
-	scope := append([]string{"ctx", "request"})
-	var pathParams []string
-	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(pattern.Path, strings.Count(pattern.Path, "/")) {
-		n := matches[1]
-		n = strings.TrimSuffix(n, "...")
-		if slices.Contains(scope, n) {
-			return nil, nil, fmt.Errorf("identifier already declared %q", n)
-		}
-		if !token.IsIdentifier(n) {
-			return nil, nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
-		}
-		scope = append(scope, n)
-		pathParams = append(pathParams, n)
-	}
-	return scope, pathParams, nil
-}
-
-func createSelectorHandler(t *template.Template, call *ast.CallExpr, method *ast.Ident, receiver reflect.Value, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
-	m, err := serviceMethod(call, method, receiver, scope)
+func createSelectorHandler(o *Options, t *template.Template, call *ast.CallExpr, method *ast.Ident, pathParams []string) (http.HandlerFunc, error) {
+	m, err := serviceMethod(o, call, method)
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := generateInputsFunction(m.Type(), call, logger, pathParams)
+	inputs, err := generateInputsFunction(o, m.Type(), call, pathParams)
 	if err != nil {
 		return nil, err
 	}
-	return generateOutputsFunction(t, logger, m, inputs)
+	return generateOutputsFunction(o, t, m, inputs)
 }
 
 type inputsFunc = func(res http.ResponseWriter, req *http.Request) []reflect.Value
 
-func generateOutputsFunction(t *template.Template, logger *slog.Logger, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
+func generateOutputsFunction(o *Options, t *template.Template, method reflect.Value, inputs inputsFunc) (http.HandlerFunc, error) {
 	switch num := method.Type().NumOut(); num {
 	case 1:
-		return valueResultHandler(t, method, inputs, logger), nil
+		return valueResultHandler(t, method, inputs, o.logger), nil
 	case 2:
-		return valuesResultHandler(t, method, inputs, logger), nil
+		return valuesResultHandler(t, method, inputs, o.logger), nil
 	default:
 		return nil, fmt.Errorf("method must either return (T) or (T, error)")
 	}
@@ -176,13 +157,17 @@ func valuesResultHandler(t *template.Template, method reflect.Value, inputs inpu
 	}
 }
 
-func serviceMethod(call *ast.CallExpr, method *ast.Ident, receiver reflect.Value, scope []string) (reflect.Value, error) {
+func serviceMethod(o *Options, call *ast.CallExpr, method *ast.Ident) (reflect.Value, error) {
+	if o.receiver == nil {
+		return reflect.Value{}, fmt.Errorf("receiver is nil")
+	}
 	if call.Ellipsis != token.NoPos {
 		return reflect.Value{}, fmt.Errorf("ellipsis call not allowed")
 	}
-	m := receiver.MethodByName(method.Name)
+	r := reflect.ValueOf(o.receiver)
+	m := r.MethodByName(method.Name)
 	if !m.IsValid() {
-		return reflect.Value{}, fmt.Errorf("method %s not found on %s", method.Name, receiver.Type())
+		return reflect.Value{}, fmt.Errorf("method %s not found on %s", method.Name, r.Type())
 	}
 	return m, nil
 }
@@ -200,7 +185,16 @@ const (
 	loggerArgumentIdentifier   = "logger"
 )
 
-func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slog.Logger, pathParams []string) (inputsFunc, error) {
+func rootScope() []string {
+	return []string{
+		requestArgumentIdentifier,
+		contextArgumentIdentifier,
+		responseArgumentIdentifier,
+		loggerArgumentIdentifier,
+	}
+}
+
+func generateInputsFunction(o *Options, method reflect.Type, call *ast.CallExpr, pathParams []string) (inputsFunc, error) {
 	if method.NumIn() != len(call.Args) {
 		return nil, fmt.Errorf("wrong number of arguments")
 	}
@@ -228,7 +222,7 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 			case responseArgumentIdentifier:
 				in = append(in, reflect.ValueOf(res))
 			case loggerArgumentIdentifier:
-				in = append(in, reflect.ValueOf(logger))
+				in = append(in, reflect.ValueOf(o.logger))
 			default:
 				if slices.Index(pathParams, arg) >= 0 {
 					in = append(in, reflect.ValueOf(req.PathValue(arg)))
@@ -303,6 +297,30 @@ func execute(res http.ResponseWriter, req *http.Request, t *template.Template, l
 type EndpointDefinition struct {
 	Method, Host, Path, Pattern string
 	Handler                     string
+}
+
+var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
+
+func (def EndpointDefinition) pathParams() ([]string, error) {
+	var result []string
+	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
+		n := matches[1]
+		n = strings.TrimSuffix(n, "...")
+		if slices.Contains(rootScope(), n) {
+			return nil, fmt.Errorf("identifier already declared %q", n)
+		}
+		if !token.IsIdentifier(n) {
+			return nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
+		}
+		result = append(result, n)
+	}
+	for i, n := range result {
+		if slices.Contains(result[:i], n) {
+			return nil, fmt.Errorf("path parameter %s defined at least twice", n)
+		}
+	}
+	return result, nil
+
 }
 
 var templateNameMux = regexp.MustCompile(`^(?P<Pattern>(?P<Method>([A-Z]+\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)

@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/crhntr/template/internal/fake"
-	"github.com/crhntr/template/templatetest"
+	"github.com/crhntr/muxt/internal/fake"
+	"github.com/crhntr/muxt/templatetest"
 )
 
 //go:generate counterfeiter -generate

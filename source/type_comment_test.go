@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/crhntr/template/source"
+	"github.com/crhntr/muxt/source"
 )
 
 func TestParseTree(t *testing.T) {

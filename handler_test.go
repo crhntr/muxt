@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html/atom"
 
-	"github.com/crhntr/template/internal/example"
-	"github.com/crhntr/template/internal/fake"
-	"github.com/crhntr/template/muxt"
+	"github.com/crhntr/muxt"
+	"github.com/crhntr/muxt/internal/example"
+	"github.com/crhntr/muxt/internal/fake"
 )
 
 //go:generate counterfeiter -generate
@@ -169,7 +169,7 @@ func TestRoutes(t *testing.T) {
 		mux := http.NewServeMux()
 		s := new(fake.Receiver)
 		err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
-		require.ErrorContains(t, err, `identifier already declared`)
+		require.ErrorContains(t, err, `path parameter id defined at least twice`)
 	})
 
 	t.Run("path param is not an identifier ", func(t *testing.T) {
