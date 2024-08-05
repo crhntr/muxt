@@ -4,7 +4,7 @@ This is especially helpful when you are writing HTMX.
 
 ## Example
 
-```gotemplate
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
