@@ -14,14 +14,11 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 )
 
-func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, services map[string]any) error {
-	for name := range services {
-		if !token.IsIdentifier(name) {
-			return fmt.Errorf("service name not permitted: %q is not a Go identifier", name)
-		}
-	}
+func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, receiver any) error {
+	receiverValue := sync.OnceValue(func() reflect.Value { return reflect.ValueOf(receiver) })
 	for _, t := range ts.Templates() {
 		pattern, err, match := NewEndpointDefinition(t.Name())
 		if !match {
@@ -41,7 +38,10 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 		}
 		switch exp := ex.(type) {
 		case *ast.CallExpr:
-			h, err := callMethodHandler(t, logger, services, pattern, exp)
+			if receiver == nil {
+				return fmt.Errorf("receiver is nil")
+			}
+			h, err := callMethodHandler(t, logger, receiverValue(), pattern, exp)
 			if err != nil {
 				return fmt.Errorf("failed to create handler for %q: %w", pattern.Pattern, err)
 			}
@@ -55,55 +55,47 @@ func Routes(mux *http.ServeMux, ts *template.Template, logger *slog.Logger, serv
 
 var pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
 
-func callMethodHandler(t *template.Template, logger *slog.Logger, services map[string]any, pattern EndpointDefinition, call *ast.CallExpr) (http.HandlerFunc, error) {
-	scope, _, pathParams, err := generateScope(pattern, services)
+func callMethodHandler(t *template.Template, logger *slog.Logger, receiver reflect.Value, pattern EndpointDefinition, call *ast.CallExpr) (http.HandlerFunc, error) {
+	scope, pathParams, err := generateScope(pattern)
 	if err != nil {
 		return nil, err
 	}
 	switch function := call.Fun.(type) {
 	default:
-		return nil, fmt.Errorf("expected method call on some service %s known service names are %v", pattern.Handler, keys(services))
-	case *ast.SelectorExpr:
-		return createSelectorHandler(t, call, function, services, scope, pathParams, logger)
+		return nil, fmt.Errorf("expected method call on receiver")
+	case *ast.Ident:
+		return createSelectorHandler(t, call, function, receiver, scope, pathParams, logger)
 	}
 }
 
-func generateScope(pattern EndpointDefinition, services map[string]any) ([]string, []string, []string, error) {
+func generateScope(pattern EndpointDefinition) ([]string, []string, error) {
 	scope := append([]string{"ctx", "request"})
-	var serviceNames []string
-	for n := range services {
-		if slices.Contains(scope, n) {
-			return nil, nil, nil, fmt.Errorf("identifier already declared %q", n)
-		}
-		scope = append(scope, n)
-		serviceNames = append(serviceNames, n)
-	}
 	var pathParams []string
 	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(pattern.Path, strings.Count(pattern.Path, "/")) {
 		n := matches[1]
 		n = strings.TrimSuffix(n, "...")
 		if slices.Contains(scope, n) {
-			return nil, nil, nil, fmt.Errorf("identifier already declared %q", n)
+			return nil, nil, fmt.Errorf("identifier already declared %q", n)
 		}
 		if !token.IsIdentifier(n) {
-			return nil, nil, nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
+			return nil, nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
 		}
 		scope = append(scope, n)
 		pathParams = append(pathParams, n)
 	}
-	return scope, serviceNames, pathParams, nil
+	return scope, pathParams, nil
 }
 
-func createSelectorHandler(t *template.Template, call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
-	method, err := serviceMethod(call, function, services, scope)
+func createSelectorHandler(t *template.Template, call *ast.CallExpr, method *ast.Ident, receiver reflect.Value, scope, pathParams []string, logger *slog.Logger) (http.HandlerFunc, error) {
+	m, err := serviceMethod(call, method, receiver, scope)
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := generateInputsFunction(method.Type(), call, logger, services, pathParams)
+	inputs, err := generateInputsFunction(m.Type(), call, logger, pathParams)
 	if err != nil {
 		return nil, err
 	}
-	return generateOutputsFunction(t, logger, method, inputs)
+	return generateOutputsFunction(t, logger, m, inputs)
 }
 
 type inputsFunc = func(res http.ResponseWriter, req *http.Request) []reflect.Value
@@ -142,45 +134,21 @@ func valuesResultHandler(t *template.Template, method reflect.Value, inputs inpu
 	}
 }
 
-func serviceMethod(call *ast.CallExpr, function *ast.SelectorExpr, services map[string]any, scope []string) (reflect.Value, error) {
+func serviceMethod(call *ast.CallExpr, method *ast.Ident, receiver reflect.Value, scope []string) (reflect.Value, error) {
 	if call.Ellipsis != token.NoPos {
 		return reflect.Value{}, fmt.Errorf("ellipsis call not allowed")
 	}
-	receiver, ok := function.X.(*ast.Ident)
-	if !ok {
-		return reflect.Value{}, fmt.Errorf("unexpected method receiver expected one of %q but got: %s", scope, printNode(function.X))
+	m := receiver.MethodByName(method.Name)
+	if !m.IsValid() {
+		return reflect.Value{}, fmt.Errorf("method %s not found on %s", method.Name, receiver.Type())
 	}
-	if len(services) == 0 {
-		return reflect.Value{}, fmt.Errorf("no services provided")
-	}
-	s, ok := services[receiver.Name]
-	if !ok {
-		return reflect.Value{}, fmt.Errorf("service with identifier %q not found", receiver.Name)
-	}
-	if s == nil {
-		return reflect.Value{}, fmt.Errorf("service %q must not be nil", receiver.Name)
-	}
-	service := reflect.ValueOf(s)
-	method := service.MethodByName(function.Sel.Name)
-	if !method.IsValid() {
-		return reflect.Value{}, fmt.Errorf("method %s not found on %s", function.Sel.Name, service.Type())
-	}
-
-	return method, nil
+	return m, nil
 }
 
 func printNode(node ast.Node) string {
 	buf := bytes.NewBuffer(nil)
 	_ = format.Node(buf, token.NewFileSet(), node)
 	return buf.String()
-}
-
-func keys[K comparable, V any, M ~map[K]V](s M) []K {
-	sn := make([]K, 0, len(s))
-	for n := range s {
-		sn = append(sn, n)
-	}
-	return sn
 }
 
 const (
@@ -190,7 +158,7 @@ const (
 	loggerArgumentIdentifier   = "logger"
 )
 
-func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slog.Logger, services map[string]any, pathParams []string) (inputsFunc, error) {
+func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slog.Logger, pathParams []string) (inputsFunc, error) {
 	if method.NumIn() != len(call.Args) {
 		return nil, fmt.Errorf("wrong number of arguments")
 	}
@@ -201,7 +169,7 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 	}
 	var args []string
 	for i, exp := range call.Args {
-		arg, err := typeCheckMethodParameters(pathParams, services, i, method.In(i), exp)
+		arg, err := typeCheckMethodParameters(pathParams, i, exp)
 		if err != nil {
 			return nil, err
 		}
@@ -220,11 +188,6 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 			case loggerArgumentIdentifier:
 				in = append(in, reflect.ValueOf(logger))
 			default:
-				s, ok := services[arg]
-				if ok {
-					in = append(in, reflect.ValueOf(s))
-					continue
-				}
 				if slices.Index(pathParams, arg) >= 0 {
 					in = append(in, reflect.ValueOf(req.PathValue(arg)))
 				}
@@ -234,7 +197,7 @@ func generateInputsFunction(method reflect.Type, call *ast.CallExpr, logger *slo
 	}, nil
 }
 
-func typeCheckMethodParameters(pathParams []string, services map[string]any, i int, tp reflect.Type, exp ast.Expr) (string, error) {
+func typeCheckMethodParameters(pathParams []string, i int, exp ast.Expr) (string, error) {
 	arg, ok := exp.(*ast.Ident)
 	if !ok {
 		return "", fmt.Errorf("method arguments must be identifiers: argument %d is not an identifier got %s", i, printNode(exp))
@@ -249,9 +212,6 @@ func typeCheckMethodParameters(pathParams []string, services map[string]any, i i
 	case loggerArgumentIdentifier:
 		return an, nil
 	default:
-		if _, found := services[arg.Name]; found {
-			return an, nil
-		}
 		if slices.Contains(pathParams, arg.Name) {
 			return an, nil
 		}

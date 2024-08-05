@@ -11,7 +11,7 @@ import (
 	"github.com/crhntr/template/internal/example"
 )
 
-type ArticleService struct {
+type Receiver struct {
 	CheckAuthStub        func(*http.Request) (string, error)
 	checkAuthMutex       sync.RWMutex
 	checkAuthArgsForCall []struct {
@@ -140,7 +140,7 @@ type ArticleService struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *ArticleService) CheckAuth(arg1 *http.Request) (string, error) {
+func (fake *Receiver) CheckAuth(arg1 *http.Request) (string, error) {
 	fake.checkAuthMutex.Lock()
 	ret, specificReturn := fake.checkAuthReturnsOnCall[len(fake.checkAuthArgsForCall)]
 	fake.checkAuthArgsForCall = append(fake.checkAuthArgsForCall, struct {
@@ -159,26 +159,26 @@ func (fake *ArticleService) CheckAuth(arg1 *http.Request) (string, error) {
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *ArticleService) CheckAuthCallCount() int {
+func (fake *Receiver) CheckAuthCallCount() int {
 	fake.checkAuthMutex.RLock()
 	defer fake.checkAuthMutex.RUnlock()
 	return len(fake.checkAuthArgsForCall)
 }
 
-func (fake *ArticleService) CheckAuthCalls(stub func(*http.Request) (string, error)) {
+func (fake *Receiver) CheckAuthCalls(stub func(*http.Request) (string, error)) {
 	fake.checkAuthMutex.Lock()
 	defer fake.checkAuthMutex.Unlock()
 	fake.CheckAuthStub = stub
 }
 
-func (fake *ArticleService) CheckAuthArgsForCall(i int) *http.Request {
+func (fake *Receiver) CheckAuthArgsForCall(i int) *http.Request {
 	fake.checkAuthMutex.RLock()
 	defer fake.checkAuthMutex.RUnlock()
 	argsForCall := fake.checkAuthArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *ArticleService) CheckAuthReturns(result1 string, result2 error) {
+func (fake *Receiver) CheckAuthReturns(result1 string, result2 error) {
 	fake.checkAuthMutex.Lock()
 	defer fake.checkAuthMutex.Unlock()
 	fake.CheckAuthStub = nil
@@ -188,7 +188,7 @@ func (fake *ArticleService) CheckAuthReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *ArticleService) CheckAuthReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *Receiver) CheckAuthReturnsOnCall(i int, result1 string, result2 error) {
 	fake.checkAuthMutex.Lock()
 	defer fake.checkAuthMutex.Unlock()
 	fake.CheckAuthStub = nil
@@ -204,7 +204,7 @@ func (fake *ArticleService) CheckAuthReturnsOnCall(i int, result1 string, result
 	}{result1, result2}
 }
 
-func (fake *ArticleService) GetComment(arg1 context.Context, arg2 int, arg3 int) (string, error) {
+func (fake *Receiver) GetComment(arg1 context.Context, arg2 int, arg3 int) (string, error) {
 	fake.getCommentMutex.Lock()
 	ret, specificReturn := fake.getCommentReturnsOnCall[len(fake.getCommentArgsForCall)]
 	fake.getCommentArgsForCall = append(fake.getCommentArgsForCall, struct {
@@ -225,26 +225,26 @@ func (fake *ArticleService) GetComment(arg1 context.Context, arg2 int, arg3 int)
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *ArticleService) GetCommentCallCount() int {
+func (fake *Receiver) GetCommentCallCount() int {
 	fake.getCommentMutex.RLock()
 	defer fake.getCommentMutex.RUnlock()
 	return len(fake.getCommentArgsForCall)
 }
 
-func (fake *ArticleService) GetCommentCalls(stub func(context.Context, int, int) (string, error)) {
+func (fake *Receiver) GetCommentCalls(stub func(context.Context, int, int) (string, error)) {
 	fake.getCommentMutex.Lock()
 	defer fake.getCommentMutex.Unlock()
 	fake.GetCommentStub = stub
 }
 
-func (fake *ArticleService) GetCommentArgsForCall(i int) (context.Context, int, int) {
+func (fake *Receiver) GetCommentArgsForCall(i int) (context.Context, int, int) {
 	fake.getCommentMutex.RLock()
 	defer fake.getCommentMutex.RUnlock()
 	argsForCall := fake.getCommentArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *ArticleService) GetCommentReturns(result1 string, result2 error) {
+func (fake *Receiver) GetCommentReturns(result1 string, result2 error) {
 	fake.getCommentMutex.Lock()
 	defer fake.getCommentMutex.Unlock()
 	fake.GetCommentStub = nil
@@ -254,7 +254,7 @@ func (fake *ArticleService) GetCommentReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *ArticleService) GetCommentReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *Receiver) GetCommentReturnsOnCall(i int, result1 string, result2 error) {
 	fake.getCommentMutex.Lock()
 	defer fake.getCommentMutex.Unlock()
 	fake.GetCommentStub = nil
@@ -270,7 +270,7 @@ func (fake *ArticleService) GetCommentReturnsOnCall(i int, result1 string, resul
 	}{result1, result2}
 }
 
-func (fake *ArticleService) Handler(arg1 http.ResponseWriter, arg2 *http.Request) template.HTML {
+func (fake *Receiver) Handler(arg1 http.ResponseWriter, arg2 *http.Request) template.HTML {
 	fake.handlerMutex.Lock()
 	ret, specificReturn := fake.handlerReturnsOnCall[len(fake.handlerArgsForCall)]
 	fake.handlerArgsForCall = append(fake.handlerArgsForCall, struct {
@@ -290,26 +290,26 @@ func (fake *ArticleService) Handler(arg1 http.ResponseWriter, arg2 *http.Request
 	return fakeReturns.result1
 }
 
-func (fake *ArticleService) HandlerCallCount() int {
+func (fake *Receiver) HandlerCallCount() int {
 	fake.handlerMutex.RLock()
 	defer fake.handlerMutex.RUnlock()
 	return len(fake.handlerArgsForCall)
 }
 
-func (fake *ArticleService) HandlerCalls(stub func(http.ResponseWriter, *http.Request) template.HTML) {
+func (fake *Receiver) HandlerCalls(stub func(http.ResponseWriter, *http.Request) template.HTML) {
 	fake.handlerMutex.Lock()
 	defer fake.handlerMutex.Unlock()
 	fake.HandlerStub = stub
 }
 
-func (fake *ArticleService) HandlerArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+func (fake *Receiver) HandlerArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.handlerMutex.RLock()
 	defer fake.handlerMutex.RUnlock()
 	argsForCall := fake.handlerArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *ArticleService) HandlerReturns(result1 template.HTML) {
+func (fake *Receiver) HandlerReturns(result1 template.HTML) {
 	fake.handlerMutex.Lock()
 	defer fake.handlerMutex.Unlock()
 	fake.HandlerStub = nil
@@ -318,7 +318,7 @@ func (fake *ArticleService) HandlerReturns(result1 template.HTML) {
 	}{result1}
 }
 
-func (fake *ArticleService) HandlerReturnsOnCall(i int, result1 template.HTML) {
+func (fake *Receiver) HandlerReturnsOnCall(i int, result1 template.HTML) {
 	fake.handlerMutex.Lock()
 	defer fake.handlerMutex.Unlock()
 	fake.HandlerStub = nil
@@ -332,7 +332,7 @@ func (fake *ArticleService) HandlerReturnsOnCall(i int, result1 template.HTML) {
 	}{result1}
 }
 
-func (fake *ArticleService) ListArticles(arg1 context.Context) ([]example.Article, error) {
+func (fake *Receiver) ListArticles(arg1 context.Context) ([]example.Article, error) {
 	fake.listArticlesMutex.Lock()
 	ret, specificReturn := fake.listArticlesReturnsOnCall[len(fake.listArticlesArgsForCall)]
 	fake.listArticlesArgsForCall = append(fake.listArticlesArgsForCall, struct {
@@ -351,26 +351,26 @@ func (fake *ArticleService) ListArticles(arg1 context.Context) ([]example.Articl
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *ArticleService) ListArticlesCallCount() int {
+func (fake *Receiver) ListArticlesCallCount() int {
 	fake.listArticlesMutex.RLock()
 	defer fake.listArticlesMutex.RUnlock()
 	return len(fake.listArticlesArgsForCall)
 }
 
-func (fake *ArticleService) ListArticlesCalls(stub func(context.Context) ([]example.Article, error)) {
+func (fake *Receiver) ListArticlesCalls(stub func(context.Context) ([]example.Article, error)) {
 	fake.listArticlesMutex.Lock()
 	defer fake.listArticlesMutex.Unlock()
 	fake.ListArticlesStub = stub
 }
 
-func (fake *ArticleService) ListArticlesArgsForCall(i int) context.Context {
+func (fake *Receiver) ListArticlesArgsForCall(i int) context.Context {
 	fake.listArticlesMutex.RLock()
 	defer fake.listArticlesMutex.RUnlock()
 	argsForCall := fake.listArticlesArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *ArticleService) ListArticlesReturns(result1 []example.Article, result2 error) {
+func (fake *Receiver) ListArticlesReturns(result1 []example.Article, result2 error) {
 	fake.listArticlesMutex.Lock()
 	defer fake.listArticlesMutex.Unlock()
 	fake.ListArticlesStub = nil
@@ -380,7 +380,7 @@ func (fake *ArticleService) ListArticlesReturns(result1 []example.Article, resul
 	}{result1, result2}
 }
 
-func (fake *ArticleService) ListArticlesReturnsOnCall(i int, result1 []example.Article, result2 error) {
+func (fake *Receiver) ListArticlesReturnsOnCall(i int, result1 []example.Article, result2 error) {
 	fake.listArticlesMutex.Lock()
 	defer fake.listArticlesMutex.Unlock()
 	fake.ListArticlesStub = nil
@@ -396,7 +396,7 @@ func (fake *ArticleService) ListArticlesReturnsOnCall(i int, result1 []example.A
 	}{result1, result2}
 }
 
-func (fake *ArticleService) LogLines(arg1 *slog.Logger) int {
+func (fake *Receiver) LogLines(arg1 *slog.Logger) int {
 	fake.logLinesMutex.Lock()
 	ret, specificReturn := fake.logLinesReturnsOnCall[len(fake.logLinesArgsForCall)]
 	fake.logLinesArgsForCall = append(fake.logLinesArgsForCall, struct {
@@ -415,26 +415,26 @@ func (fake *ArticleService) LogLines(arg1 *slog.Logger) int {
 	return fakeReturns.result1
 }
 
-func (fake *ArticleService) LogLinesCallCount() int {
+func (fake *Receiver) LogLinesCallCount() int {
 	fake.logLinesMutex.RLock()
 	defer fake.logLinesMutex.RUnlock()
 	return len(fake.logLinesArgsForCall)
 }
 
-func (fake *ArticleService) LogLinesCalls(stub func(*slog.Logger) int) {
+func (fake *Receiver) LogLinesCalls(stub func(*slog.Logger) int) {
 	fake.logLinesMutex.Lock()
 	defer fake.logLinesMutex.Unlock()
 	fake.LogLinesStub = stub
 }
 
-func (fake *ArticleService) LogLinesArgsForCall(i int) *slog.Logger {
+func (fake *Receiver) LogLinesArgsForCall(i int) *slog.Logger {
 	fake.logLinesMutex.RLock()
 	defer fake.logLinesMutex.RUnlock()
 	argsForCall := fake.logLinesArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *ArticleService) LogLinesReturns(result1 int) {
+func (fake *Receiver) LogLinesReturns(result1 int) {
 	fake.logLinesMutex.Lock()
 	defer fake.logLinesMutex.Unlock()
 	fake.LogLinesStub = nil
@@ -443,7 +443,7 @@ func (fake *ArticleService) LogLinesReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *ArticleService) LogLinesReturnsOnCall(i int, result1 int) {
+func (fake *Receiver) LogLinesReturnsOnCall(i int, result1 int) {
 	fake.logLinesMutex.Lock()
 	defer fake.logLinesMutex.Unlock()
 	fake.LogLinesStub = nil
@@ -457,7 +457,7 @@ func (fake *ArticleService) LogLinesReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *ArticleService) NumAuthors() int {
+func (fake *Receiver) NumAuthors() int {
 	fake.numAuthorsMutex.Lock()
 	ret, specificReturn := fake.numAuthorsReturnsOnCall[len(fake.numAuthorsArgsForCall)]
 	fake.numAuthorsArgsForCall = append(fake.numAuthorsArgsForCall, struct {
@@ -475,19 +475,19 @@ func (fake *ArticleService) NumAuthors() int {
 	return fakeReturns.result1
 }
 
-func (fake *ArticleService) NumAuthorsCallCount() int {
+func (fake *Receiver) NumAuthorsCallCount() int {
 	fake.numAuthorsMutex.RLock()
 	defer fake.numAuthorsMutex.RUnlock()
 	return len(fake.numAuthorsArgsForCall)
 }
 
-func (fake *ArticleService) NumAuthorsCalls(stub func() int) {
+func (fake *Receiver) NumAuthorsCalls(stub func() int) {
 	fake.numAuthorsMutex.Lock()
 	defer fake.numAuthorsMutex.Unlock()
 	fake.NumAuthorsStub = stub
 }
 
-func (fake *ArticleService) NumAuthorsReturns(result1 int) {
+func (fake *Receiver) NumAuthorsReturns(result1 int) {
 	fake.numAuthorsMutex.Lock()
 	defer fake.numAuthorsMutex.Unlock()
 	fake.NumAuthorsStub = nil
@@ -496,7 +496,7 @@ func (fake *ArticleService) NumAuthorsReturns(result1 int) {
 	}{result1}
 }
 
-func (fake *ArticleService) NumAuthorsReturnsOnCall(i int, result1 int) {
+func (fake *Receiver) NumAuthorsReturnsOnCall(i int, result1 int) {
 	fake.numAuthorsMutex.Lock()
 	defer fake.numAuthorsMutex.Unlock()
 	fake.NumAuthorsStub = nil
@@ -510,7 +510,7 @@ func (fake *ArticleService) NumAuthorsReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *ArticleService) Parse(arg1 string) []string {
+func (fake *Receiver) Parse(arg1 string) []string {
 	fake.parseMutex.Lock()
 	ret, specificReturn := fake.parseReturnsOnCall[len(fake.parseArgsForCall)]
 	fake.parseArgsForCall = append(fake.parseArgsForCall, struct {
@@ -529,26 +529,26 @@ func (fake *ArticleService) Parse(arg1 string) []string {
 	return fakeReturns.result1
 }
 
-func (fake *ArticleService) ParseCallCount() int {
+func (fake *Receiver) ParseCallCount() int {
 	fake.parseMutex.RLock()
 	defer fake.parseMutex.RUnlock()
 	return len(fake.parseArgsForCall)
 }
 
-func (fake *ArticleService) ParseCalls(stub func(string) []string) {
+func (fake *Receiver) ParseCalls(stub func(string) []string) {
 	fake.parseMutex.Lock()
 	defer fake.parseMutex.Unlock()
 	fake.ParseStub = stub
 }
 
-func (fake *ArticleService) ParseArgsForCall(i int) string {
+func (fake *Receiver) ParseArgsForCall(i int) string {
 	fake.parseMutex.RLock()
 	defer fake.parseMutex.RUnlock()
 	argsForCall := fake.parseArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *ArticleService) ParseReturns(result1 []string) {
+func (fake *Receiver) ParseReturns(result1 []string) {
 	fake.parseMutex.Lock()
 	defer fake.parseMutex.Unlock()
 	fake.ParseStub = nil
@@ -557,7 +557,7 @@ func (fake *ArticleService) ParseReturns(result1 []string) {
 	}{result1}
 }
 
-func (fake *ArticleService) ParseReturnsOnCall(i int, result1 []string) {
+func (fake *Receiver) ParseReturnsOnCall(i int, result1 []string) {
 	fake.parseMutex.Lock()
 	defer fake.parseMutex.Unlock()
 	fake.ParseStub = nil
@@ -571,7 +571,7 @@ func (fake *ArticleService) ParseReturnsOnCall(i int, result1 []string) {
 	}{result1}
 }
 
-func (fake *ArticleService) SomeString(arg1 context.Context, arg2 string) (string, error) {
+func (fake *Receiver) SomeString(arg1 context.Context, arg2 string) (string, error) {
 	fake.someStringMutex.Lock()
 	ret, specificReturn := fake.someStringReturnsOnCall[len(fake.someStringArgsForCall)]
 	fake.someStringArgsForCall = append(fake.someStringArgsForCall, struct {
@@ -591,26 +591,26 @@ func (fake *ArticleService) SomeString(arg1 context.Context, arg2 string) (strin
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *ArticleService) SomeStringCallCount() int {
+func (fake *Receiver) SomeStringCallCount() int {
 	fake.someStringMutex.RLock()
 	defer fake.someStringMutex.RUnlock()
 	return len(fake.someStringArgsForCall)
 }
 
-func (fake *ArticleService) SomeStringCalls(stub func(context.Context, string) (string, error)) {
+func (fake *Receiver) SomeStringCalls(stub func(context.Context, string) (string, error)) {
 	fake.someStringMutex.Lock()
 	defer fake.someStringMutex.Unlock()
 	fake.SomeStringStub = stub
 }
 
-func (fake *ArticleService) SomeStringArgsForCall(i int) (context.Context, string) {
+func (fake *Receiver) SomeStringArgsForCall(i int) (context.Context, string) {
 	fake.someStringMutex.RLock()
 	defer fake.someStringMutex.RUnlock()
 	argsForCall := fake.someStringArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *ArticleService) SomeStringReturns(result1 string, result2 error) {
+func (fake *Receiver) SomeStringReturns(result1 string, result2 error) {
 	fake.someStringMutex.Lock()
 	defer fake.someStringMutex.Unlock()
 	fake.SomeStringStub = nil
@@ -620,7 +620,7 @@ func (fake *ArticleService) SomeStringReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *ArticleService) SomeStringReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *Receiver) SomeStringReturnsOnCall(i int, result1 string, result2 error) {
 	fake.someStringMutex.Lock()
 	defer fake.someStringMutex.Unlock()
 	fake.SomeStringStub = nil
@@ -636,7 +636,7 @@ func (fake *ArticleService) SomeStringReturnsOnCall(i int, result1 string, resul
 	}{result1, result2}
 }
 
-func (fake *ArticleService) ToUpper(arg1 ...rune) string {
+func (fake *Receiver) ToUpper(arg1 ...rune) string {
 	fake.toUpperMutex.Lock()
 	ret, specificReturn := fake.toUpperReturnsOnCall[len(fake.toUpperArgsForCall)]
 	fake.toUpperArgsForCall = append(fake.toUpperArgsForCall, struct {
@@ -655,26 +655,26 @@ func (fake *ArticleService) ToUpper(arg1 ...rune) string {
 	return fakeReturns.result1
 }
 
-func (fake *ArticleService) ToUpperCallCount() int {
+func (fake *Receiver) ToUpperCallCount() int {
 	fake.toUpperMutex.RLock()
 	defer fake.toUpperMutex.RUnlock()
 	return len(fake.toUpperArgsForCall)
 }
 
-func (fake *ArticleService) ToUpperCalls(stub func(...rune) string) {
+func (fake *Receiver) ToUpperCalls(stub func(...rune) string) {
 	fake.toUpperMutex.Lock()
 	defer fake.toUpperMutex.Unlock()
 	fake.ToUpperStub = stub
 }
 
-func (fake *ArticleService) ToUpperArgsForCall(i int) []rune {
+func (fake *Receiver) ToUpperArgsForCall(i int) []rune {
 	fake.toUpperMutex.RLock()
 	defer fake.toUpperMutex.RUnlock()
 	argsForCall := fake.toUpperArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *ArticleService) ToUpperReturns(result1 string) {
+func (fake *Receiver) ToUpperReturns(result1 string) {
 	fake.toUpperMutex.Lock()
 	defer fake.toUpperMutex.Unlock()
 	fake.ToUpperStub = nil
@@ -683,7 +683,7 @@ func (fake *ArticleService) ToUpperReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *ArticleService) ToUpperReturnsOnCall(i int, result1 string) {
+func (fake *Receiver) ToUpperReturnsOnCall(i int, result1 string) {
 	fake.toUpperMutex.Lock()
 	defer fake.toUpperMutex.Unlock()
 	fake.ToUpperStub = nil
@@ -697,7 +697,7 @@ func (fake *ArticleService) ToUpperReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *ArticleService) TooManyResults() (int, int, int) {
+func (fake *Receiver) TooManyResults() (int, int, int) {
 	fake.tooManyResultsMutex.Lock()
 	ret, specificReturn := fake.tooManyResultsReturnsOnCall[len(fake.tooManyResultsArgsForCall)]
 	fake.tooManyResultsArgsForCall = append(fake.tooManyResultsArgsForCall, struct {
@@ -715,19 +715,19 @@ func (fake *ArticleService) TooManyResults() (int, int, int) {
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
-func (fake *ArticleService) TooManyResultsCallCount() int {
+func (fake *Receiver) TooManyResultsCallCount() int {
 	fake.tooManyResultsMutex.RLock()
 	defer fake.tooManyResultsMutex.RUnlock()
 	return len(fake.tooManyResultsArgsForCall)
 }
 
-func (fake *ArticleService) TooManyResultsCalls(stub func() (int, int, int)) {
+func (fake *Receiver) TooManyResultsCalls(stub func() (int, int, int)) {
 	fake.tooManyResultsMutex.Lock()
 	defer fake.tooManyResultsMutex.Unlock()
 	fake.TooManyResultsStub = stub
 }
 
-func (fake *ArticleService) TooManyResultsReturns(result1 int, result2 int, result3 int) {
+func (fake *Receiver) TooManyResultsReturns(result1 int, result2 int, result3 int) {
 	fake.tooManyResultsMutex.Lock()
 	defer fake.tooManyResultsMutex.Unlock()
 	fake.TooManyResultsStub = nil
@@ -738,7 +738,7 @@ func (fake *ArticleService) TooManyResultsReturns(result1 int, result2 int, resu
 	}{result1, result2, result3}
 }
 
-func (fake *ArticleService) TooManyResultsReturnsOnCall(i int, result1 int, result2 int, result3 int) {
+func (fake *Receiver) TooManyResultsReturnsOnCall(i int, result1 int, result2 int, result3 int) {
 	fake.tooManyResultsMutex.Lock()
 	defer fake.tooManyResultsMutex.Unlock()
 	fake.TooManyResultsStub = nil
@@ -756,7 +756,7 @@ func (fake *ArticleService) TooManyResultsReturnsOnCall(i int, result1 int, resu
 	}{result1, result2, result3}
 }
 
-func (fake *ArticleService) Invocations() map[string][][]interface{} {
+func (fake *Receiver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkAuthMutex.RLock()
@@ -786,7 +786,7 @@ func (fake *ArticleService) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *ArticleService) recordInvocation(key string, args []interface{}) {
+func (fake *Receiver) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
