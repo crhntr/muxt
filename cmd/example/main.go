@@ -21,18 +21,26 @@ import (
 var formHTML embed.FS
 
 func main() {
-	s := &Server{
-		templates: template.Must(template.ParseFS(formHTML, "*")),
-		table: []Row{
+	s := &Handlers{
+		data: []Row{
 			{Fruit: "Peach", Count: 1},
 			{Fruit: "Pear", Count: 2},
 			{Fruit: "Plum", Count: 3},
 			{Fruit: "Pineapple", Count: 4},
 		},
 	}
+	templates := template.Must(template.ParseFS(formHTML, "*"))
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.Index)
-	if err := muxt.Handlers(mux, s.templates, muxt.WithReceiver(s).WithErrorFunc(noopErr)); err != nil {
+	mux.HandleFunc("/{$}", func(res http.ResponseWriter, req *http.Request) {
+		buf := bytes.NewBuffer(nil)
+		if err := templates.ExecuteTemplate(buf, "form.gohtml", s.data); err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		res.WriteHeader(http.StatusOK)
+		_, _ = io.Copy(res, buf)
+	})
+	if err := muxt.Handlers(mux, templates, muxt.WithReceiver(s).WithErrorFunc(noopErr)); err != nil {
 		log.Fatal(err)
 	}
 	log.Fatal(http.ListenAndServe(":"+cmp.Or(os.Getenv("PORT"), "8080"), mux))
@@ -45,22 +53,11 @@ type Row struct {
 	Count int
 }
 
-type Server struct {
-	table     []Row
-	templates *template.Template
+type Handlers struct {
+	data []Row
 }
 
-func (s *Server) Index(res http.ResponseWriter, _ *http.Request) {
-	buf := bytes.NewBuffer(nil)
-	if err := s.templates.ExecuteTemplate(buf, "form.gohtml", s.table); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	res.WriteHeader(http.StatusOK)
-	_, _ = io.Copy(res, buf)
-}
-
-func (s *Server) EditRow(res http.ResponseWriter, req *http.Request, fruit string) (Row, error) {
+func (s *Handlers) EditRow(res http.ResponseWriter, req *http.Request, fruit string) (Row, error) {
 	count, err := strconv.Atoi(req.FormValue("count"))
 	if err != nil {
 		http.Error(res, "failed to parse count: "+err.Error(), http.StatusBadRequest)
@@ -71,13 +68,13 @@ func (s *Server) EditRow(res http.ResponseWriter, req *http.Request, fruit strin
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return Row{}, err
 	}
-	for i, row := range s.table {
+	for i, row := range s.data {
 		if row.Fruit != fruit {
 			continue
 		}
 		res.Header().Set("HX-Retarget", "closest tr")
 		res.Header().Set("HX-Reswap", "outerHTML")
-		s.table[i].Count = count
+		s.data[i].Count = count
 		res.WriteHeader(http.StatusOK)
 		return Row{
 			Fruit: fruit,
