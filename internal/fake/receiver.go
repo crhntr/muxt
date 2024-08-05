@@ -111,6 +111,17 @@ type Receiver struct {
 		result1 string
 		result2 error
 	}
+	TemplateStub        func(*template.Template) template.HTML
+	templateMutex       sync.RWMutex
+	templateArgsForCall []struct {
+		arg1 *template.Template
+	}
+	templateReturns struct {
+		result1 template.HTML
+	}
+	templateReturnsOnCall map[int]struct {
+		result1 template.HTML
+	}
 	ToUpperStub        func(...rune) string
 	toUpperMutex       sync.RWMutex
 	toUpperArgsForCall []struct {
@@ -135,6 +146,17 @@ type Receiver struct {
 		result1 int
 		result2 int
 		result3 int
+	}
+	TypeStub        func(any) string
+	typeMutex       sync.RWMutex
+	typeArgsForCall []struct {
+		arg1 any
+	}
+	typeReturns struct {
+		result1 string
+	}
+	typeReturnsOnCall map[int]struct {
+		result1 string
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -636,6 +658,67 @@ func (fake *Receiver) SomeStringReturnsOnCall(i int, result1 string, result2 err
 	}{result1, result2}
 }
 
+func (fake *Receiver) Template(arg1 *template.Template) template.HTML {
+	fake.templateMutex.Lock()
+	ret, specificReturn := fake.templateReturnsOnCall[len(fake.templateArgsForCall)]
+	fake.templateArgsForCall = append(fake.templateArgsForCall, struct {
+		arg1 *template.Template
+	}{arg1})
+	stub := fake.TemplateStub
+	fakeReturns := fake.templateReturns
+	fake.recordInvocation("Template", []interface{}{arg1})
+	fake.templateMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *Receiver) TemplateCallCount() int {
+	fake.templateMutex.RLock()
+	defer fake.templateMutex.RUnlock()
+	return len(fake.templateArgsForCall)
+}
+
+func (fake *Receiver) TemplateCalls(stub func(*template.Template) template.HTML) {
+	fake.templateMutex.Lock()
+	defer fake.templateMutex.Unlock()
+	fake.TemplateStub = stub
+}
+
+func (fake *Receiver) TemplateArgsForCall(i int) *template.Template {
+	fake.templateMutex.RLock()
+	defer fake.templateMutex.RUnlock()
+	argsForCall := fake.templateArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *Receiver) TemplateReturns(result1 template.HTML) {
+	fake.templateMutex.Lock()
+	defer fake.templateMutex.Unlock()
+	fake.TemplateStub = nil
+	fake.templateReturns = struct {
+		result1 template.HTML
+	}{result1}
+}
+
+func (fake *Receiver) TemplateReturnsOnCall(i int, result1 template.HTML) {
+	fake.templateMutex.Lock()
+	defer fake.templateMutex.Unlock()
+	fake.TemplateStub = nil
+	if fake.templateReturnsOnCall == nil {
+		fake.templateReturnsOnCall = make(map[int]struct {
+			result1 template.HTML
+		})
+	}
+	fake.templateReturnsOnCall[i] = struct {
+		result1 template.HTML
+	}{result1}
+}
+
 func (fake *Receiver) ToUpper(arg1 ...rune) string {
 	fake.toUpperMutex.Lock()
 	ret, specificReturn := fake.toUpperReturnsOnCall[len(fake.toUpperArgsForCall)]
@@ -756,6 +839,67 @@ func (fake *Receiver) TooManyResultsReturnsOnCall(i int, result1 int, result2 in
 	}{result1, result2, result3}
 }
 
+func (fake *Receiver) Type(arg1 any) string {
+	fake.typeMutex.Lock()
+	ret, specificReturn := fake.typeReturnsOnCall[len(fake.typeArgsForCall)]
+	fake.typeArgsForCall = append(fake.typeArgsForCall, struct {
+		arg1 any
+	}{arg1})
+	stub := fake.TypeStub
+	fakeReturns := fake.typeReturns
+	fake.recordInvocation("Type", []interface{}{arg1})
+	fake.typeMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *Receiver) TypeCallCount() int {
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
+	return len(fake.typeArgsForCall)
+}
+
+func (fake *Receiver) TypeCalls(stub func(any) string) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
+	fake.TypeStub = stub
+}
+
+func (fake *Receiver) TypeArgsForCall(i int) any {
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
+	argsForCall := fake.typeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *Receiver) TypeReturns(result1 string) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
+	fake.TypeStub = nil
+	fake.typeReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *Receiver) TypeReturnsOnCall(i int, result1 string) {
+	fake.typeMutex.Lock()
+	defer fake.typeMutex.Unlock()
+	fake.TypeStub = nil
+	if fake.typeReturnsOnCall == nil {
+		fake.typeReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.typeReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *Receiver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -775,10 +919,14 @@ func (fake *Receiver) Invocations() map[string][][]interface{} {
 	defer fake.parseMutex.RUnlock()
 	fake.someStringMutex.RLock()
 	defer fake.someStringMutex.RUnlock()
+	fake.templateMutex.RLock()
+	defer fake.templateMutex.RUnlock()
 	fake.toUpperMutex.RLock()
 	defer fake.toUpperMutex.RUnlock()
 	fake.tooManyResultsMutex.RLock()
 	defer fake.tooManyResultsMutex.RUnlock()
+	fake.typeMutex.RLock()
+	defer fake.typeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

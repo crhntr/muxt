@@ -24,8 +24,7 @@ import (
 )
 
 //go:generate counterfeiter -generate
-//counterfeiter:generate -o ../internal/fake/receiver.go --fake-name Receiver . receiver
-
+//counterfeiter:generate -o ./internal/fake/receiver.go --fake-name Receiver . receiver
 var _ receiver = (*fake.Receiver)(nil)
 
 type (
@@ -40,6 +39,8 @@ type (
 		CheckAuth(req *http.Request) (string, error)
 		Handler(http.ResponseWriter, *http.Request) template.HTML
 		LogLines(*slog.Logger) int
+		Template(*template.Template) template.HTML
+		Type(any) string
 	}
 )
 
@@ -180,12 +181,29 @@ func TestRoutes(t *testing.T) {
 		require.ErrorContains(t, err, `path parameter name not permitted: "key-id" is not a Go identifier`)
 	})
 
-	t.Run("path param is not an identifier ", func(t *testing.T) {
-		ts := template.Must(template.New("simple path").Parse(`{{define "GET /{key-id} SomeString(ctx, key-id)"}}KEY{{end}}`))
-		mux := http.NewServeMux()
-		err := muxt.Handlers(mux, ts, muxt.WithReceiver(new(fake.Receiver)))
-		require.ErrorContains(t, err, `path parameter name not permitted: "key-id" is not a Go identifier`)
-	})
+	for _, name := range []string{
+		"request",
+		"ctx",
+		"response",
+		"logger",
+		"template",
+	} {
+		t.Run(name+" can not be used as a path parameter identifier", func(t *testing.T) {
+			ts := template.Must(template.New("simple path").Parse(fmt.Sprintf(`{{define "GET /{%[1]s} Type(%[1]s)"}}{{.}}{{end}}`, name)))
+			mux := http.NewServeMux()
+			s := new(fake.Receiver)
+			err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
+			require.ErrorContains(t, err, fmt.Sprintf(`identfier %s is already defined`, name))
+		})
+
+		t.Run(name+" can be used when no handler is defined", func(t *testing.T) {
+			ts := template.Must(template.New("simple path").Parse(fmt.Sprintf(`{{define "GET /{%[1]s}"}}{{.}}{{end}}`, name)))
+			mux := http.NewServeMux()
+			s := new(fake.Receiver)
+			err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
+			require.NoError(t, err)
+		})
+	}
 
 	t.Run("template execution fails", func(t *testing.T) {
 		ts := template.Must(template.New("simple path").Funcs(template.FuncMap{
@@ -363,6 +381,37 @@ func TestRoutes(t *testing.T) {
 
 		res := rec.Result()
 		assert.Equal(t, http.StatusCreated, res.StatusCode)
+	})
+
+	t.Run("method receives a template", func(t *testing.T) {
+		ts := template.Must(template.New("simple path").Parse(`{{define "GET / Template(template)"}}{{.}}{{end}}`))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+
+		err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/input/peach", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+
+		if assert.Equal(t, 1, s.TemplateCallCount()) {
+			arg := s.TemplateArgsForCall(0)
+			assert.Equal(t, "GET / Template(template)", arg.Name())
+		}
+	})
+
+	t.Run("wrong parameter type", func(t *testing.T) {
+		ts := template.Must(template.New("simple path").Parse(`{{define "GET / Template(request)"}}{{.}}{{end}}`))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+
+		err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
+		require.ErrorContains(t, err, "method argument at index 0: argument request *http.Request is not assignable to parameter type *template.Template")
 	})
 
 	t.Run("handler uses a logger", func(t *testing.T) {

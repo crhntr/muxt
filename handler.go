@@ -114,7 +114,7 @@ func createSelectorHandler(o *Options, t *template.Template, call *ast.CallExpr,
 	if err != nil {
 		return nil, err
 	}
-	inputs, err := generateInputsFunction(o, m.Type(), call, pathParams)
+	inputs, err := generateInputsFunction(o, t, m.Type(), call, pathParams)
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +179,20 @@ func printNode(node ast.Node) string {
 }
 
 const (
-	requestArgumentIdentifier  = "request"
-	contextArgumentIdentifier  = "ctx"
+	// requestArgumentIdentifier identifies an *http.Request
+	requestArgumentIdentifier = "request"
+
+	// contextArgumentIdentifier identifies a context.Context off of *http.Request
+	contextArgumentIdentifier = "ctx"
+
+	// responseArgumentIdentifier identifies an http.ResponseWriter
 	responseArgumentIdentifier = "response"
-	loggerArgumentIdentifier   = "logger"
+
+	// loggerArgumentIdentifier identifies an *slog.Logger
+	loggerArgumentIdentifier = "logger"
+
+	// loggerArgumentTemplate identifies a *template.Template
+	loggerArgumentTemplate = "template"
 )
 
 func rootScope() []string {
@@ -191,10 +201,11 @@ func rootScope() []string {
 		contextArgumentIdentifier,
 		responseArgumentIdentifier,
 		loggerArgumentIdentifier,
+		loggerArgumentTemplate,
 	}
 }
 
-func generateInputsFunction(o *Options, method reflect.Type, call *ast.CallExpr, pathParams []string) (inputsFunc, error) {
+func generateInputsFunction(o *Options, t *template.Template, method reflect.Type, call *ast.CallExpr, pathParams []string) (inputsFunc, error) {
 	if method.NumIn() != len(call.Args) {
 		return nil, fmt.Errorf("wrong number of arguments")
 	}
@@ -202,6 +213,11 @@ func generateInputsFunction(o *Options, method reflect.Type, call *ast.CallExpr,
 		return func(http.ResponseWriter, *http.Request) []reflect.Value {
 			return nil
 		}, nil
+	}
+	for _, pp := range pathParams {
+		if slices.Contains(rootScope(), pp) {
+			return nil, fmt.Errorf("identfier %s is already defined", pp)
+		}
 	}
 	var args []string
 	for i, exp := range call.Args {
@@ -223,6 +239,8 @@ func generateInputsFunction(o *Options, method reflect.Type, call *ast.CallExpr,
 				in = append(in, reflect.ValueOf(res))
 			case loggerArgumentIdentifier:
 				in = append(in, reflect.ValueOf(o.logger))
+			case loggerArgumentTemplate:
+				in = append(in, reflect.ValueOf(t))
 			default:
 				if slices.Index(pathParams, arg) >= 0 {
 					in = append(in, reflect.ValueOf(req.PathValue(arg)))
@@ -238,6 +256,7 @@ var argumentType = sync.OnceValue(func() func(argName string, pathParams []strin
 	contextType := reflect.TypeFor[context.Context]()
 	responseType := reflect.TypeFor[http.ResponseWriter]()
 	loggerType := reflect.TypeFor[*slog.Logger]()
+	templateType := reflect.TypeFor[*template.Template]()
 	stringType := reflect.TypeFor[string]()
 	return func(argName string, pathParams []string) (reflect.Type, error) {
 		var argType reflect.Type
@@ -250,6 +269,8 @@ var argumentType = sync.OnceValue(func() func(argName string, pathParams []strin
 			argType = responseType
 		case loggerArgumentIdentifier:
 			argType = loggerType
+		case loggerArgumentTemplate:
+			argType = templateType
 		default:
 			if !slices.Contains(pathParams, argName) {
 				return nil, fmt.Errorf("unknown argument type for %s", argName)
@@ -306,9 +327,6 @@ func (def EndpointDefinition) pathParams() ([]string, error) {
 	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
 		n := matches[1]
 		n = strings.TrimSuffix(n, "...")
-		if slices.Contains(rootScope(), n) {
-			return nil, fmt.Errorf("identifier already declared %q", n)
-		}
 		if !token.IsIdentifier(n) {
 			return nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
 		}
