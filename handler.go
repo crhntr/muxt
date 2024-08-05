@@ -321,18 +321,19 @@ var argumentType = sync.OnceValue(func() func(argName string, pathParams []strin
 })
 
 func typeCheckMethodParameters(pathParams []string, paramType reflect.Type, exp ast.Expr) (string, error) {
-	arg, ok := exp.(*ast.Ident)
-	if !ok {
+	switch arg := exp.(type) {
+	case *ast.Ident:
+		argType, err := argumentType()(arg.Name, pathParams)
+		if err != nil {
+			return arg.Name, err
+		}
+		if !argType.AssignableTo(paramType) {
+			return arg.Name, fmt.Errorf("argument %s %s is not assignable to parameter type %s", arg.Name, argType, paramType)
+		}
+		return arg.Name, nil
+	default:
 		return "", fmt.Errorf("argument is not an identifier got %s", printNode(exp))
 	}
-	argType, err := argumentType()(arg.Name, pathParams)
-	if err != nil {
-		return arg.Name, err
-	}
-	if !argType.AssignableTo(paramType) {
-		return arg.Name, fmt.Errorf("argument %s %s is not assignable to parameter type %s", arg.Name, argType, paramType)
-	}
-	return arg.Name, nil
 }
 
 func simpleTemplateHandler(ex ExecuteFunc[any], t *template.Template, logger *slog.Logger) http.HandlerFunc {
