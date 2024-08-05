@@ -33,7 +33,7 @@ func newOptions() Options {
 		})),
 		receiver: nil,
 		execute:  defaultExecute,
-		error:    defaultError,
+		error:    internalServerErrorErrorFunc,
 	}
 }
 
@@ -41,6 +41,8 @@ func WithStructuredLogger(log *slog.Logger) Options { return newOptions().WithSt
 func WithReceiver(r any) Options                    { return newOptions().WithReceiver(r) }
 func WithDataFunc(ex ExecuteFunc[any]) Options      { return newOptions().WithDataFunc(ex) }
 func WithErrorFunc(ex ExecuteFunc[error]) Options   { return newOptions().WithErrorFunc(ex) }
+func WithNoopErrorFunc() Options                    { return newOptions().WithNoopErrorFunc() }
+func With500ErrorFunc() Options                     { return newOptions().With500ErrorFunc() }
 
 func (o Options) WithStructuredLogger(log *slog.Logger) Options {
 	o.logger = log
@@ -60,6 +62,23 @@ func (o Options) WithDataFunc(ex ExecuteFunc[any]) Options {
 func (o Options) WithErrorFunc(ex ExecuteFunc[error]) Options {
 	o.error = ex
 	return o
+}
+
+func (o Options) WithNoopErrorFunc() Options {
+	o.error = noopErrorFunc
+	return o
+}
+
+func (o Options) With500ErrorFunc() Options {
+	o.error = internalServerErrorErrorFunc
+	return o
+}
+
+func noopErrorFunc(http.ResponseWriter, *http.Request, *template.Template, *slog.Logger, error) {}
+
+func internalServerErrorErrorFunc(res http.ResponseWriter, _ *http.Request, t *template.Template, logger *slog.Logger, err error) {
+	logger.Error("handler error", "error", err, "template", t.Name())
+	http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
 func applyOptions(options []Options) *Options {
@@ -384,9 +403,4 @@ func defaultExecute(res http.ResponseWriter, req *http.Request, t *template.Temp
 		logger.Error("failed to write full response", "method", req.Method, "path", req.URL.Path, "error", err)
 		return
 	}
-}
-
-func defaultError(res http.ResponseWriter, _ *http.Request, t *template.Template, logger *slog.Logger, err error) {
-	logger.Error("handler error", "error", err, "template", t.Name())
-	http.Error(res, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }

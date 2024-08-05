@@ -27,6 +27,8 @@ import (
 //counterfeiter:generate -o ./internal/fake/receiver.go --fake-name Receiver . receiver
 var _ receiver = (*fake.Receiver)(nil)
 
+//counterfeiter:generate -o ./internal/fake/response_writer.go --fake-name ResponseWriter net/http.ResponseWriter
+
 type (
 	receiver interface {
 		ListArticles(ctx context.Context) ([]example.Article, error)
@@ -38,6 +40,7 @@ type (
 		NumAuthors() int
 		CheckAuth(req *http.Request) (string, error)
 		Handler(http.ResponseWriter, *http.Request) template.HTML
+		ErrorHandler(http.ResponseWriter, *http.Request) (template.HTML, error)
 		LogLines(*slog.Logger) int
 		Template(*template.Template) template.HTML
 		Type(any) string
@@ -481,7 +484,7 @@ func TestRoutes(t *testing.T) {
 		require.ErrorContains(t, err, "the second result must be an error")
 	})
 
-	t.Run("when teh error handler is overwritten", func(t *testing.T) {
+	t.Run("when the error handler is overwritten", func(t *testing.T) {
 		//
 		ts := template.Must(template.New("simple path").Parse(
 			`{{define "GET / ListArticles(ctx)" }}<h1>{{len .}}</h1>{{end}}`,
@@ -506,6 +509,66 @@ func TestRoutes(t *testing.T) {
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	})
+
+	t.Run("when the noop handler error func is configures", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			`{{define "GET / ErrorHandler(response, request)" }}{{.}}{{end}}`,
+		))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+
+		const body = `<p id="error">Excuse You</p>`
+		s.ErrorHandlerStub = func(res http.ResponseWriter, _ *http.Request) (template.HTML, error) {
+			res.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(res, body)
+			return "", fmt.Errorf("banana")
+		}
+
+		logBuffer := bytes.NewBuffer(nil)
+		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+		err := muxt.Handlers(mux, ts, muxt.WithNoopErrorFunc().WithReceiver(s).WithStructuredLogger(logger))
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		res := new(fake.ResponseWriter)
+		mux.ServeHTTP(res, req)
+
+		assert.Equal(t, 1, res.WriteHeaderCallCount())
+		assert.Equal(t, http.StatusBadRequest, res.WriteHeaderArgsForCall(0))
+		assert.Equal(t, body, string(res.WriteArgsForCall(0)))
+		assert.Empty(t, logBuffer.String())
+	})
+
+	t.Run("when the 500 handler error func is configured", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			`{{define "GET / ErrorHandler(response, request)" }}{{.}}{{end}}`,
+		))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+
+		s.ErrorHandlerStub = func(res http.ResponseWriter, _ *http.Request) (template.HTML, error) {
+			return "", fmt.Errorf("banana")
+		}
+
+		logBuffer := bytes.NewBuffer(nil)
+		logger := slog.New(slog.NewTextHandler(logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+		err := muxt.Handlers(mux, ts, muxt.With500ErrorFunc().WithReceiver(s).WithStructuredLogger(logger))
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		res := new(fake.ResponseWriter)
+		res.HeaderReturns(make(http.Header))
+		mux.ServeHTTP(res, req)
+
+		assert.Equal(t, 1, res.WriteHeaderCallCount())
+		assert.Equal(t, http.StatusInternalServerError, res.WriteHeaderArgsForCall(0))
+		assert.Equal(t, http.StatusText(http.StatusInternalServerError)+"\n", string(res.WriteArgsForCall(0)))
+		assert.Contains(t, logBuffer.String(), "error=banana")
 	})
 }
 

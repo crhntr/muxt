@@ -25,6 +25,20 @@ type Receiver struct {
 		result1 string
 		result2 error
 	}
+	ErrorHandlerStub        func(http.ResponseWriter, *http.Request) (template.HTML, error)
+	errorHandlerMutex       sync.RWMutex
+	errorHandlerArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}
+	errorHandlerReturns struct {
+		result1 template.HTML
+		result2 error
+	}
+	errorHandlerReturnsOnCall map[int]struct {
+		result1 template.HTML
+		result2 error
+	}
 	GetCommentStub        func(context.Context, int, int) (string, error)
 	getCommentMutex       sync.RWMutex
 	getCommentArgsForCall []struct {
@@ -234,6 +248,71 @@ func (fake *Receiver) CheckAuthReturnsOnCall(i int, result1 string, result2 erro
 	}
 	fake.checkAuthReturnsOnCall[i] = struct {
 		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *Receiver) ErrorHandler(arg1 http.ResponseWriter, arg2 *http.Request) (template.HTML, error) {
+	fake.errorHandlerMutex.Lock()
+	ret, specificReturn := fake.errorHandlerReturnsOnCall[len(fake.errorHandlerArgsForCall)]
+	fake.errorHandlerArgsForCall = append(fake.errorHandlerArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}{arg1, arg2})
+	stub := fake.ErrorHandlerStub
+	fakeReturns := fake.errorHandlerReturns
+	fake.recordInvocation("ErrorHandler", []interface{}{arg1, arg2})
+	fake.errorHandlerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *Receiver) ErrorHandlerCallCount() int {
+	fake.errorHandlerMutex.RLock()
+	defer fake.errorHandlerMutex.RUnlock()
+	return len(fake.errorHandlerArgsForCall)
+}
+
+func (fake *Receiver) ErrorHandlerCalls(stub func(http.ResponseWriter, *http.Request) (template.HTML, error)) {
+	fake.errorHandlerMutex.Lock()
+	defer fake.errorHandlerMutex.Unlock()
+	fake.ErrorHandlerStub = stub
+}
+
+func (fake *Receiver) ErrorHandlerArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+	fake.errorHandlerMutex.RLock()
+	defer fake.errorHandlerMutex.RUnlock()
+	argsForCall := fake.errorHandlerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *Receiver) ErrorHandlerReturns(result1 template.HTML, result2 error) {
+	fake.errorHandlerMutex.Lock()
+	defer fake.errorHandlerMutex.Unlock()
+	fake.ErrorHandlerStub = nil
+	fake.errorHandlerReturns = struct {
+		result1 template.HTML
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *Receiver) ErrorHandlerReturnsOnCall(i int, result1 template.HTML, result2 error) {
+	fake.errorHandlerMutex.Lock()
+	defer fake.errorHandlerMutex.Unlock()
+	fake.ErrorHandlerStub = nil
+	if fake.errorHandlerReturnsOnCall == nil {
+		fake.errorHandlerReturnsOnCall = make(map[int]struct {
+			result1 template.HTML
+			result2 error
+		})
+	}
+	fake.errorHandlerReturnsOnCall[i] = struct {
+		result1 template.HTML
 		result2 error
 	}{result1, result2}
 }
@@ -973,6 +1052,8 @@ func (fake *Receiver) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkAuthMutex.RLock()
 	defer fake.checkAuthMutex.RUnlock()
+	fake.errorHandlerMutex.RLock()
+	defer fake.errorHandlerMutex.RUnlock()
 	fake.getCommentMutex.RLock()
 	defer fake.getCommentMutex.RUnlock()
 	fake.handlerMutex.RLock()
