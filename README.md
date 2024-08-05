@@ -14,7 +14,7 @@ This library extends this to add custom data handler invocations see "PATCH /fru
 {{block "head" "example"}}
 <head>
     <meta charset='UTF-8'/>
-    <title>Hello, world!</title>
+    <title>{{.}}</title>
     <script src='https://unpkg.com/htmx.org@2.0.1' integrity='sha384-QWGpdj554B4ETpJJC9z+ZHJcA/i59TyjxEPXiiUgN2WmTyV5OEZWCD6gQhgkdpB/' crossorigin='anonymous'></script>
     <script src='https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js'></script>
 
