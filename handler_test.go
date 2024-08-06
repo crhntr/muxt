@@ -570,6 +570,18 @@ func TestRoutes(t *testing.T) {
 		assert.Equal(t, http.StatusText(http.StatusInternalServerError)+"\n", string(res.WriteArgsForCall(0)))
 		assert.Contains(t, logBuffer.String(), "error=banana")
 	})
+
+	t.Run("when the path has an end of path delimiter", func(t *testing.T) {
+		//
+		ts := template.Must(template.New("simple path").Parse(
+			`{{define "GET /{$} ListArticles(ctx)" }}{{len .}}{{end}}`,
+		))
+		mux := http.NewServeMux()
+		s := new(fake.Receiver)
+
+		err := muxt.Handlers(mux, ts, muxt.WithReceiver(s))
+		require.NoError(t, err)
+	})
 }
 
 type errorWriter struct {
@@ -668,6 +680,20 @@ func Test_endpoint(t *testing.T) {
 					Host:    "",
 					Path:    "/",
 					Pattern: "PUT /",
+					Handler: "",
+				}, pat)
+			},
+		},
+		{
+			Name:         "with end of path wildcard",
+			TemplateName: "PUT /ping/pong/{$}",
+			ExpMatch:     true,
+			Pattern: func(t *testing.T, pat muxt.EndpointDefinition) {
+				assert.Equal(t, muxt.EndpointDefinition{
+					Method:  http.MethodPut,
+					Host:    "",
+					Path:    "/ping/pong/{$}",
+					Pattern: "PUT /ping/pong/{$}",
 					Handler: "",
 				}, pat)
 			},

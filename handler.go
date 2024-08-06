@@ -353,6 +353,9 @@ func (def EndpointDefinition) pathParams() ([]string, error) {
 	var result []string
 	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
 		n := matches[1]
+		if n == "$" {
+			continue
+		}
 		n = strings.TrimSuffix(n, "...")
 		if !token.IsIdentifier(n) {
 			return nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
