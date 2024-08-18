@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/crhntr/muxt/internal/source"
 )
 
 func TestPattern_funcLit(t *testing.T) {
@@ -106,7 +108,7 @@ func TestPattern_funcLit(t *testing.T) {
 			tv := "templates"
 			out, _, err := pat.funcLit(tv, tt.Method)
 			require.NoError(t, err)
-			assert.Equal(t, tt.Out, formatNode(out))
+			assert.Equal(t, tt.Out, source.Format(out))
 		})
 	}
 }

@@ -1,7 +1,9 @@
 package source
 
 import (
+	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
 	"slices"
 	"strings"
@@ -102,4 +104,12 @@ func IterateImports(files []*ast.File) func(func(*ast.File, *ast.ImportSpec) boo
 func SortImports(input []*ast.ImportSpec) []*ast.ImportSpec {
 	slices.SortFunc(input, func(a, b *ast.ImportSpec) int { return strings.Compare(a.Path.Value, b.Path.Value) })
 	return slices.CompactFunc(input, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
+}
+
+func Format(node ast.Node) string {
+	var buf strings.Builder
+	if err := printer.Fprint(&buf, token.NewFileSet(), node); err != nil {
+		return fmt.Sprintf("formatting error: %v", err)
+	}
+	return buf.String()
 }

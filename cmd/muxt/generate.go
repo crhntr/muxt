@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/ast"
 	"io"
 	"log"
 	"os"
@@ -28,10 +27,6 @@ type Generate struct {
 	outputFilename    string
 	routesFunction    string
 	receiverIdent     string
-}
-
-func (g Generate) ImportReceiverMethods(tp, method string) (*ast.FuncType, []*ast.ImportSpec, bool) {
-	return source.GoFiles(g.Package.Syntax).ImportReceiverMethods(tp, method)
 }
 
 func generateCommand(args []string, workingDirectory string, getEnv func(string) string, stdout, stderr io.Writer) error {

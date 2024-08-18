@@ -28,19 +28,55 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 			tn = im.Name.Name
 			break
 		}
-		return parseTemplates(workingDirectory, templatesVariable, tn, fileSet, files, tv.Values[i], embeddedAbsolutePath)
+		ts, err := parseTemplates(workingDirectory, templatesVariable, tn, fileSet, files, tv.Values[i], embeddedAbsolutePath)
+		if err != nil {
+			return nil, fmt.Errorf("run template %s failed at %w", templatesVariable, err)
+		}
+		return ts, nil
 	}
 	return nil, fmt.Errorf("variable %s not found", templatesVariable)
 }
 
-func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent string, fileSet *token.FileSet, files []*ast.File, exp ast.Expr, embeddedAbsolutePath []string) (*template.Template, error) {
-	call, ok := exp.(*ast.CallExpr)
+func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent string, fileSet *token.FileSet, files []*ast.File, expression ast.Expr, embeddedAbsolutePath []string) (*template.Template, error) {
+	call, ok := expression.(*ast.CallExpr)
 	if !ok {
-		return nil, fmt.Errorf("failed to evaluate template expression at %s", fileSet.Position(exp.Pos()))
+		return nil, contextError(workingDirectory, fileSet, expression.Pos(), fmt.Errorf("expected call expression"))
 	}
 
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 		switch sel.Sel.Name {
+		case "New":
+			var templatesNew func(string) *template.Template
+			switch x := sel.X.(type) {
+			case *ast.Ident:
+				if pkg := templatesPackageIdent; x.Name != pkg {
+					return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected %s got %s", pkg, x.Name))
+				}
+				templatesNew = template.New
+			case *ast.CallExpr:
+				ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedAbsolutePath)
+				if err != nil {
+					return nil, err
+				}
+				templatesNew = ts.New
+			default:
+				return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected New to either be a call of function New from package template package or a call to method New on *template.Template"))
+			}
+
+			if len(call.Args) != 1 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
+			}
+
+			switch arg := call.Args[0].(type) {
+			case *ast.BasicLit:
+				if arg.Kind != token.STRING {
+					return nil, contextError(workingDirectory, fileSet, arg.Pos(), fmt.Errorf("expected argument to be a string literal got %s", Format(arg)))
+				}
+				name, _ := strconv.Unquote(arg.Value)
+				return templatesNew(name), nil
+			default:
+				return nil, contextError(workingDirectory, fileSet, arg.Pos(), fmt.Errorf("expected argument to be a string literal got %s", Format(arg)))
+			}
 		case "Must":
 			x, ok := sel.X.(*ast.Ident)
 			if !ok {
@@ -57,11 +93,7 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 			var parseFiles func(files ...string) (*template.Template, error)
 			switch x := sel.X.(type) {
 			case *ast.Ident:
-				x, ok := sel.X.(*ast.Ident)
-				if !ok {
-					return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
-				}
-				if x.Name != "template" {
+				if x.Name != templatesPackageIdent {
 					return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
 				}
 				parseFiles = template.ParseFiles
@@ -229,4 +261,10 @@ func parsePatterns(input string) ([]string, error) {
 	}
 
 	return patterns, nil
+}
+
+func contextError(workingDirectory string, set *token.FileSet, pos token.Pos, err error) error {
+	p := set.Position(pos)
+	p.Filename, _ = filepath.Rel(workingDirectory, p.Filename)
+	return fmt.Errorf("%s: %w", p, err)
 }

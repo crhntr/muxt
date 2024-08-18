@@ -107,7 +107,7 @@ func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunc
 	for _, imp := range imports {
 		importGen.Specs = append(importGen.Specs, imp)
 	}
-	return formatNode(file), nil
+	return source.Format(file), nil
 }
 
 func (def Pattern) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
@@ -250,7 +250,7 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
 }
 
 func errWrongNumberOfArguments(def Pattern, method *ast.FuncType) error {
-	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", formatNode(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.args))
+	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.args))
 }
 
 func checkArgument(exp ast.Expr, tp ast.Expr) error {
@@ -258,23 +258,23 @@ func checkArgument(exp ast.Expr, tp ast.Expr) error {
 	switch arg.Name {
 	case PatternScopeIdentifierHTTPRequest:
 		if !matchSelectorIdents(tp, httpPackageIdent, httpRequestIdent, true) {
-			return fmt.Errorf("method expects type %s but %s is *%s.%s", formatNode(tp), arg.Name, httpPackageIdent, httpRequestIdent)
+			return fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(tp), arg.Name, httpPackageIdent, httpRequestIdent)
 		}
 		return nil
 	case PatternScopeIdentifierHTTPResponse:
 		if !matchSelectorIdents(tp, httpPackageIdent, httpResponseWriterIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", formatNode(tp), arg.Name, httpPackageIdent, httpResponseWriterIdent)
+			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(tp), arg.Name, httpPackageIdent, httpResponseWriterIdent)
 		}
 		return nil
 	case PatternScopeIdentifierContext:
 		if !matchSelectorIdents(tp, contextPackageIdent, contextContextTypeIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", formatNode(tp), arg.Name, contextPackageIdent, contextContextTypeIdent)
+			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(tp), arg.Name, contextPackageIdent, contextContextTypeIdent)
 		}
 		return nil
 	default:
 		ident, ok := tp.(*ast.Ident)
 		if !ok || ident.Name != stringTypeIdent {
-			return fmt.Errorf("method expects type %s but %s is a string", formatNode(tp), arg.Name)
+			return fmt.Errorf("method expects type %s but %s is a string", source.Format(tp), arg.Name)
 		}
 		return nil
 	}

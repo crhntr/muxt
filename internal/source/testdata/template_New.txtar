@@ -1,0 +1,37 @@
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+var (
+	//go:embed *.gohtml
+	templateSource embed.FS
+
+	templateNew = template.New("some-name")
+
+  templateParseFSNew = template.Must(template.ParseFS(templateSource, "*")).New("greetings")
+
+  templateNewParseFS = template.Must(template.New("greetings").ParseFS(templateSource, "*"))
+
+  templateNewMissingArg = template.New()
+
+  templateWrongX = UNKNOWN.New()
+
+  templateWrongArgCount = template.New("one", "two")
+
+  templateNewOnIndexed = ts[0].New("one", "two")
+
+  templateNewArg42 = template.New(42)
+
+  templateNewArgIdent = template.New(TemplateName)
+
+  templateNewErrUpstream = template.New(fail).New("n")
+
+  templatesIdent = someIdent
+)
+
+-- index.gohtml --
+Hello, friend!

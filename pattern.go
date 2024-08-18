@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"html/template"
 	"net/http"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/crhntr/muxt/internal/source"
 )
 
 func TemplatePatterns(ts *template.Template) ([]Pattern, error) {
@@ -122,11 +123,11 @@ func parseHandler(def *Pattern) error {
 	}
 	call, ok := e.(*ast.CallExpr)
 	if !ok {
-		return fmt.Errorf("expected call, got: %s", formatNode(e))
+		return fmt.Errorf("expected call, got: %s", source.Format(e))
 	}
 	fun, ok := call.Fun.(*ast.Ident)
 	if !ok {
-		return fmt.Errorf("expected function identifier, got got: %s", formatNode(call.Fun))
+		return fmt.Errorf("expected function identifier, got got: %s", source.Format(call.Fun))
 	}
 	if call.Ellipsis != token.NoPos {
 		return fmt.Errorf("unexpected ellipsis")
@@ -139,7 +140,7 @@ func parseHandler(def *Pattern) error {
 	for i, a := range call.Args {
 		arg, ok := a.(*ast.Ident)
 		if !ok {
-			return fmt.Errorf("expected only argument expressions as arguments, argument at index %d is: %s", i, formatNode(a))
+			return fmt.Errorf("expected only argument expressions as arguments, argument at index %d is: %s", i, source.Format(a))
 		}
 		switch name := arg.Name; name {
 		case PatternScopeIdentifierHTTPRequest,
@@ -161,14 +162,6 @@ func parseHandler(def *Pattern) error {
 	def.call = call
 	def.args = args
 	return nil
-}
-
-func formatNode(node ast.Node) string {
-	var buf strings.Builder
-	if err := printer.Fprint(&buf, token.NewFileSet(), node); err != nil {
-		return fmt.Sprintf("formatting error: %v", err)
-	}
-	return buf.String()
 }
 
 const (

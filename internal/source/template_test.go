@@ -17,20 +17,137 @@ import (
 )
 
 func TestTemplates(t *testing.T) {
-	t.Run("simple.txtar", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/simple.txtar"))
+	t.Run("non call", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesIdent", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templatesIdent failed at template.go:32:20: expected call expression")
+	})
+
+	t.Run("call ParseFS", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_ParseFS.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		ts, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 			filepath.Join(dir, "form.gohtml"),
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		var names []string
 		for _, t := range ts.Templates() {
 			names = append(names, t.Name())
 		}
 		slices.Sort(names)
 		assert.Equal(t, []string{"create", "form.gohtml", "home", "index.gohtml", "update"}, names)
+	})
+
+	t.Run("call New", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "templateNew", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.NoError(t, err)
+		var names []string
+		for _, t := range ts.Templates() {
+			names = append(names, t.Name())
+		}
+		slices.Sort(names)
+		assert.Equal(t, []string{"some-name"}, names)
+	})
+
+	t.Run("call New after calling ParseFS", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "templateParseFSNew", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.NoError(t, err)
+		var names []string
+		for _, t := range ts.Templates() {
+			names = append(names, t.Name())
+		}
+		slices.Sort(names)
+		assert.Equal(t, []string{"greetings", "index.gohtml"}, names)
+	})
+
+	t.Run("call New before calling ParseFS", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "templateNewParseFS", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.NoError(t, err)
+		var names []string
+		for _, t := range ts.Templates() {
+			names = append(names, t.Name())
+		}
+		slices.Sort(names)
+		assert.Equal(t, []string{"greetings", "index.gohtml"}, names)
+	})
+
+	t.Run("call new with non args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewMissingArg", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "expected exactly one string literal argument")
+	})
+
+	t.Run("call New on unknown X", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateWrongX", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:20:31: expected template got UNKNOWN")
+	})
+
+	t.Run("call New with wrong arg count", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateWrongArgCount", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:22:39: expected exactly one string literal argument")
+	})
+
+	t.Run("call New on unexpected X", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewOnIndexed", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:24:26: expected New to either be a call of function New from package template package or a call to method New on *template.Template")
+	})
+
+	t.Run("call New with non string literal arg", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewArg42", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:26:35: expected argument to be a string literal got 42")
+	})
+
+	t.Run("call New with non literal arg", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewArgIdent", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:28:38: expected argument to be a string literal got TemplateName")
+	})
+
+	t.Run("call New with upstream error", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewErrUpstream", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateNewErrUpstream failed at template.go:30:41: expected argument to be a string literal got fail")
 	})
 }
 
