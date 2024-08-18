@@ -53,6 +53,10 @@ var (
 	templateParseFSNoArgs = template.ParseFS()
 
 	templateParseFSFirstArgNonIdent = template.ParseFS(os.DirFS("."), "*")
+
+	templateParseFSNonStringLiteralGlob = template.ParseFS(templateSource, "w", 42, "x")
+
+	templateParseFSWithBadGlob = template.ParseFS(templateSource, "[fail")
 )
 -- index.gohtml --
 Hello, friend!

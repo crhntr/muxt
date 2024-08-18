@@ -250,6 +250,48 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "template.go:54:53: first argument to ParseFS must be an identifier")
 	})
+	t.Run("call ParseFS with first arg non ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSNonStringLiteralGlob", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:56:78: expected string literal got 42")
+	})
+	t.Run("call ParseFS with bad glob", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSWithBadGlob", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:58:64: bad pattern "[fail": syntax error in pattern`)
+	})
+	t.Run("call ParseFS and fail to get relative template path", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_ParseFS.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
+			filepath.FromSlash("\x00/index.gohtml"), // null must not be in a path
+		})
+		require.ErrorContains(t, err, `failed to calculate relative path for embedded files: Rel: can't make`)
+	})
+	t.Run("call ParseFS and filter filepaths by globs", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_ParseFS.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		tsHTML, err := source.Templates(dir, "templatesHTML", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+			filepath.Join(dir, "script.html"),
+		})
+		require.NoError(t, err)
+		tsGoHTML, err := source.Templates(dir, "templatesGoHTML", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+			filepath.Join(dir, "script.html"),
+		})
+
+		assert.NotNil(t, tsHTML.Lookup("script.html"))
+		assert.NotNil(t, tsHTML.Lookup("console_log"))
+		assert.Nil(t, tsGoHTML.Lookup("script.html"))
+		assert.Nil(t, tsGoHTML.Lookup("console_log"))
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {

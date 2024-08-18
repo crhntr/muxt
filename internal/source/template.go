@@ -28,7 +28,11 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 			tn = im.Name.Name
 			break
 		}
-		ts, err := parseTemplates(workingDirectory, templatesVariable, tn, fileSet, files, tv.Values[i], embeddedAbsolutePath)
+		embeddedPaths, err := relFilepaths(workingDirectory, embeddedAbsolutePath...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to calculate relative path for embedded files: %w", err)
+		}
+		ts, err := parseTemplates(workingDirectory, templatesVariable, tn, fileSet, files, tv.Values[i], embeddedPaths)
 		if err != nil {
 			return nil, fmt.Errorf("run template %s failed at %w", templatesVariable, err)
 		}
@@ -37,7 +41,7 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 	return nil, fmt.Errorf("variable %s not found", templatesVariable)
 }
 
-func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent string, fileSet *token.FileSet, files []*ast.File, expression ast.Expr, embeddedAbsolutePath []string) (*template.Template, error) {
+func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent string, fileSet *token.FileSet, files []*ast.File, expression ast.Expr, embeddedPaths []string) (*template.Template, error) {
 	call, ok := expression.(*ast.CallExpr)
 	if !ok {
 		return nil, contextError(workingDirectory, fileSet, expression.Pos(), fmt.Errorf("expected call expression"))
@@ -58,7 +62,7 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 			}
 			templatesNew = template.New
 		case *ast.CallExpr:
-			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedAbsolutePath)
+			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedPaths)
 			if err != nil {
 				return nil, err
 			}
@@ -92,7 +96,7 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 		if len(call.Args) != 1 {
 			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one argument %s got %d", Format(sel.X), len(call.Args)))
 		}
-		return parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, call.Args[0], embeddedAbsolutePath)
+		return parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, call.Args[0], embeddedPaths)
 	case "ParseFS":
 		var parseFiles func(files ...string) (*template.Template, error)
 		switch x := sel.X.(type) {
@@ -102,7 +106,7 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 			}
 			parseFiles = template.ParseFiles
 		case *ast.CallExpr:
-			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedAbsolutePath)
+			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedPaths)
 			if err != nil {
 				return nil, err
 			}
@@ -113,31 +117,29 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 		if len(call.Args) < 1 {
 			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("missing required arguments"))
 		}
-		embeddedFiles, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedAbsolutePath)
+		matches, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedPaths)
 		if err != nil {
 			return nil, err
 		}
-		globs, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
+		patterns, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
 		if err != nil {
 			return nil, err
 		}
-		filtered := embeddedFiles[:0]
-		for _, ef := range embeddedFiles {
-			rel, err := filepath.Rel(workingDirectory, ef)
-			if err != nil {
-				return nil, err
-			}
-			for _, pattern := range globs {
-				match, err := filepath.Match(pattern, rel)
-				if err != nil || !match {
+		filtered := matches[:0]
+		for _, ef := range matches {
+			for j, pattern := range patterns {
+				match, err := filepath.Match(pattern, ef)
+				if err != nil {
+					return nil, contextError(workingDirectory, fileSet, call.Args[j+1].Pos(), fmt.Errorf("bad pattern %q: %w", pattern, err))
+				}
+				if !match {
 					continue
 				}
 				filtered = append(filtered, ef)
 				break
 			}
 		}
-		embeddedFiles = slices.Clip(filtered)
-		return parseFiles(embeddedFiles...)
+		return parseFiles(joinFilepaths(workingDirectory, filtered...)...)
 	}
 }
 
@@ -173,40 +175,38 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 			if err != nil {
 				return nil, err
 			}
-			efs, err := embeddedFilesMatchingPatternList(dir, patterns, embeddedFiles)
+			absMat, err := embeddedFilesMatchingPatternList(patterns, embeddedFiles)
 			if err != nil {
 				return nil, err
 			}
-			return efs, nil
+			return absMat, nil
 		}
 	}
 	return nil, fmt.Errorf("variable %s not found", fsIdent.Name)
 }
 
-func embeddedFilesMatchingPatternList(dir string, patterns, embeddedFiles []string) ([]string, error) {
+func embeddedFilesMatchingPatternList(patterns, embeddedFiles []string) ([]string, error) {
 	var matches []string
 	for _, fp := range embeddedFiles {
-		rel, err := filepath.Rel(dir, fp)
-		if err != nil {
-			return nil, err
-		}
 		for _, pattern := range patterns {
 			pat := filepath.FromSlash(pattern)
-			fullPat := filepath.Join(dir, filepath.FromSlash(pat)) + "/"
-			if i := slices.IndexFunc(embeddedFiles, func(file string) bool {
-				return strings.HasPrefix(file, fullPat)
-			}); i >= 0 {
-				matches = append(matches, embeddedFiles[i])
-				continue
+			if !strings.ContainsAny(pat, "*[]") {
+				prefix := filepath.FromSlash(pat) + "/"
+				if i := slices.IndexFunc(embeddedFiles, func(file string) bool {
+					return strings.HasPrefix(file, prefix)
+				}); i >= 0 {
+					matches = append(matches, embeddedFiles[i])
+					continue
+				}
 			}
-			if matched, err := filepath.Match(pat, rel); err != nil {
+			if matched, err := filepath.Match(pat, fp); err != nil {
 				return nil, err
 			} else if matched {
 				matches = append(matches, fp)
 			}
 		}
 	}
-	return matches, nil
+	return slices.Clip(matches), nil
 }
 
 const goEmbedCommentPrefix = "//go:embed"
@@ -276,4 +276,24 @@ func contextError(workingDirectory string, set *token.FileSet, pos token.Pos, er
 	p := set.Position(pos)
 	p.Filename, _ = filepath.Rel(workingDirectory, p.Filename)
 	return fmt.Errorf("%s: %w", p, err)
+}
+
+func joinFilepaths(wd string, rel ...string) []string {
+	result := slices.Clone(rel)
+	for i := range result {
+		result[i] = filepath.Join(wd, result[i])
+	}
+	return result
+}
+
+func relFilepaths(wd string, abs ...string) ([]string, error) {
+	result := slices.Clone(abs)
+	for i, p := range result {
+		r, err := filepath.Rel(wd, p)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = r
+	}
+	return result, nil
 }

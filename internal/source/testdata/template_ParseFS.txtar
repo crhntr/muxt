@@ -11,6 +11,12 @@ var (
 	templateSource embed.FS
 
 	templates = template.Must(template.ParseFS(templateSource, "*"))
+
+	//go:embed *html
+	allHTML embed.FS
+
+	templatesHTML = template.Must(template.ParseFS(allHTML, "*.*html"))
+	templatesGoHTML = template.Must(template.ParseFS(allHTML, "*.gohtml"))
 )
 -- index.gohtml --
 
@@ -21,3 +27,8 @@ var (
 {{define "create"}}{{end}}
 
 {{define "update"}}{{end}}
+
+-- script.html --
+{{define "console_log"}}
+<script>console.log({{.Message}})</script>
+{{end}}
