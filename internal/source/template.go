@@ -204,6 +204,8 @@ func embeddedFilesMatchingPatternList(dir string, patterns, embeddedFiles []stri
 	return matches, nil
 }
 
+const goEmbedCommentPrefix = "//go:embed"
+
 func readComments(s *strings.Builder, groups ...*ast.CommentGroup) {
 	for _, c := range groups {
 		if c == nil {

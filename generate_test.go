@@ -14,7 +14,6 @@ import (
 	"golang.org/x/tools/txtar"
 
 	"github.com/crhntr/muxt"
-	"github.com/crhntr/muxt/internal/source"
 )
 
 func TestGenerate(t *testing.T) {
@@ -264,7 +263,7 @@ func execute(response http.ResponseWriter, request *http.Request, t *template.Te
 	}
 }
 
-func methodFuncTypeLoader(t *testing.T, set *token.FileSet, in string) source.GoFiles {
+func methodFuncTypeLoader(t *testing.T, set *token.FileSet, in string) []*ast.File {
 	t.Helper()
 	archive := txtar.Parse([]byte(in))
 	var files []*ast.File
