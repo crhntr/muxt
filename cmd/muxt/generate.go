@@ -79,5 +79,5 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(workingDirectory, config.outputFilename), []byte(CodeGenerationComment+"\n\n"+s), 0644)
+	return os.WriteFile(filepath.Join(workingDirectory, config.outputFilename), []byte(CodeGenerationComment+"\n\n"+s), 0o644)
 }

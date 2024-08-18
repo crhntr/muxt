@@ -43,7 +43,7 @@ func createTestDir(t *testing.T, filename string) string {
 	}
 	for _, file := range archive.Files {
 		output := filepath.Join(dir, filepath.FromSlash(file.Name))
-		if err := os.WriteFile(output, file.Data, 0666); err != nil {
+		if err := os.WriteFile(output, file.Data, 0o666); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -40,7 +40,7 @@ const (
 	DefaultRoutesFunctionName    = "Routes"
 )
 
-func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, fileSet *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, _ *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
@@ -94,9 +94,7 @@ func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunc
 		Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
 	})
 	file.Decls = append(file.Decls, routes)
-	var (
-		hasExecuteFunc = false
-	)
+	hasExecuteFunc := false
 	for _, fn := range source.IterateFunctions(templatesPackage) {
 		if fn.Recv == nil && fn.Name.Name == executeIdentName {
 			hasExecuteFunc = true
@@ -188,7 +186,8 @@ func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) 
 									Args: []ast.Expr{},
 								},
 								httpStatusCode(httpStatusCode200Ident),
-							}}},
+							},
+						}},
 						&ast.ReturnStmt{},
 					},
 				},
@@ -431,7 +430,6 @@ func (def Pattern) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent strin
 	}
 	ident, ok := exp.(*ast.Ident)
 	return ok && ident.Name == receiverTypeIdent
-
 }
 
 func executeFuncDecl() *ast.FuncDecl {
@@ -495,17 +493,20 @@ func executeFuncDecl() *ast.FuncDecl {
 										Args: []ast.Expr{},
 									},
 									httpStatusCode(httpStatusCode200Ident),
-								}}},
+								},
+							}},
 							&ast.ReturnStmt{},
 						},
 					},
 				},
-				&ast.ExprStmt{X: &ast.CallExpr{
-					Fun: &ast.SelectorExpr{
-						X:   ast.NewIdent(httpResponseField().Names[0].Name),
-						Sel: ast.NewIdent("WriteHeader"),
+				&ast.ExprStmt{
+					X: &ast.CallExpr{
+						Fun: &ast.SelectorExpr{
+							X:   ast.NewIdent(httpResponseField().Names[0].Name),
+							Sel: ast.NewIdent("WriteHeader"),
+						},
+						Args: []ast.Expr{ast.NewIdent("code")},
 					},
-					Args: []ast.Expr{ast.NewIdent("code")}},
 				},
 				&ast.AssignStmt{
 					Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
@@ -516,8 +517,7 @@ func executeFuncDecl() *ast.FuncDecl {
 							Sel: ast.NewIdent("WriteTo"),
 						},
 						Args: []ast.Expr{ast.NewIdent(httpResponseField().Names[0].Name)},
-					},
-					},
+					}},
 				},
 			},
 		},
