@@ -84,13 +84,13 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 	case "Must":
 		x, ok := sel.X.(*ast.Ident)
 		if !ok {
-			return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
+			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
 		}
-		if x.Name != "template" {
-			return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
+		if x.Name != templatesPackageIdent {
+			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
 		}
 		if len(call.Args) != 1 {
-			return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
+			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one argument %s got %d", Format(sel.X), len(call.Args)))
 		}
 		return parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, call.Args[0], embeddedAbsolutePath)
 	case "ParseFS":

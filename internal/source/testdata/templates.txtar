@@ -35,6 +35,14 @@ var (
   unsupportedMethod = template.Unknown()
 
   unexpectedFunExpression = x[3]()
+
+  templateMustNonIdentReceiver = f().Must(template.ParseFS(templateSource, "*"))
+
+   templateMustCalledWithTwoArgs = template.Must(nil, nil)
+
+   templateMustCalledWithNoArg s= template.Must()
+
+   templateMustWrongPackageIdent = wrong.Must()
 )
 
 -- index.gohtml --

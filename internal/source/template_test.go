@@ -177,6 +177,40 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template unexpectedFunExpression failed at template.go:36:29: unexpected call: x[3]")
 	})
+
+	t.Run("must called on non ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateMustNonIdentReceiver", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateMustNonIdentReceiver failed at template.go:38:34: expected package identifier template got f()")
+	})
+	t.Run("must called with two arguments", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateMustCalledWithTwoArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateMustCalledWithTwoArgs failed at template.go:40:49: expected exactly one argument template got 2")
+	})
+	t.Run("must called with one argument", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateMustCalledWithNoArg", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateMustCalledWithNoArg failed at template.go:42:48: expected exactly one argument template got 0")
+	})
+	t.Run("wrong template package ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateMustWrongPackageIdent", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateMustWrongPackageIdent failed at template.go:44:36: expected package identifier template got wrong")
+	})
+
 }
 
 func createTestDir(t *testing.T, filename string) string {
