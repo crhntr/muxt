@@ -170,12 +170,12 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 				continue
 			}
 			var comment strings.Builder
-			readComments(&comment, decl.Doc, spec.Doc)
+			commentNode := readComments(&comment, decl.Doc, spec.Doc)
 			patterns, err := parsePatterns(comment.String())
 			if err != nil {
 				return nil, err
 			}
-			absMat, err := embeddedFilesMatchingPatternList(patterns, embeddedFiles)
+			absMat, err := embeddedFilesMatchingPatternList(dir, fileSet, commentNode, patterns, embeddedFiles)
 			if err != nil {
 				return nil, err
 			}
@@ -185,7 +185,7 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 	return nil, fmt.Errorf("variable %s not found", fsIdent.Name)
 }
 
-func embeddedFilesMatchingPatternList(patterns, embeddedFiles []string) ([]string, error) {
+func embeddedFilesMatchingPatternList(dir string, set *token.FileSet, comment ast.Node, patterns, embeddedFiles []string) ([]string, error) {
 	var matches []string
 	for _, fp := range embeddedFiles {
 		for _, pattern := range patterns {
@@ -198,7 +198,7 @@ func embeddedFilesMatchingPatternList(patterns, embeddedFiles []string) ([]strin
 				}
 			}
 			if matched, err := filepath.Match(pat, fp); err != nil {
-				return nil, err
+				return nil, contextError(dir, set, comment.Pos(), fmt.Errorf("embed comment malformed: %w", err))
 			} else if matched {
 				matches = append(matches, fp)
 			}
@@ -209,7 +209,7 @@ func embeddedFilesMatchingPatternList(patterns, embeddedFiles []string) ([]strin
 
 const goEmbedCommentPrefix = "//go:embed"
 
-func readComments(s *strings.Builder, groups ...*ast.CommentGroup) {
+func readComments(s *strings.Builder, groups ...*ast.CommentGroup) ast.Node {
 	for _, c := range groups {
 		if c == nil {
 			continue
@@ -221,7 +221,9 @@ func readComments(s *strings.Builder, groups ...*ast.CommentGroup) {
 			s.WriteString(strings.TrimSpace(strings.TrimPrefix(line.Text, goEmbedCommentPrefix)))
 			s.WriteByte(' ')
 		}
+		return c
 	}
+	return nil
 }
 
 func parsePatterns(input string) ([]string, error) {

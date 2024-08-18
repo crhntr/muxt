@@ -12,6 +12,8 @@ var (
 
 	templates = template.Must(template.ParseFS(templateSource, "*"))
 
+	// allHTML used by templatesHTML and templatesGoHTML to test pattern filtering
+	// this comment ensures the comment parser skips lines not preceded by go:embed
 	//go:embed *html
 	allHTML embed.FS
 

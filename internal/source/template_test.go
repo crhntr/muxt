@@ -309,6 +309,14 @@ func TestTemplates(t *testing.T) {
 		assert.Nil(t, tsGoHTML.Lookup("script.html"))
 		assert.Nil(t, tsGoHTML.Lookup("console_log"))
 	})
+	t.Run("call bad embed pattern", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/bad_embed_pattern.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
+			filepath.Join(dir, "greeting.gohtml"), // null must not be in a path
+		})
+		require.ErrorContains(t, err, `template.go:9:2: embed comment malformed: syntax error in pattern`)
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {
