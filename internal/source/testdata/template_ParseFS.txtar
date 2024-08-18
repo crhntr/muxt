@@ -12,7 +12,6 @@ var (
 
 	templates = template.Must(template.ParseFS(templateSource, "*"))
 )
-
 -- index.gohtml --
 
 {{define "home"}}{{end}}

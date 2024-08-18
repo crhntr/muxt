@@ -12,38 +12,37 @@ var (
 
 	templateNew = template.New("some-name")
 
-  templateParseFSNew = template.Must(template.ParseFS(templateSource, "*")).New("greetings")
+	templateParseFSNew = template.Must(template.ParseFS(templateSource, "*")).New("greetings")
 
-  templateNewParseFS = template.Must(template.New("greetings").ParseFS(templateSource, "*"))
+	templateNewParseFS = template.Must(template.New("greetings").ParseFS(templateSource, "*"))
 
-  templateNewMissingArg = template.New()
+	templateNewMissingArg = template.New()
 
-  templateWrongX = UNKNOWN.New()
+	templateWrongX = UNKNOWN.New()
 
-  templateWrongArgCount = template.New("one", "two")
+	templateWrongArgCount = template.New("one", "two")
 
-  templateNewOnIndexed = ts[0].New("one", "two")
+	templateNewOnIndexed = ts[0].New("one", "two")
 
-  templateNewArg42 = template.New(42)
+	templateNewArg42 = template.New(42)
 
-  templateNewArgIdent = template.New(TemplateName)
+	templateNewArgIdent = template.New(TemplateName)
 
-  templateNewErrUpstream = template.New(fail).New("n")
+	templateNewErrUpstream = template.New(fail).New("n")
 
-  templatesIdent = someIdent
+	templatesIdent = someIdent
 
-  unsupportedMethod = template.Unknown()
+	unsupportedMethod = template.Unknown()
 
-  unexpectedFunExpression = x[3]()
+	unexpectedFunExpression = x[3]()
 
-  templateMustNonIdentReceiver = f().Must(template.ParseFS(templateSource, "*"))
+	templateMustNonIdentReceiver = f().Must(template.ParseFS(templateSource, "*"))
 
-   templateMustCalledWithTwoArgs = template.Must(nil, nil)
+	templateMustCalledWithTwoArgs = template.Must(nil, nil)
 
-   templateMustCalledWithNoArg s= template.Must()
+	templateMustCalledWithNoArg s = template.Must()
 
-   templateMustWrongPackageIdent = wrong.Must()
+	templateMustWrongPackageIdent = wrong.Must()
 )
-
 -- index.gohtml --
 Hello, friend!
