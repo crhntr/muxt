@@ -31,6 +31,10 @@ var (
   templateNewErrUpstream = template.New(fail).New("n")
 
   templatesIdent = someIdent
+
+  unsupportedMethod = template.Unknown()
+
+  unexpectedFunExpression = x[3]()
 )
 
 -- index.gohtml --

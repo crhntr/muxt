@@ -149,6 +149,34 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template templateNewErrUpstream failed at template.go:30:41: expected argument to be a string literal got fail")
 	})
+
+	t.Run("unknown templates variable", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "variableDoesNotExist", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.NotNil(t, err)
+		require.Equal(t, "variable variableDoesNotExist not found", err.Error())
+	})
+
+	t.Run("unknown templates variable", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "unsupportedMethod", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template unsupportedMethod failed at template.go:34:23: unsupported method Unknown")
+	})
+
+	t.Run("unexpected function expression", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "unexpectedFunExpression", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template unexpectedFunExpression failed at template.go:36:29: unexpected call: x[3]")
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {
