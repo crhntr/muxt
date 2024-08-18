@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -32,6 +33,22 @@ func TestTemplates(t *testing.T) {
 		ts, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 			filepath.Join(dir, "form.gohtml"),
+		})
+		require.NoError(t, err)
+		var names []string
+		for _, t := range ts.Templates() {
+			names = append(names, t.Name())
+		}
+		slices.Sort(names)
+		assert.Equal(t, []string{"create", "form.gohtml", "home", "index.gohtml", "update"}, names)
+	})
+
+	t.Run("call ParseFS with assets dir", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/assets_dir.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
+			filepath.Join(dir, filepath.FromSlash("assets/index.gohtml")),
+			filepath.Join(dir, filepath.FromSlash("assets/form.gohtml")),
 		})
 		require.NoError(t, err)
 		var names []string
@@ -301,11 +318,9 @@ func createTestDir(t *testing.T, filename string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, file := range archive.Files {
-		output := filepath.Join(dir, filepath.FromSlash(file.Name))
-		if err := os.WriteFile(output, file.Data, 0o666); err != nil {
-			t.Fatal(err)
-		}
+	tfs, err := txtar.FS(archive)
+	if err := os.CopyFS(dir, tfs); err != nil {
+		log.Fatal(err)
 	}
 	return dir
 }

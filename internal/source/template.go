@@ -191,11 +191,9 @@ func embeddedFilesMatchingPatternList(patterns, embeddedFiles []string) ([]strin
 		for _, pattern := range patterns {
 			pat := filepath.FromSlash(pattern)
 			if !strings.ContainsAny(pat, "*[]") {
-				prefix := filepath.FromSlash(pat) + "/"
-				if i := slices.IndexFunc(embeddedFiles, func(file string) bool {
-					return strings.HasPrefix(file, prefix)
-				}); i >= 0 {
-					matches = append(matches, embeddedFiles[i])
+				prefix := filepath.FromSlash(pat + "/")
+				if strings.HasPrefix(fp, prefix) {
+					matches = append(matches, fp)
 					continue
 				}
 			}
