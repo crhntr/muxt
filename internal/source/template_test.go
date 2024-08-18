@@ -18,7 +18,7 @@ import (
 
 func TestTemplates(t *testing.T) {
 	t.Run("non call", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templatesIdent", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -43,7 +43,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		ts, err := source.Templates(dir, "templateNew", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -58,7 +58,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New after calling ParseFS", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		ts, err := source.Templates(dir, "templateParseFSNew", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -73,7 +73,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New before calling ParseFS", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		ts, err := source.Templates(dir, "templateNewParseFS", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -88,7 +88,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call new with non args", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateNewMissingArg", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -97,7 +97,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New on unknown X", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateWrongX", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -106,7 +106,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New with wrong arg count", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateWrongArgCount", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -115,7 +115,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New on unexpected X", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateNewOnIndexed", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -124,7 +124,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New with non string literal arg", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateNewArg42", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -133,7 +133,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New with non literal arg", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateNewArgIdent", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -142,7 +142,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("call New with upstream error", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateNewErrUpstream", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -151,7 +151,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("unknown templates variable", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "variableDoesNotExist", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -161,7 +161,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("unknown templates variable", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "unsupportedMethod", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
@@ -170,7 +170,7 @@ func TestTemplates(t *testing.T) {
 	})
 
 	t.Run("unexpected function expression", func(t *testing.T) {
-		dir := createTestDir(t, filepath.FromSlash("testdata/template_New.txtar"))
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "unexpectedFunExpression", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
