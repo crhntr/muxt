@@ -43,6 +43,16 @@ var (
 	templateMustCalledWithNoArg s = template.Must()
 
 	templateMustWrongPackageIdent = wrong.Must()
+
+	templateParseFSWrongPackageIdent = wrong.ParseFS(templateSource, "*")
+
+	templateParseFSReceiverErr = template.New().ParseFS(templateSource, "*")
+
+	templateParseFSUnexpectedReceiver = x[0].ParseFS(templateSource, "*")
+
+	templateParseFSNoArgs = template.ParseFS()
+
+	templateParseFSFirstArgNonIdent = template.ParseFS(os.DirFS("."), "*")
 )
 -- index.gohtml --
 Hello, friend!

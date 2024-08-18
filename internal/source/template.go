@@ -98,7 +98,7 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 		switch x := sel.X.(type) {
 		case *ast.Ident:
 			if x.Name != templatesPackageIdent {
-				return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
+				return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
 			}
 			parseFiles = template.ParseFiles
 		case *ast.CallExpr:
@@ -108,32 +108,18 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 			}
 			parseFiles = ts.ParseFiles
 		default:
-			return nil, fmt.Errorf("expected %s.%s", templatesPackageIdent, sel.Sel.Name)
+			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("unexpected method receiver %s", Format(sel.X)))
 		}
 		if len(call.Args) < 1 {
-			return nil, fmt.Errorf("%s.%s is missing required fs.FS argument", templatesPackageIdent, sel.Sel.Name)
+			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("missing required arguments"))
 		}
-		fsIdent, ok := call.Args[0].(*ast.Ident)
-		if !ok {
-			return nil, fmt.Errorf("%s.%s expected a variable with type embed.FS as the first argument", templatesPackageIdent, sel.Sel.Name)
-		}
-		embeddedFiles, err := embedFSFilepaths(workingDirectory, files, fsIdent, embeddedAbsolutePath)
+		embeddedFiles, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedAbsolutePath)
 		if err != nil {
 			return nil, err
 		}
-		globs := make([]string, 0, len(call.Args[1:]))
-		for _, a := range call.Args[1:] {
-			switch arg := a.(type) {
-			case *ast.BasicLit:
-				if arg.Kind != token.STRING {
-					return nil, fmt.Errorf("expected string literal")
-				}
-				value, err := strconv.Unquote(arg.Value)
-				if err != nil {
-					return nil, err
-				}
-				globs = append(globs, value)
-			}
+		globs, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
+		if err != nil {
+			return nil, err
 		}
 		filtered := embeddedFiles[:0]
 		for _, ef := range embeddedFiles {
@@ -155,7 +141,26 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 	}
 }
 
-func embedFSFilepaths(dir string, files []*ast.File, fsIdent *ast.Ident, embeddedFiles []string) ([]string, error) {
+func parseStringLiterals(wd string, set *token.FileSet, list []ast.Expr) ([]string, error) {
+	result := make([]string, 0, len(list))
+	for _, a := range list {
+		switch arg := a.(type) {
+		case *ast.BasicLit:
+			if arg.Kind != token.STRING {
+				return nil, contextError(wd, set, arg.Pos(), fmt.Errorf("expected string literal got %s", Format(arg)))
+			}
+			s, _ := strconv.Unquote(arg.Value)
+			result = append(result, s)
+		}
+	}
+	return result, nil
+}
+
+func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp ast.Expr, embeddedFiles []string) ([]string, error) {
+	fsIdent, ok := exp.(*ast.Ident)
+	if !ok {
+		return nil, contextError(dir, fileSet, exp.Pos(), fmt.Errorf("first argument to ParseFS must be an identifier"))
+	}
 	for _, decl := range IterateGenDecl(files, token.VAR) {
 		for _, s := range decl.Specs {
 			spec, ok := s.(*ast.ValueSpec)

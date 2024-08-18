@@ -169,7 +169,7 @@ func TestTemplates(t *testing.T) {
 		require.ErrorContains(t, err, "run template unsupportedMethod failed at template.go:34:22: unsupported method Unknown")
 	})
 
-	t.Run("unexpected function expression", func(t *testing.T) {
+	t.Run("call Must with unexpected function expression", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "unexpectedFunExpression", fileSet, goFiles, []string{
@@ -178,7 +178,7 @@ func TestTemplates(t *testing.T) {
 		require.ErrorContains(t, err, "run template unexpectedFunExpression failed at template.go:36:28: unexpected call: x[3]")
 	})
 
-	t.Run("must called on non ident", func(t *testing.T) {
+	t.Run("call Must on non ident receiver", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateMustNonIdentReceiver", fileSet, goFiles, []string{
@@ -186,7 +186,7 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template templateMustNonIdentReceiver failed at template.go:38:33: expected package identifier template got f()")
 	})
-	t.Run("must called with two arguments", func(t *testing.T) {
+	t.Run("call Must with two arguments", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateMustCalledWithTwoArgs", fileSet, goFiles, []string{
@@ -194,7 +194,7 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template templateMustCalledWithTwoArgs failed at template.go:40:47: expected exactly one argument template got 2")
 	})
-	t.Run("must called with one argument", func(t *testing.T) {
+	t.Run("call Must with one argument", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateMustCalledWithNoArg", fileSet, goFiles, []string{
@@ -202,7 +202,7 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template templateMustCalledWithNoArg failed at template.go:42:47: expected exactly one argument template got 0")
 	})
-	t.Run("wrong template package ident", func(t *testing.T) {
+	t.Run("call Must wrong template package ident", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templateMustWrongPackageIdent", fileSet, goFiles, []string{
@@ -210,7 +210,46 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, "run template templateMustWrongPackageIdent failed at template.go:44:34: expected package identifier template got wrong")
 	})
-
+	t.Run("call ParseFS wrong template package ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSWrongPackageIdent", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateParseFSWrongPackageIdent failed at template.go:46:37: expected package identifier template got wrong")
+	})
+	t.Run("call ParseFS receiver errored", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSReceiverErr", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateParseFSReceiverErr failed at template.go:48:43: expected exactly one string literal argument")
+	})
+	t.Run("call ParseFS unexpected receiver", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSUnexpectedReceiver", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "run template templateParseFSUnexpectedReceiver failed at template.go:50:38: unexpected method receiver x[0]")
+	})
+	t.Run("call ParseFS with no arguments", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSNoArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:52:42: missing required arguments")
+	})
+	t.Run("call ParseFS with first arg non ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSFirstArgNonIdent", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, "template.go:54:53: first argument to ParseFS must be an identifier")
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {
