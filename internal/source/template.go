@@ -20,19 +20,12 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 		if i < 0 || i >= len(tv.Values) {
 			continue
 		}
-		tn := "template"
-		for _, im := range IterateImports(files) {
-			if im.Path.Kind != token.STRING || im.Path.Value != `"html/template"` || im.Name == nil || im.Name.Name == "" {
-				continue
-			}
-			tn = im.Name.Name
-			break
-		}
 		embeddedPaths, err := relFilepaths(workingDirectory, embeddedAbsolutePath...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate relative path for embedded files: %w", err)
 		}
-		ts, err := parseTemplates(workingDirectory, templatesVariable, tn, fileSet, files, tv.Values[i], embeddedPaths)
+		const templatePackageIdent = "template"
+		ts, err := parseTemplates(workingDirectory, templatesVariable, templatePackageIdent, fileSet, files, tv.Values[i], embeddedPaths)
 		if err != nil {
 			return nil, fmt.Errorf("run template %s failed at %w", templatesVariable, err)
 		}
@@ -210,6 +203,7 @@ func embeddedFilesMatchingPatternList(dir string, set *token.FileSet, comment as
 const goEmbedCommentPrefix = "//go:embed"
 
 func readComments(s *strings.Builder, groups ...*ast.CommentGroup) ast.Node {
+	var n ast.Node
 	for _, c := range groups {
 		if c == nil {
 			continue
@@ -221,9 +215,10 @@ func readComments(s *strings.Builder, groups ...*ast.CommentGroup) ast.Node {
 			s.WriteString(strings.TrimSpace(strings.TrimPrefix(line.Text, goEmbedCommentPrefix)))
 			s.WriteByte(' ')
 		}
-		return c
+		n = c
+		break
 	}
-	return nil
+	return n
 }
 
 func parsePatterns(input string) ([]string, error) {
