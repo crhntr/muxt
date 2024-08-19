@@ -139,17 +139,18 @@ func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) 
 	}
 	call := &ast.CallExpr{Fun: callReceiverMethod(def.fun)}
 	if method != nil {
-		if method.Params.NumFields() != len(def.args) {
+		if method.Params.NumFields() != len(def.call.Args) {
 			return nil, nil, errWrongNumberOfArguments(def, method)
 		}
 		for pi, pt := range fieldListTypes(method.Params) {
-			if err := checkArgument(def.args[pi], pt); err != nil {
+			if err := checkArgument(def.call.Args[pi], pt); err != nil {
 				return nil, nil, err
 			}
 		}
 	}
 	var imports []*ast.ImportSpec
-	for _, arg := range def.args {
+	for _, a := range def.call.Args {
+		arg := a.(*ast.Ident)
 		switch arg.Name {
 		case PatternScopeIdentifierHTTPRequest, PatternScopeIdentifierHTTPResponse:
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
@@ -209,7 +210,8 @@ func (def Pattern) funcType() (*ast.FuncType, []*ast.ImportSpec) {
 		Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("any")}}},
 	}
 	var imports []*ast.ImportSpec
-	for _, arg := range def.args {
+	for _, a := range def.call.Args {
+		arg := a.(*ast.Ident)
 		switch arg.Name {
 		case PatternScopeIdentifierHTTPRequest:
 			method.Params.List = append(method.Params.List, httpRequestField())
@@ -253,7 +255,7 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
 }
 
 func errWrongNumberOfArguments(def Pattern, method *ast.FuncType) error {
-	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.args))
+	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.call.Args))
 }
 
 func checkArgument(exp ast.Expr, tp ast.Expr) error {

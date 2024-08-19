@@ -43,7 +43,6 @@ type Pattern struct {
 
 	fun  *ast.Ident
 	call *ast.CallExpr
-	args []*ast.Ident
 
 	pathValueNames []string
 }
@@ -106,6 +105,9 @@ func checkPathValueNames(in []string) error {
 		if slices.Contains(in[:i], n) {
 			return fmt.Errorf("forbidden repeated path parameter names: found at least 2 path parameters with name %q", n)
 		}
+		if slices.Contains(patternScope(), n) {
+			return fmt.Errorf("the name %s is not allowed as a path paramenter it is alredy in scope", n)
+		}
 	}
 	return nil
 }
@@ -113,7 +115,6 @@ func checkPathValueNames(in []string) error {
 func (def Pattern) String() string           { return def.name }
 func (def Pattern) PathValueNames() []string { return def.pathValueNames }
 func (def Pattern) CallExpr() *ast.CallExpr  { return def.call }
-func (def Pattern) ArgIdents() []*ast.Ident  { return def.args }
 func (def Pattern) FunIdent() *ast.Ident     { return def.fun }
 func (def Pattern) sameRoute(p Pattern) bool { return def.Route == p.Route }
 
@@ -147,30 +148,20 @@ func parseHandler(def *Pattern) error {
 		return fmt.Errorf("unexpected ellipsis")
 	}
 	args := make([]*ast.Ident, len(call.Args))
+	scope := append(patternScope(), def.pathValueNames...)
+	slices.Sort(scope)
 	for i, a := range call.Args {
 		arg, ok := a.(*ast.Ident)
 		if !ok {
 			return fmt.Errorf("expected only argument expressions as arguments, argument at index %d is: %s", i, source.Format(a))
 		}
-		switch name := arg.Name; name {
-		case PatternScopeIdentifierHTTPRequest,
-			PatternScopeIdentifierHTTPResponse,
-			PatternScopeIdentifierContext,
-			PatternScopeIdentifierTemplate,
-			PatternScopeIdentifierLogger:
-			if slices.Contains(def.pathValueNames, name) {
-				return fmt.Errorf("the name %s is not allowed as a path paramenter it is alredy in scope", name)
-			}
-		default:
-			if !slices.Contains(def.pathValueNames, name) {
-				return fmt.Errorf("unknown argument %s at index %d", name, i)
-			}
+		if _, ok := slices.BinarySearch(scope, arg.Name); !ok {
+			return fmt.Errorf("unknown argument %s at index %d", arg.Name, i)
 		}
 		args[i] = arg
 	}
 	def.fun = fun
 	def.call = call
-	def.args = args
 	return nil
 }
 
@@ -181,3 +172,13 @@ const (
 	PatternScopeIdentifierTemplate     = "template"
 	PatternScopeIdentifierLogger       = "logger"
 )
+
+func patternScope() []string {
+	return []string{
+		PatternScopeIdentifierHTTPRequest,
+		PatternScopeIdentifierHTTPResponse,
+		PatternScopeIdentifierContext,
+		PatternScopeIdentifierTemplate,
+		PatternScopeIdentifierLogger,
+	}
+}
