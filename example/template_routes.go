@@ -3,10 +3,10 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"html/template"
 	"net/http"
+	"bytes"
+	"html/template"
 )
 
 type RoutesReceiver interface {
@@ -38,7 +38,7 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)

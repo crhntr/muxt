@@ -75,7 +75,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	}
 	_ = os.Remove(filepath.Join(workingDirectory, g.outputFilename))
 	list, err := packages.Load(&packages.Config{
-		Mode:  packages.NeedFiles | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
+		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:   workingDirectory,
 		Tests: false,
 	}, workingDirectory)
@@ -83,7 +83,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		return err
 	}
 	if g.goPackage != "" {
-		i := slices.IndexFunc(list, func(p *packages.Package) bool { return p.ID == g.goPackage })
+		i := slices.IndexFunc(list, func(p *packages.Package) bool { return p.Name == g.goPackage })
 		if i < 0 {
 			return fmt.Errorf("package %s not loaded", g.goPackage)
 		}
