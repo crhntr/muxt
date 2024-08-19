@@ -369,12 +369,12 @@ func execute(response http.ResponseWriter, request *http.Request, t *template.Te
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))
-			patterns, err := muxt.TemplatePatterns(ts)
+			templateNames, err := muxt.TemplateNames(ts)
 			require.NoError(t, err)
 			logs := log.New(io.Discard, "", 0)
 			set := token.NewFileSet()
 			goFiles := methodFuncTypeLoader(t, set, tt.ReceiverPackage)
-			out, err := muxt.Generate(patterns, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, set, goFiles, goFiles, logs)
+			out, err := muxt.Generate(templateNames, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, set, goFiles, goFiles, logs)
 			if tt.ExpectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.ExpectedFile, out)

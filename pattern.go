@@ -15,28 +15,28 @@ import (
 	"github.com/crhntr/muxt/internal/source"
 )
 
-func TemplatePatterns(ts *template.Template) ([]Pattern, error) {
-	var patterns []Pattern
+func TemplateNames(ts *template.Template) ([]TemplateName, error) {
+	var templateNames []TemplateName
 	routes := make(map[string]struct{})
 	for _, t := range ts.Templates() {
-		pat, err, ok := NewPattern(t.Name())
+		pat, err, ok := NewTemplateName(t.Name())
 		if !ok {
 			continue
 		}
 		if err != nil {
-			return patterns, err
+			return templateNames, err
 		}
 		if _, exists := routes[pat.Method+pat.Path]; exists {
-			return patterns, fmt.Errorf("duplicate route pattern: %s", pat.Route)
+			return templateNames, fmt.Errorf("duplicate route pattern: %s", pat.Route)
 		}
 		routes[pat.Method+pat.Path] = struct{}{}
-		patterns = append(patterns, pat)
+		templateNames = append(templateNames, pat)
 	}
-	slices.SortFunc(patterns, Pattern.byPathThenMethod)
-	return patterns, nil
+	slices.SortFunc(templateNames, TemplateName.byPathThenMethod)
+	return templateNames, nil
 }
 
-type Pattern struct {
+type TemplateName struct {
 	name                      string
 	Method, Host, Path, Route string
 	Handler                   string
@@ -47,12 +47,12 @@ type Pattern struct {
 	pathValueNames []string
 }
 
-func NewPattern(in string) (Pattern, error, bool) {
+func NewTemplateName(in string) (TemplateName, error, bool) {
 	if !templateNameMux.MatchString(in) {
-		return Pattern{}, nil, false
+		return TemplateName{}, nil, false
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
-	p := Pattern{
+	p := TemplateName{
 		name:    in,
 		Method:  matches[templateNameMux.SubexpIndex("Method")],
 		Host:    matches[templateNameMux.SubexpIndex("Host")],
@@ -69,11 +69,11 @@ func NewPattern(in string) (Pattern, error, bool) {
 
 	names, err := p.parsePathValueNames()
 	if err != nil {
-		return Pattern{}, err, true
+		return TemplateName{}, err, true
 	}
 	p.pathValueNames = names
 	if err := checkPathValueNames(p.pathValueNames); err != nil {
-		return Pattern{}, err, true
+		return TemplateName{}, err, true
 	}
 
 	return p, parseHandler(&p), true
@@ -84,7 +84,7 @@ var (
 	templateNameMux    = regexp.MustCompile(`^(?P<Route>(((?P<Method>[A-Z]+)\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
 )
 
-func (def Pattern) parsePathValueNames() ([]string, error) {
+func (def TemplateName) parsePathValueNames() ([]string, error) {
 	var result []string
 	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
 		n := match[1]
@@ -112,13 +112,10 @@ func checkPathValueNames(in []string) error {
 	return nil
 }
 
-func (def Pattern) String() string           { return def.name }
-func (def Pattern) PathValueNames() []string { return def.pathValueNames }
-func (def Pattern) CallExpr() *ast.CallExpr  { return def.call }
-func (def Pattern) FunIdent() *ast.Ident     { return def.fun }
-func (def Pattern) sameRoute(p Pattern) bool { return def.Route == p.Route }
+func (def TemplateName) String() string                { return def.name }
+func (def TemplateName) sameRoute(p TemplateName) bool { return def.Route == p.Route }
 
-func (def Pattern) byPathThenMethod(d Pattern) int {
+func (def TemplateName) byPathThenMethod(d TemplateName) int {
 	if n := cmp.Compare(def.Path, d.Path); n != 0 {
 		return n
 	}
@@ -128,7 +125,7 @@ func (def Pattern) byPathThenMethod(d Pattern) int {
 	return cmp.Compare(def.Handler, d.Handler)
 }
 
-func parseHandler(def *Pattern) error {
+func parseHandler(def *TemplateName) error {
 	if def.Handler == "" {
 		return nil
 	}
@@ -166,19 +163,19 @@ func parseHandler(def *Pattern) error {
 }
 
 const (
-	PatternScopeIdentifierHTTPRequest  = "request"
-	PatternScopeIdentifierHTTPResponse = "response"
-	PatternScopeIdentifierContext      = "ctx"
-	PatternScopeIdentifierTemplate     = "template"
-	PatternScopeIdentifierLogger       = "logger"
+	TemplateNameScopeIdentifierHTTPRequest  = "request"
+	TemplateNameScopeIdentifierHTTPResponse = "response"
+	TemplateNameScopeIdentifierContext      = "ctx"
+	TemplateNameScopeIdentifierTemplate     = "template"
+	TemplateNameScopeIdentifierLogger       = "logger"
 )
 
 func patternScope() []string {
 	return []string{
-		PatternScopeIdentifierHTTPRequest,
-		PatternScopeIdentifierHTTPResponse,
-		PatternScopeIdentifierContext,
-		PatternScopeIdentifierTemplate,
-		PatternScopeIdentifierLogger,
+		TemplateNameScopeIdentifierHTTPRequest,
+		TemplateNameScopeIdentifierHTTPResponse,
+		TemplateNameScopeIdentifierContext,
+		TemplateNameScopeIdentifierTemplate,
+		TemplateNameScopeIdentifierLogger,
 	}
 }

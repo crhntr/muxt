@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_parsePatterns(t *testing.T) {
+func Test_parseTemplateNames(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		input    string
@@ -40,7 +40,7 @@ func Test_parsePatterns(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parsePatterns(tt.input)
+			result, err := parseTemplateNames(tt.input)
 			require.NoError(t, err)
 			assert.EqualValues(t, tt.expected, result)
 		})

@@ -114,13 +114,13 @@ func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent s
 		if err != nil {
 			return nil, err
 		}
-		patterns, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
+		templateNames, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
 		if err != nil {
 			return nil, err
 		}
 		filtered := matches[:0]
 		for _, ef := range matches {
-			for j, pattern := range patterns {
+			for j, pattern := range templateNames {
 				match, err := filepath.Match(pattern, ef)
 				if err != nil {
 					return nil, contextError(workingDirectory, fileSet, call.Args[j+1].Pos(), fmt.Errorf("bad pattern %q: %w", pattern, err))
@@ -164,11 +164,11 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 			}
 			var comment strings.Builder
 			commentNode := readComments(&comment, decl.Doc, spec.Doc)
-			patterns, err := parsePatterns(comment.String())
+			templateNames, err := parseTemplateNames(comment.String())
 			if err != nil {
 				return nil, err
 			}
-			absMat, err := embeddedFilesMatchingPatternList(dir, fileSet, commentNode, patterns, embeddedFiles)
+			absMat, err := embeddedFilesMatchingTemplateNameList(dir, fileSet, commentNode, templateNames, embeddedFiles)
 			if err != nil {
 				return nil, err
 			}
@@ -178,10 +178,10 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 	return nil, fmt.Errorf("variable %s not found", fsIdent.Name)
 }
 
-func embeddedFilesMatchingPatternList(dir string, set *token.FileSet, comment ast.Node, patterns, embeddedFiles []string) ([]string, error) {
+func embeddedFilesMatchingTemplateNameList(dir string, set *token.FileSet, comment ast.Node, templateNames, embeddedFiles []string) ([]string, error) {
 	var matches []string
 	for _, fp := range embeddedFiles {
-		for _, pattern := range patterns {
+		for _, pattern := range templateNames {
 			pat := filepath.FromSlash(pattern)
 			if !strings.ContainsAny(pat, "*[]") {
 				prefix := filepath.FromSlash(pat + "/")
@@ -221,13 +221,13 @@ func readComments(s *strings.Builder, groups ...*ast.CommentGroup) ast.Node {
 	return n
 }
 
-func parsePatterns(input string) ([]string, error) {
+func parseTemplateNames(input string) ([]string, error) {
 	// todo: refactor to use strconv.QuotedPrefix
 	var (
-		patterns       []string
-		currentPattern strings.Builder
-		inQuote        = false
-		quoteChar      rune
+		templateNames       []string
+		currentTemplateName strings.Builder
+		inQuote             = false
+		quoteChar           rune
 	)
 
 	for _, r := range input {
@@ -239,32 +239,32 @@ func parsePatterns(input string) ([]string, error) {
 				continue
 			}
 			if r != quoteChar {
-				currentPattern.WriteRune(r)
+				currentTemplateName.WriteRune(r)
 				continue
 			}
-			patterns = append(patterns, currentPattern.String())
-			currentPattern.Reset()
+			templateNames = append(templateNames, currentTemplateName.String())
+			currentTemplateName.Reset()
 			inQuote = false
 		case unicode.IsSpace(r):
 			if inQuote {
-				currentPattern.WriteRune(r)
+				currentTemplateName.WriteRune(r)
 				continue
 			}
-			if currentPattern.Len() > 0 {
-				patterns = append(patterns, currentPattern.String())
-				currentPattern.Reset()
+			if currentTemplateName.Len() > 0 {
+				templateNames = append(templateNames, currentTemplateName.String())
+				currentTemplateName.Reset()
 			}
 		default:
-			currentPattern.WriteRune(r)
+			currentTemplateName.WriteRune(r)
 		}
 	}
 
 	// Add any remaining pattern
-	if currentPattern.Len() > 0 {
-		patterns = append(patterns, currentPattern.String())
+	if currentTemplateName.Len() > 0 {
+		templateNames = append(templateNames, currentTemplateName.String())
 	}
 
-	return patterns, nil
+	return templateNames, nil
 }
 
 func contextError(workingDirectory string, set *token.FileSet, pos token.Pos, err error) error {

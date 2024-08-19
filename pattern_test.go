@@ -11,33 +11,33 @@ import (
 	"github.com/crhntr/muxt"
 )
 
-func TestTemplatePatterns(t *testing.T) {
+func TestTemplateNames(t *testing.T) {
 	t.Run("when one of the template names is a malformed pattern", func(t *testing.T) {
 		ts := template.Must(template.New("").Parse(`{{define "HEAD /"}}{{end}}`))
-		_, err := muxt.TemplatePatterns(ts)
+		_, err := muxt.TemplateNames(ts)
 		require.Error(t, err)
 	})
 	t.Run("when the pattern is not unique", func(t *testing.T) {
 		ts := template.Must(template.New("").Parse(`{{define "GET  / F1()"}}a{{end}} {{define "GET /  F2()"}}b{{end}}`))
-		_, err := muxt.TemplatePatterns(ts)
+		_, err := muxt.TemplateNames(ts)
 		require.Error(t, err)
 	})
 }
 
-func TestNewPattern(t *testing.T) {
+func TestNewTemplateName(t *testing.T) {
 	for _, tt := range []struct {
 		Name         string
-		TemplateName string
+		In           string
 		ExpMatch     bool
-		Pattern      func(t *testing.T, pat muxt.Pattern)
+		TemplateName func(t *testing.T, pat muxt.TemplateName)
 		Error        func(t *testing.T, err error)
 	}{
 		{
-			Name:         "get root",
-			TemplateName: "GET /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "get root",
+			In:       "GET /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodGet,
 					Host:    "",
 					Path:    "/",
@@ -47,11 +47,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "multiple spaces after method",
-			TemplateName: "GET  /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "multiple spaces after method",
+			In:       "GET  /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodGet,
 					Host:    "",
 					Path:    "/",
@@ -61,11 +61,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "post root",
-			TemplateName: "POST /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "post root",
+			In:       "POST /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodPost,
 					Host:    "",
 					Path:    "/",
@@ -75,11 +75,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "patch root",
-			TemplateName: "PATCH /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "patch root",
+			In:       "PATCH /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodPatch,
 					Host:    "",
 					Path:    "/",
@@ -89,11 +89,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "delete root",
-			TemplateName: "DELETE /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "delete root",
+			In:       "DELETE /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodDelete,
 					Host:    "",
 					Path:    "/",
@@ -103,11 +103,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "put root",
-			TemplateName: "PUT /",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "put root",
+			In:       "PUT /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodPut,
 					Host:    "",
 					Path:    "/",
@@ -117,11 +117,11 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "with end of path wildcard",
-			TemplateName: "PUT /ping/pong/{$}",
-			ExpMatch:     true,
-			Pattern: func(t *testing.T, pat muxt.Pattern) {
-				assert.EqualExportedValues(t, muxt.Pattern{
+			Name:     "with end of path wildcard",
+			In:       "PUT /ping/pong/{$}",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
+				assert.EqualExportedValues(t, muxt.TemplateName{
 					Method:  http.MethodPut,
 					Host:    "",
 					Path:    "/ping/pong/{$}",
@@ -131,52 +131,52 @@ func TestNewPattern(t *testing.T) {
 			},
 		},
 		{
-			Name:         "put root",
-			TemplateName: "OPTIONS /",
-			ExpMatch:     true,
+			Name:     "put root",
+			In:       "OPTIONS /",
+			ExpMatch: true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, "OPTIONS method not allowed")
 			},
 		},
 		{
-			Name:         "path parameter is not an identifier",
-			TemplateName: "GET /{123} F(123)",
-			ExpMatch:     true,
+			Name:     "path parameter is not an identifier",
+			In:       "GET /{123} F(123)",
+			ExpMatch: true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, `path parameter name not permitted: "123" is not a Go identifier`)
 			},
 		},
 		{
-			Name:         "path end sentential in the middle is not permitted",
-			TemplateName: "GET /x/{$}/y F()",
-			ExpMatch:     true,
+			Name:     "path end sentential in the middle is not permitted",
+			In:       "GET /x/{$}/y F()",
+			ExpMatch: true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, `path parameter name not permitted: "$" is not a Go identifier`)
 			},
 		},
 		{
 			Name:         "path end sentential in the middle is not permitted",
-			TemplateName: "GET /x/{$} F()",
+			In:           "GET /x/{$} F()",
 			ExpMatch:     true,
-			Pattern:      func(t *testing.T, pat muxt.Pattern) {},
+			TemplateName: func(t *testing.T, pat muxt.TemplateName) {},
 		},
 		{
-			Name:         "duplicate path parameter name",
-			TemplateName: "GET /{name}/{name} F()",
-			ExpMatch:     true,
+			Name:     "duplicate path parameter name",
+			In:       "GET /{name}/{name} F()",
+			ExpMatch: true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, `forbidden repeated path parameter names: found at least 2 path parameters with name "name"`)
 			},
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			pat, err, match := muxt.NewPattern(tt.TemplateName)
+			pat, err, match := muxt.NewTemplateName(tt.In)
 			require.Equal(t, tt.ExpMatch, match)
 			if tt.Error != nil {
 				tt.Error(t, err)
-			} else if tt.Pattern != nil {
+			} else if tt.TemplateName != nil {
 				assert.NoError(t, err)
-				tt.Pattern(t, pat)
+				tt.TemplateName(t, pat)
 			}
 		})
 	}
@@ -218,7 +218,7 @@ func TestPattern_parseHandler(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			p, err, ok := muxt.NewPattern(tt.In)
+			p, err, ok := muxt.NewTemplateName(tt.In)
 			require.True(t, ok)
 			require.NotZero(t, p.Handler)
 			if tt.ExpErr != "" {

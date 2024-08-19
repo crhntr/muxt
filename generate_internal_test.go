@@ -10,7 +10,7 @@ import (
 	"github.com/crhntr/muxt/internal/source"
 )
 
-func TestPattern_funcLit(t *testing.T) {
+func TestTemplateName_funcLit(t *testing.T) {
 	for _, tt := range []struct {
 		Name    string
 		In      string
@@ -102,7 +102,7 @@ func TestPattern_funcLit(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			pat, err, ok := NewPattern(tt.In)
+			pat, err, ok := NewTemplateName(tt.In)
 			require.True(t, ok)
 			require.NoError(t, err)
 			tv := "templates"
@@ -113,7 +113,7 @@ func TestPattern_funcLit(t *testing.T) {
 	}
 }
 
-func TestPattern_HandlerFuncLit_err(t *testing.T) {
+func TestTemplateName_HandlerFuncLit_err(t *testing.T) {
 	for _, tt := range []struct {
 		Name   string
 		In     string
@@ -209,7 +209,7 @@ func TestPattern_HandlerFuncLit_err(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			pat, err, ok := NewPattern(tt.In)
+			pat, err, ok := NewTemplateName(tt.In)
 			require.True(t, ok)
 			require.NoError(t, err)
 			tv := "templates"

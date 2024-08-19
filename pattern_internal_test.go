@@ -10,7 +10,7 @@ import (
 func TestTemplateName_ByPathThenMethod(t *testing.T) {
 	for _, tt := range []struct {
 		Name    string
-		In, Exp []Pattern
+		In, Exp []TemplateName
 	}{
 		{
 			Name: "sort by path then method",
@@ -85,16 +85,16 @@ func TestTemplateName_ByPathThenMethod(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			slices.SortFunc(tt.In, Pattern.byPathThenMethod)
+			slices.SortFunc(tt.In, TemplateName.byPathThenMethod)
 			assert.Equal(t, tt.Exp, tt.In)
 		})
 	}
 }
 
-func mustNewTemplateName(in ...string) []Pattern {
-	var result []Pattern
+func mustNewTemplateName(in ...string) []TemplateName {
+	var result []TemplateName
 	for _, n := range in {
-		p, err, _ := NewPattern(n)
+		p, err, _ := NewTemplateName(n)
 		if err != nil {
 			panic(err)
 		}

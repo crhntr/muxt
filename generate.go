@@ -43,7 +43,7 @@ const (
 	DefaultRoutesFunctionName    = "Routes"
 )
 
-func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, _ *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(templateNames []TemplateName, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, _ *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
@@ -61,7 +61,7 @@ func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunc
 	imports := []*ast.ImportSpec{
 		importSpec("net/" + httpPackageIdent),
 	}
-	for _, pattern := range patterns {
+	for _, pattern := range templateNames {
 		var method *ast.FuncType
 		if pattern.fun != nil {
 			for _, funcDecl := range source.IterateFunctions(receiverPackage) {
@@ -113,7 +113,7 @@ func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunc
 	return source.Format(file), nil
 }
 
-func (def Pattern) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
+func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
 			X:   ast.NewIdent(muxVarIdent),
@@ -129,7 +129,7 @@ func (def Pattern) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
 	}}
 }
 
-func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) (*ast.FuncLit, []*ast.ImportSpec, error) {
+func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncType) (*ast.FuncLit, []*ast.ImportSpec, error) {
 	if def.Handler == "" {
 		return def.httpRequestReceiverTemplateHandlerFunc(templatesVariableIdent), nil, nil
 	}
@@ -152,12 +152,12 @@ func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) 
 	for _, a := range def.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
-		case PatternScopeIdentifierHTTPRequest, PatternScopeIdentifierHTTPResponse:
+		case TemplateNameScopeIdentifierHTTPRequest, TemplateNameScopeIdentifierHTTPResponse:
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 			imports = append(imports, importSpec("net/http"))
-		case PatternScopeIdentifierContext:
+		case TemplateNameScopeIdentifierContext:
 			lit.Body.List = append(lit.Body.List, contextAssignment())
-			call.Args = append(call.Args, ast.NewIdent(PatternScopeIdentifierContext))
+			call.Args = append(call.Args, ast.NewIdent(TemplateNameScopeIdentifierContext))
 			imports = append(imports, importSpec("context"))
 		default:
 			lit.Body.List = append(lit.Body.List, httpPathValueAssignment(arg))
@@ -204,7 +204,7 @@ func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) 
 	return lit, imports, nil
 }
 
-func (def Pattern) funcType() (*ast.FuncType, []*ast.ImportSpec) {
+func (def TemplateName) funcType() (*ast.FuncType, []*ast.ImportSpec) {
 	method := &ast.FuncType{
 		Params:  &ast.FieldList{},
 		Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("any")}}},
@@ -213,13 +213,13 @@ func (def Pattern) funcType() (*ast.FuncType, []*ast.ImportSpec) {
 	for _, a := range def.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
-		case PatternScopeIdentifierHTTPRequest:
+		case TemplateNameScopeIdentifierHTTPRequest:
 			method.Params.List = append(method.Params.List, httpRequestField())
 			imports = append(imports, importSpec("net/"+httpPackageIdent))
-		case PatternScopeIdentifierHTTPResponse:
+		case TemplateNameScopeIdentifierHTTPResponse:
 			method.Params.List = append(method.Params.List, httpResponseField())
 			imports = append(imports, importSpec("net/"+httpPackageIdent))
-		case PatternScopeIdentifierContext:
+		case TemplateNameScopeIdentifierContext:
 			method.Params.List = append(method.Params.List, contextContextField())
 			imports = append(imports, importSpec(contextPackageIdent))
 		default:
@@ -254,24 +254,24 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
 	}
 }
 
-func errWrongNumberOfArguments(def Pattern, method *ast.FuncType) error {
+func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
 	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.call.Args))
 }
 
 func checkArgument(exp ast.Expr, tp ast.Expr) error {
 	arg := exp.(*ast.Ident)
 	switch arg.Name {
-	case PatternScopeIdentifierHTTPRequest:
+	case TemplateNameScopeIdentifierHTTPRequest:
 		if !matchSelectorIdents(tp, httpPackageIdent, httpRequestIdent, true) {
 			return fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(tp), arg.Name, httpPackageIdent, httpRequestIdent)
 		}
 		return nil
-	case PatternScopeIdentifierHTTPResponse:
+	case TemplateNameScopeIdentifierHTTPResponse:
 		if !matchSelectorIdents(tp, httpPackageIdent, httpResponseWriterIdent, false) {
 			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(tp), arg.Name, httpPackageIdent, httpResponseWriterIdent)
 		}
 		return nil
-	case PatternScopeIdentifierContext:
+	case TemplateNameScopeIdentifierContext:
 		if !matchSelectorIdents(tp, contextPackageIdent, contextContextTypeIdent, false) {
 			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(tp), arg.Name, contextPackageIdent, contextContextTypeIdent)
 		}
@@ -310,14 +310,14 @@ func pathValueField(name string) *ast.Field {
 
 func contextContextField() *ast.Field {
 	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent(PatternScopeIdentifierContext)},
+		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierContext)},
 		Type:  contextContextType(),
 	}
 }
 
 func httpResponseField() *ast.Field {
 	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent(PatternScopeIdentifierHTTPResponse)},
+		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 		Type:  &ast.SelectorExpr{X: ast.NewIdent(httpPackageIdent), Sel: ast.NewIdent(httpResponseWriterIdent)},
 	}
 }
@@ -335,7 +335,7 @@ func routesFuncType(receiverType ast.Expr) *ast.FuncType {
 
 func httpRequestField() *ast.Field {
 	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent(PatternScopeIdentifierHTTPRequest)},
+		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
 		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(httpPackageIdent), Sel: ast.NewIdent(httpRequestIdent)}},
 	}
 }
@@ -369,10 +369,10 @@ func httpStatusCode(name string) *ast.SelectorExpr {
 func contextAssignment() *ast.AssignStmt {
 	return &ast.AssignStmt{
 		Tok: token.DEFINE,
-		Lhs: []ast.Expr{ast.NewIdent(PatternScopeIdentifierContext)},
+		Lhs: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierContext)},
 		Rhs: []ast.Expr{&ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent(PatternScopeIdentifierHTTPRequest),
+				X:   ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 				Sel: ast.NewIdent(httpRequestContextMethod),
 			},
 		}},
@@ -385,7 +385,7 @@ func httpPathValueAssignment(arg *ast.Ident) *ast.AssignStmt {
 		Lhs: []ast.Expr{ast.NewIdent(arg.Name)},
 		Rhs: []ast.Expr{&ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent(PatternScopeIdentifierHTTPRequest),
+				X:   ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 				Sel: ast.NewIdent(requestPathValue),
 			},
 			Args: []ast.Expr{
@@ -398,12 +398,12 @@ func httpPathValueAssignment(arg *ast.Ident) *ast.AssignStmt {
 	}
 }
 
-func (def Pattern) executeCall(templatesVariable *ast.Ident, status, data ast.Expr) *ast.ExprStmt {
+func (def TemplateName) executeCall(templatesVariable *ast.Ident, status, data ast.Expr) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: ast.NewIdent(executeIdentName),
 		Args: []ast.Expr{
-			ast.NewIdent(PatternScopeIdentifierHTTPResponse),
-			ast.NewIdent(PatternScopeIdentifierHTTPRequest),
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 			&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   ast.NewIdent(templatesVariable.Name),
@@ -417,14 +417,14 @@ func (def Pattern) executeCall(templatesVariable *ast.Ident, status, data ast.Ex
 	}}
 }
 
-func (def Pattern) httpRequestReceiverTemplateHandlerFunc(templatesVariableName string) *ast.FuncLit {
+func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(templatesVariableName string) *ast.FuncLit {
 	return &ast.FuncLit{
 		Type: httpHandlerFuncType(),
-		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(ast.NewIdent(templatesVariableName), httpStatusCode(httpStatusCode200Ident), ast.NewIdent(PatternScopeIdentifierHTTPRequest))}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(ast.NewIdent(templatesVariableName), httpStatusCode(httpStatusCode200Ident), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest))}},
 	}
 }
 
-func (def Pattern) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent string) bool {
+func (def TemplateName) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent string) bool {
 	if funcDecl == nil || funcDecl.Name == nil || funcDecl.Name.Name != def.fun.Name ||
 		funcDecl.Recv == nil || len(funcDecl.Recv.List) < 1 {
 		return false
