@@ -44,6 +44,8 @@ type Pattern struct {
 	fun  *ast.Ident
 	call *ast.CallExpr
 	args []*ast.Ident
+
+	pathValueNames []string
 }
 
 func NewPattern(in string) (Pattern, error, bool) {
@@ -66,7 +68,12 @@ func NewPattern(in string) (Pattern, error, bool) {
 	case "", http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 	}
 
-	if _, err := p.PathParameters(); err != nil {
+	names, err := p.parsePathValueNames()
+	if err != nil {
+		return Pattern{}, err, true
+	}
+	p.pathValueNames = names
+	if err := checkPathValueNames(p.pathValueNames); err != nil {
 		return Pattern{}, err, true
 	}
 
@@ -78,7 +85,7 @@ var (
 	templateNameMux    = regexp.MustCompile(`^(?P<Route>(((?P<Method>[A-Z]+)\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
 )
 
-func (def Pattern) PathParameters() ([]string, error) {
+func (def Pattern) parsePathValueNames() ([]string, error) {
 	var result []string
 	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
 		n := match[1]
@@ -86,26 +93,29 @@ func (def Pattern) PathParameters() ([]string, error) {
 			continue
 		}
 		n = strings.TrimSuffix(n, "...")
-		if !token.IsIdentifier(n) {
-			return nil, fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
-		}
 		result = append(result, n)
-	}
-	for i, n := range result {
-		if slices.Contains(result[:i], n) {
-			return nil, fmt.Errorf("forbidden repeated path parameter names: found at least 2 path parameters with name %q", n)
-		}
 	}
 	return result, nil
 }
 
-func (def Pattern) CallExpr() *ast.CallExpr { return def.call }
-func (def Pattern) ArgIdents() []*ast.Ident { return def.args }
-func (def Pattern) FunIdent() *ast.Ident    { return def.fun }
-
-func (def Pattern) String() string {
-	return def.name
+func checkPathValueNames(in []string) error {
+	for i, n := range in {
+		if !token.IsIdentifier(n) {
+			return fmt.Errorf("path parameter name not permitted: %q is not a Go identifier", n)
+		}
+		if slices.Contains(in[:i], n) {
+			return fmt.Errorf("forbidden repeated path parameter names: found at least 2 path parameters with name %q", n)
+		}
+	}
+	return nil
 }
+
+func (def Pattern) String() string           { return def.name }
+func (def Pattern) PathValueNames() []string { return def.pathValueNames }
+func (def Pattern) CallExpr() *ast.CallExpr  { return def.call }
+func (def Pattern) ArgIdents() []*ast.Ident  { return def.args }
+func (def Pattern) FunIdent() *ast.Ident     { return def.fun }
+func (def Pattern) sameRoute(p Pattern) bool { return def.Route == p.Route }
 
 func (def Pattern) byPathThenMethod(d Pattern) int {
 	if n := cmp.Compare(def.Path, d.Path); n != 0 {
@@ -116,8 +126,6 @@ func (def Pattern) byPathThenMethod(d Pattern) int {
 	}
 	return cmp.Compare(def.Handler, d.Handler)
 }
-
-func (def Pattern) sameRoute(p Pattern) bool { return def.Route == p.Route }
 
 func parseHandler(def *Pattern) error {
 	if def.Handler == "" {
@@ -138,10 +146,6 @@ func parseHandler(def *Pattern) error {
 	if call.Ellipsis != token.NoPos {
 		return fmt.Errorf("unexpected ellipsis")
 	}
-	pathParams, err := def.PathParameters()
-	if err != nil {
-		return err
-	}
 	args := make([]*ast.Ident, len(call.Args))
 	for i, a := range call.Args {
 		arg, ok := a.(*ast.Ident)
@@ -154,11 +158,11 @@ func parseHandler(def *Pattern) error {
 			PatternScopeIdentifierContext,
 			PatternScopeIdentifierTemplate,
 			PatternScopeIdentifierLogger:
-			if slices.Contains(pathParams, name) {
+			if slices.Contains(def.pathValueNames, name) {
 				return fmt.Errorf("the name %s is not allowed as a path paramenter it is alredy in scope", name)
 			}
 		default:
-			if !slices.Contains(pathParams, name) {
+			if !slices.Contains(def.pathValueNames, name) {
 				return fmt.Errorf("unknown argument %s at index %d", name, i)
 			}
 		}
