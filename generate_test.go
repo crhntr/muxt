@@ -53,7 +53,7 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)
@@ -85,7 +85,7 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)
@@ -121,7 +121,7 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)
@@ -163,7 +163,53 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.WriteHeader(code)
+	_, _ = buf.WriteTo(response)
+}
+`,
+		},
+		{
+			Name:      "call method with two returns",
+			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (T) F(username string) (int, error) { return 30, error }
+`,
+			Receiver: "T",
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"bytes"
+	"html/template"
+)
+
+type RoutesReceiver interface {
+	F(username string) (int, error)
+}
+
+func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
+		username := request.PathValue("username")
+		data, err := receiver.F(username)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		execute(response, request, templates.Lookup("GET /age/{username} F(username)"), http.StatusOK, data)
+	})
+}
+func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := t.Execute(buf, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)
@@ -236,7 +282,7 @@ func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
 func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
-		http.Error(response, err.Error(), http.StatusOK)
+		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.WriteHeader(code)

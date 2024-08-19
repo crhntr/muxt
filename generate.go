@@ -6,7 +6,9 @@ import (
 	"go/ast"
 	"go/token"
 	"log"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/crhntr/muxt/internal/source"
 )
@@ -28,6 +30,7 @@ const (
 	httpServeMuxIdent        = "ServeMux"
 	httpRequestIdent         = "Request"
 	httpStatusCode200Ident   = "StatusOK"
+	httpStatusCode500Ident   = "StatusInternalServerError"
 	httpHandleFuncIdent      = "HandleFunc"
 
 	contextPackageIdent     = "context"
@@ -81,7 +84,7 @@ func Generate(patterns []Pattern, packageName, templatesVariableName, routesFunc
 		if err != nil {
 			return "", err
 		}
-		imports = source.SortImports(append(imports, methodImports...))
+		imports = sortImports(append(imports, methodImports...))
 		routes.Body.List = append(routes.Body.List, pattern.callHandleFunc(handlerFunc))
 		log.Printf("%s has route for %s", routesFunctionName, pattern.String())
 	}
@@ -185,7 +188,7 @@ func (def Pattern) funcLit(templatesVariableIdent string, method *ast.FuncType) 
 									},
 									Args: []ast.Expr{},
 								},
-								httpStatusCode(httpStatusCode200Ident),
+								httpStatusCode(httpStatusCode500Ident),
 							},
 						}},
 						&ast.ReturnStmt{},
@@ -492,7 +495,7 @@ func executeFuncDecl() *ast.FuncDecl {
 										},
 										Args: []ast.Expr{},
 									},
-									httpStatusCode(httpStatusCode200Ident),
+									httpStatusCode(httpStatusCode500Ident),
 								},
 							}},
 							&ast.ReturnStmt{},
@@ -522,4 +525,9 @@ func executeFuncDecl() *ast.FuncDecl {
 			},
 		},
 	}
+}
+
+func sortImports(input []*ast.ImportSpec) []*ast.ImportSpec {
+	slices.SortFunc(input, func(a, b *ast.ImportSpec) int { return strings.Compare(a.Path.Value, b.Path.Value) })
+	return slices.CompactFunc(input, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
 }

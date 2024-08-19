@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/printer"
 	"go/token"
-	"slices"
 	"strings"
 )
 
@@ -29,11 +28,7 @@ func IterateValueSpecs(files []*ast.File) func(func(*ast.File, *ast.ValueSpec) b
 	return func(yield func(*ast.File, *ast.ValueSpec) bool) {
 		for file, decl := range IterateGenDecl(files, token.VAR) {
 			for _, s := range decl.Specs {
-				spec, ok := s.(*ast.ValueSpec)
-				if !ok {
-					continue
-				}
-				if !yield(file, spec) {
+				if !yield(file, s.(*ast.ValueSpec)) {
 					return
 				}
 			}
@@ -87,23 +82,14 @@ func IterateImports(files []*ast.File) func(func(*ast.File, *ast.ImportSpec) boo
 				if !ok || genDecl.Tok != token.IMPORT {
 					continue
 				}
-				for _, spec := range genDecl.Specs {
-					importSpec, ok := spec.(*ast.ImportSpec)
-					if !ok {
-						continue
-					}
-					if !yield(file, importSpec) {
+				for _, s := range genDecl.Specs {
+					if !yield(file, s.(*ast.ImportSpec)) {
 						return
 					}
 				}
 			}
 		}
 	}
-}
-
-func SortImports(input []*ast.ImportSpec) []*ast.ImportSpec {
-	slices.SortFunc(input, func(a, b *ast.ImportSpec) int { return strings.Compare(a.Path.Value, b.Path.Value) })
-	return slices.CompactFunc(input, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
 }
 
 func Format(node ast.Node) string {
