@@ -1,6 +1,7 @@
 package muxt
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"testing"
@@ -88,9 +89,17 @@ func TestTemplateName_ByPathThenMethod(t *testing.T) {
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			slices.SortFunc(tt.In, TemplateName.byPathThenMethod)
-			assert.Equal(t, tt.Exp, tt.In)
+			assert.Equal(t, stringList(tt.Exp), stringList(tt.In))
 		})
 	}
+}
+
+func stringList[T fmt.Stringer](in []T) []string {
+	out := make([]string, 0, len(in))
+	for _, e := range in {
+		out = append(out, e.String())
+	}
+	return out
 }
 
 func mustNewTemplateName(in ...string) []TemplateName {

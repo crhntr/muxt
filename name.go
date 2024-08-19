@@ -44,10 +44,14 @@ type TemplateName struct {
 	fun  *ast.Ident
 	call *ast.CallExpr
 
+	fileSet *token.FileSet
+
 	pathValueNames []string
 }
 
-func NewTemplateName(in string) (TemplateName, error, bool) {
+func NewTemplateName(in string) (TemplateName, error, bool) { return newTemplate(in, "") }
+
+func newTemplate(in, fileName string) (TemplateName, error, bool) {
 	if !templateNameMux.MatchString(in) {
 		return TemplateName{}, nil, false
 	}
@@ -59,6 +63,7 @@ func NewTemplateName(in string) (TemplateName, error, bool) {
 		path:     matches[templateNameMux.SubexpIndex("path")],
 		handler:  strings.TrimSpace(matches[templateNameMux.SubexpIndex("handler")]),
 		endpoint: matches[templateNameMux.SubexpIndex("endpoint")],
+		fileSet:  token.NewFileSet(),
 	}
 
 	switch p.method {
@@ -76,7 +81,7 @@ func NewTemplateName(in string) (TemplateName, error, bool) {
 		return TemplateName{}, err, true
 	}
 
-	return p, parseHandler(&p), true
+	return p, parseHandler(p.fileSet, fileName, &p), true
 }
 
 var (
@@ -127,11 +132,11 @@ func (def TemplateName) byPathThenMethod(d TemplateName) int {
 	return cmp.Compare(def.handler, d.handler)
 }
 
-func parseHandler(def *TemplateName) error {
+func parseHandler(fileSet *token.FileSet, fileName string, def *TemplateName) error {
 	if def.handler == "" {
 		return nil
 	}
-	e, err := parser.ParseExpr(def.handler)
+	e, err := parser.ParseExprFrom(fileSet, fileName, []byte(def.handler), 0)
 	if err != nil {
 		return fmt.Errorf("failed to parse handler expression: %v", err)
 	}
