@@ -122,7 +122,7 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 		Args: []ast.Expr{
 			&ast.BasicLit{
 				Kind:  token.STRING,
-				Value: strconv.Quote(def.Route),
+				Value: strconv.Quote(def.endpoint),
 			},
 			handlerFuncLit,
 		},
@@ -130,7 +130,7 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 }
 
 func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncType) (*ast.FuncLit, []*ast.ImportSpec, error) {
-	if def.Handler == "" {
+	if def.handler == "" {
 		return def.httpRequestReceiverTemplateHandlerFunc(templatesVariableIdent), nil, nil
 	}
 	lit := &ast.FuncLit{
@@ -255,7 +255,7 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
 }
 
 func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
-	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.Handler, len(def.call.Args))
+	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.handler, len(def.call.Args))
 }
 
 func checkArgument(exp ast.Expr, tp ast.Expr) error {

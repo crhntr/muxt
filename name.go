@@ -26,10 +26,10 @@ func TemplateNames(ts *template.Template) ([]TemplateName, error) {
 		if err != nil {
 			return templateNames, err
 		}
-		if _, exists := routes[pat.Method+pat.Path]; exists {
-			return templateNames, fmt.Errorf("duplicate route pattern: %s", pat.Route)
+		if _, exists := routes[pat.method+pat.path]; exists {
+			return templateNames, fmt.Errorf("duplicate route pattern: %s", pat.endpoint)
 		}
-		routes[pat.Method+pat.Path] = struct{}{}
+		routes[pat.method+pat.path] = struct{}{}
 		templateNames = append(templateNames, pat)
 	}
 	slices.SortFunc(templateNames, TemplateName.byPathThenMethod)
@@ -37,9 +37,9 @@ func TemplateNames(ts *template.Template) ([]TemplateName, error) {
 }
 
 type TemplateName struct {
-	name                      string
-	Method, Host, Path, Route string
-	Handler                   string
+	name                         string
+	method, host, path, endpoint string
+	handler                      string
 
 	fun  *ast.Ident
 	call *ast.CallExpr
@@ -53,17 +53,17 @@ func NewTemplateName(in string) (TemplateName, error, bool) {
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
 	p := TemplateName{
-		name:    in,
-		Method:  matches[templateNameMux.SubexpIndex("Method")],
-		Host:    matches[templateNameMux.SubexpIndex("Host")],
-		Path:    matches[templateNameMux.SubexpIndex("Path")],
-		Handler: strings.TrimSpace(matches[templateNameMux.SubexpIndex("Handler")]),
-		Route:   matches[templateNameMux.SubexpIndex("Route")],
+		name:     in,
+		method:   matches[templateNameMux.SubexpIndex("method")],
+		host:     matches[templateNameMux.SubexpIndex("host")],
+		path:     matches[templateNameMux.SubexpIndex("path")],
+		handler:  strings.TrimSpace(matches[templateNameMux.SubexpIndex("handler")]),
+		endpoint: matches[templateNameMux.SubexpIndex("endpoint")],
 	}
 
-	switch p.Method {
+	switch p.method {
 	default:
-		return p, fmt.Errorf("%s method not allowed", p.Method), true
+		return p, fmt.Errorf("%s method not allowed", p.method), true
 	case "", http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 	}
 
@@ -81,14 +81,14 @@ func NewTemplateName(in string) (TemplateName, error, bool) {
 
 var (
 	pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-	templateNameMux    = regexp.MustCompile(`^(?P<Route>(((?P<Method>[A-Z]+)\s+)?)(?P<Host>([^/])*)(?P<Path>(/(\S)*)))(?P<Handler>.*)$`)
+	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<handler>.*)$`)
 )
 
 func (def TemplateName) parsePathValueNames() ([]string, error) {
 	var result []string
-	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
+	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.path, strings.Count(def.path, "/")) {
 		n := match[1]
-		if n == "$" && strings.Count(def.Path, "$") == 1 && strings.HasSuffix(def.Path, "{$}") {
+		if n == "$" && strings.Count(def.path, "$") == 1 && strings.HasSuffix(def.path, "{$}") {
 			continue
 		}
 		n = strings.TrimSuffix(n, "...")
@@ -112,24 +112,26 @@ func checkPathValueNames(in []string) error {
 	return nil
 }
 
-func (def TemplateName) String() string                { return def.name }
-func (def TemplateName) sameRoute(p TemplateName) bool { return def.Route == p.Route }
+func (def TemplateName) String() string  { return def.name }
+func (def TemplateName) Pattern() string { return def.method + " " + def.path }
+
+func (def TemplateName) sameRoute(p TemplateName) bool { return def.endpoint == p.endpoint }
 
 func (def TemplateName) byPathThenMethod(d TemplateName) int {
-	if n := cmp.Compare(def.Path, d.Path); n != 0 {
+	if n := cmp.Compare(def.path, d.path); n != 0 {
 		return n
 	}
-	if m := cmp.Compare(def.Method, d.Method); m != 0 {
+	if m := cmp.Compare(def.method, d.method); m != 0 {
 		return m
 	}
-	return cmp.Compare(def.Handler, d.Handler)
+	return cmp.Compare(def.handler, d.handler)
 }
 
 func parseHandler(def *TemplateName) error {
-	if def.Handler == "" {
+	if def.handler == "" {
 		return nil
 	}
-	e, err := parser.ParseExpr(def.Handler)
+	e, err := parser.ParseExpr(def.handler)
 	if err != nil {
 		return fmt.Errorf("failed to parse handler expression: %v", err)
 	}

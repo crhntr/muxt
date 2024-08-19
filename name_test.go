@@ -38,11 +38,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodGet,
-					Host:    "",
-					Path:    "/",
-					Route:   "GET /",
-					Handler: "",
+					method:   http.MethodGet,
+					host:     "",
+					path:     "/",
+					endpoint: "GET /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -52,11 +52,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodGet,
-					Host:    "",
-					Path:    "/",
-					Route:   "GET  /",
-					Handler: "",
+					method:   http.MethodGet,
+					host:     "",
+					path:     "/",
+					endpoint: "GET  /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -66,11 +66,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodPost,
-					Host:    "",
-					Path:    "/",
-					Route:   "POST /",
-					Handler: "",
+					method:   http.MethodPost,
+					host:     "",
+					path:     "/",
+					endpoint: "POST /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -80,11 +80,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodPatch,
-					Host:    "",
-					Path:    "/",
-					Route:   "PATCH /",
-					Handler: "",
+					method:   http.MethodPatch,
+					host:     "",
+					path:     "/",
+					endpoint: "PATCH /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -94,11 +94,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodDelete,
-					Host:    "",
-					Path:    "/",
-					Route:   "DELETE /",
-					Handler: "",
+					method:   http.MethodDelete,
+					host:     "",
+					path:     "/",
+					endpoint: "DELETE /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -108,11 +108,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodPut,
-					Host:    "",
-					Path:    "/",
-					Route:   "PUT /",
-					Handler: "",
+					method:   http.MethodPut,
+					host:     "",
+					path:     "/",
+					endpoint: "PUT /",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -122,11 +122,11 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat muxt.TemplateName) {
 				assert.EqualExportedValues(t, muxt.TemplateName{
-					Method:  http.MethodPut,
-					Host:    "",
-					Path:    "/ping/pong/{$}",
-					Route:   "PUT /ping/pong/{$}",
-					Handler: "",
+					method:   http.MethodPut,
+					host:     "",
+					path:     "/ping/pong/{$}",
+					endpoint: "PUT /ping/pong/{$}",
+					handler:  "",
 				}, pat)
 			},
 		},
@@ -220,7 +220,7 @@ func TestPattern_parseHandler(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			p, err, ok := muxt.NewTemplateName(tt.In)
 			require.True(t, ok)
-			require.NotZero(t, p.Handler)
+			require.NotZero(t, p.handler)
 			if tt.ExpErr != "" {
 				assert.ErrorContains(t, err, tt.ExpErr)
 			} else {
