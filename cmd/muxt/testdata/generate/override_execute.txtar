@@ -1,7 +1,3 @@
-env GOLINE=13
-env GOPACKAGE=server
-env GOFILE=template.go
-
 muxt generate --routes-func=TemplateRoutes
 ! stdout execute
 
@@ -31,7 +27,6 @@ import (
 //go:embed *.gohtml
 var formHTML embed.FS
 
-//go:generate go run github.com/crhntr/muxt/cmd/muxt
 var templates = template.Must(template.ParseFS(formHTML, "*"))
 
 func execute(res http.ResponseWriter, _ *http.Request, t *template.Template, code int, data any) {

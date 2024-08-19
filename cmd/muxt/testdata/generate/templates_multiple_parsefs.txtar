@@ -1,7 +1,3 @@
-env GOLINE=14
-env GOPACKAGE=server
-env GOFILE=template.go
-
 muxt generate --routes-func=TemplateRoutes
 stdout 'Routes has route for GET /'
 stdout 'Routes has route for GET /form'
@@ -40,5 +36,4 @@ var indexHTML embed.FS
 //go:embed form.gohtml
 var formHTML embed.FS
 
-//go:generate go run github.com/crhntr/muxt/cmd/muxt
 var templates = template.Must(template.Must(template.ParseFS(formHTML, "*")).ParseFS(indexHTML, "*"))

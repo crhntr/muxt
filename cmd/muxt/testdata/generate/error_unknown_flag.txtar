@@ -1,7 +1,3 @@
-env GOLINE=11
-env GOPACKAGE=server
-env GOFILE=template.go
-
 ! muxt generate --routes-func=TemplateRoutes --unknown
 stderr 'flag'
 
@@ -22,5 +18,4 @@ import (
 //go:embed *.gohtml
 var formHTML embed.FS
 
-//go:generate go run github.com/crhntr/muxt/cmd/muxt
 var templates = template.New()

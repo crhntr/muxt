@@ -90,6 +90,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		g.Package = list[i]
 	} else if len(list) > 0 {
 		g.Package = list[0]
+		g.goPackage = list[0].ID
 	}
 	ts, err := source.Templates(workingDirectory, g.templatesVariable, g.Package.Fset, g.Package.Syntax, g.Package.EmbedFiles)
 	if err != nil {

@@ -1,7 +1,3 @@
-env GOLINE=11
-env GOPACKAGE=server
-env GOFILE=template.go
-
 muxt generate --routes-func=TemplateRoutes
 
 exec go test -cover
@@ -27,7 +23,6 @@ import (
 //go:embed *.gohtml
 var formHTML embed.FS
 
-//go:generate go run github.com/crhntr/muxt/cmd/muxt
 var templates = template.Must(template.ParseFS(formHTML, "*"))
 -- template_test.go --
 package server
