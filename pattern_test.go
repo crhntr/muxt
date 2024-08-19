@@ -138,6 +138,36 @@ func TestNewPattern(t *testing.T) {
 				assert.ErrorContains(t, err, "OPTIONS method not allowed")
 			},
 		},
+		{
+			Name:         "path parameter is not an identifier",
+			TemplateName: "GET /{123} F(123)",
+			ExpMatch:     true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `path parameter name not permitted: "123" is not a Go identifier`)
+			},
+		},
+		{
+			Name:         "path end sentential in the middle is not permitted",
+			TemplateName: "GET /x/{$}/y F()",
+			ExpMatch:     true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `path parameter name not permitted: "$" is not a Go identifier`)
+			},
+		},
+		{
+			Name:         "path end sentential in the middle is not permitted",
+			TemplateName: "GET /x/{$} F()",
+			ExpMatch:     true,
+			Pattern:      func(t *testing.T, pat muxt.Pattern) {},
+		},
+		{
+			Name:         "duplicate path parameter name",
+			TemplateName: "GET /{name}/{name} F()",
+			ExpMatch:     true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `forbidden repeated path parameter names: found at least 2 path parameters with name "name"`)
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := muxt.NewPattern(tt.TemplateName)

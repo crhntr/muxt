@@ -53,6 +53,21 @@ func TestTemplateName_ByPathThenMethod(t *testing.T) {
 				"POST /",
 			),
 		},
+		{
+			// this is blocked higher up in parsing templates but this is lower down so if a
+			// caller does not use TemplatePatterns they get consistent results
+			Name: "method and path are the same",
+			In: mustNewTemplateName(
+				"GET / F2()",
+				"GET / F3()",
+				"GET / F1()",
+			),
+			Exp: mustNewTemplateName(
+				"GET / F1()",
+				"GET / F2()",
+				"GET / F3()",
+			),
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			slices.SortFunc(tt.In, Pattern.byPathThenMethod)

@@ -66,6 +66,10 @@ func NewPattern(in string) (Pattern, error, bool) {
 	case "", http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 	}
 
+	if _, err := p.PathParameters(); err != nil {
+		return Pattern{}, err, true
+	}
+
 	return p, parseHandler(&p), true
 }
 
@@ -76,9 +80,9 @@ var (
 
 func (def Pattern) PathParameters() ([]string, error) {
 	var result []string
-	for _, matches := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
-		n := matches[1]
-		if n == "$" {
+	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.Path, strings.Count(def.Path, "/")) {
+		n := match[1]
+		if n == "$" && strings.Count(def.Path, "$") == 1 && strings.HasSuffix(def.Path, "{$}") {
 			continue
 		}
 		n = strings.TrimSuffix(n, "...")
@@ -89,7 +93,7 @@ func (def Pattern) PathParameters() ([]string, error) {
 	}
 	for i, n := range result {
 		if slices.Contains(result[:i], n) {
-			return nil, fmt.Errorf("path parameter %s defined at least twice", n)
+			return nil, fmt.Errorf("forbidden repeated path parameter names: found at least 2 path parameters with name %q", n)
 		}
 	}
 	return result, nil
