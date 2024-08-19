@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go/ast"
 	"go/token"
 	"io"
 	"log"
@@ -73,7 +74,6 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	_ = os.Remove(filepath.Join(workingDirectory, g.outputFilename))
 	list, err := packages.Load(&packages.Config{
 		Mode:  packages.NeedFiles | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:   workingDirectory,
@@ -101,7 +101,14 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		return err
 	}
 	out := log.New(stdout, "", 0)
-	s, err := muxt.Generate(templateNames, g.goPackage, g.templatesVariable, g.routesFunction, g.receiverIdent, g.Package.Fset, g.Package.Syntax, g.Package.Syntax, out)
+	files := slices.Clone(g.Package.Syntax)
+	if i := slices.IndexFunc(files, func(file *ast.File) bool {
+		p := g.Package.Fset.Position(file.Pos())
+		return p.Filename == g.outputFilename
+	}); i >= 0 {
+		files = slices.Clip(slices.Delete(files, i, i+1))
+	}
+	s, err := muxt.Generate(templateNames, g.goPackage, g.templatesVariable, g.routesFunction, g.receiverIdent, g.Package.Fset, files, files, out)
 	if err != nil {
 		return err
 	}
