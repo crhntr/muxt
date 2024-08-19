@@ -313,9 +313,17 @@ func TestTemplates(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/bad_embed_pattern.txtar"))
 		goFiles, fileSet := parseGo(t, dir)
 		_, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
-			filepath.Join(dir, "greeting.gohtml"), // null must not be in a path
+			filepath.Join(dir, "greeting.gohtml"),
 		})
 		require.ErrorContains(t, err, `template.go:9:2: embed comment malformed: syntax error in pattern`)
+	})
+	t.Run("call bad embed pattern", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/template_ParseFS.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateEmbedVariableNotFound", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:22:65: variable hiding not found`)
 	})
 }
 

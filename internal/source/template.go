@@ -152,14 +152,14 @@ func parseStringLiterals(wd string, set *token.FileSet, list []ast.Expr) ([]stri
 }
 
 func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp ast.Expr, embeddedFiles []string) ([]string, error) {
-	fsIdent, ok := exp.(*ast.Ident)
+	varIdent, ok := exp.(*ast.Ident)
 	if !ok {
 		return nil, contextError(dir, fileSet, exp.Pos(), fmt.Errorf("first argument to ParseFS must be an identifier"))
 	}
 	for _, decl := range IterateGenDecl(files, token.VAR) {
 		for _, s := range decl.Specs {
 			spec, ok := s.(*ast.ValueSpec)
-			if !ok || !slices.ContainsFunc(spec.Names, func(e *ast.Ident) bool { return e.Name == fsIdent.Name }) {
+			if !ok || !slices.ContainsFunc(spec.Names, func(e *ast.Ident) bool { return e.Name == varIdent.Name }) {
 				continue
 			}
 			var comment strings.Builder
@@ -175,7 +175,7 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 			return absMat, nil
 		}
 	}
-	return nil, fmt.Errorf("variable %s not found", fsIdent.Name)
+	return nil, contextError(dir, fileSet, exp.Pos(), fmt.Errorf("variable %s not found", varIdent))
 }
 
 func embeddedFilesMatchingTemplateNameList(dir string, set *token.FileSet, comment ast.Node, templateNames, embeddedFiles []string) ([]string, error) {

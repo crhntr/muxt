@@ -19,6 +19,8 @@ var (
 
 	templatesHTML = template.Must(template.ParseFS(allHTML, "*.*html"))
 	templatesGoHTML = template.Must(template.ParseFS(allHTML, "*.gohtml"))
+
+	templateEmbedVariableNotFound = template.Must(template.ParseFS(hiding, "*"))
 )
 -- index.gohtml --
 

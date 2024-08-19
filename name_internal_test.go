@@ -1,0 +1,250 @@
+package muxt
+
+import (
+	"net/http"
+	"slices"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestTemplateName_ByPathThenMethod(t *testing.T) {
+	for _, tt := range []struct {
+		Name    string
+		In, Exp []TemplateName
+	}{
+		{
+			Name: "sort by path then method",
+			In: mustNewTemplateName(
+				"GET /b",
+				"POST /a",
+				"GET /a",
+			),
+			Exp: mustNewTemplateName(
+				"GET /a",
+				"POST /a",
+				"GET /b",
+			),
+		},
+		{
+			Name: "sort just paths",
+			In: mustNewTemplateName(
+				"/b",
+				"/c",
+				"/a",
+			),
+			Exp: mustNewTemplateName(
+				"/a",
+				"/b",
+				"/c",
+			),
+		},
+		{
+			Name: "sort just methods",
+			In: mustNewTemplateName(
+				"DELETE /",
+				"POST /",
+				"GET /",
+				"PATCH /",
+			),
+			Exp: mustNewTemplateName(
+				"DELETE /",
+				"GET /",
+				"PATCH /",
+				"POST /",
+			),
+		},
+		{
+			// this is blocked higher up in parsing templates but this is lower down so if a
+			// caller does not use TemplatePatterns they get consistent results
+			Name: "method and path are the same",
+			In: mustNewTemplateName(
+				"GET / F2()",
+				"GET / F3()",
+				"GET / F1()",
+			),
+			Exp: mustNewTemplateName(
+				"GET / F1()",
+				"GET / F2()",
+				"GET / F3()",
+			),
+		},
+		{
+			// this is blocked higher up in parsing templates but this is lower down so if a
+			// caller does not use TemplatePatterns they get consistent results
+			Name: "method and path are the same",
+			In: mustNewTemplateName(
+				"GET / F2()",
+				"GET / F3()",
+				"GET / F1()",
+			),
+			Exp: mustNewTemplateName(
+				"GET / F1()",
+				"GET / F2()",
+				"GET / F3()",
+			),
+		},
+	} {
+		t.Run(tt.Name, func(t *testing.T) {
+			slices.SortFunc(tt.In, TemplateName.byPathThenMethod)
+			assert.Equal(t, tt.Exp, tt.In)
+		})
+	}
+}
+
+func mustNewTemplateName(in ...string) []TemplateName {
+	var result []TemplateName
+	for _, n := range in {
+		p, err, _ := NewTemplateName(n)
+		if err != nil {
+			panic(err)
+		}
+		result = append(result, p)
+	}
+	return result
+}
+
+func TestNewTemplateName(t *testing.T) {
+	for _, tt := range []struct {
+		Name         string
+		In           string
+		ExpMatch     bool
+		TemplateName func(t *testing.T, pat TemplateName)
+		Error        func(t *testing.T, err error)
+	}{
+		{
+			Name:     "get root",
+			In:       "GET /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodGet, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "GET /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "multiple spaces after method",
+			In:       "GET  /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodGet, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "GET  /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "post root",
+			In:       "POST /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodPost, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "POST /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "patch root",
+			In:       "PATCH /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodPatch, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "PATCH /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "delete root",
+			In:       "DELETE /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodDelete, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "DELETE /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "put root",
+			In:       "PUT /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodPut, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "PUT /", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "with end of path wildcard",
+			In:       "PUT /ping/pong/{$}",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.MethodPut, pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/ping/pong/{$}", pat.path)
+				assert.Equal(t, "PUT /ping/pong/{$}", pat.endpoint)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "put root",
+			In:       "OPTIONS /",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "OPTIONS method not allowed")
+			},
+		},
+		{
+			Name:     "path parameter is not an identifier",
+			In:       "GET /{123} F(123)",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `path parameter name not permitted: "123" is not a Go identifier`)
+			},
+		},
+		{
+			Name:     "path end sentential in the middle is not permitted",
+			In:       "GET /x/{$}/y F()",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `path parameter name not permitted: "$" is not a Go identifier`)
+			},
+		},
+		{
+			Name:         "path end sentential in the middle is not permitted",
+			In:           "GET /x/{$} F()",
+			ExpMatch:     true,
+			TemplateName: func(t *testing.T, pat TemplateName) {},
+		},
+		{
+			Name:     "duplicate path parameter name",
+			In:       "GET /{name}/{name} F()",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, `forbidden repeated path parameter names: found at least 2 path parameters with name "name"`)
+			},
+		},
+	} {
+		t.Run(tt.Name, func(t *testing.T) {
+			pat, err, match := NewTemplateName(tt.In)
+			require.Equal(t, tt.ExpMatch, match)
+			if tt.Error != nil {
+				tt.Error(t, err)
+			} else if tt.TemplateName != nil {
+				assert.NoError(t, err)
+				tt.TemplateName(t, pat)
+			}
+		})
+	}
+}
