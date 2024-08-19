@@ -49,9 +49,9 @@ type TemplateName struct {
 	pathValueNames []string
 }
 
-func NewTemplateName(in string) (TemplateName, error, bool) { return newTemplate(in, "") }
+func NewTemplateName(in string) (TemplateName, error, bool) { return newTemplate(in) }
 
-func newTemplate(in, fileName string) (TemplateName, error, bool) {
+func newTemplate(in string) (TemplateName, error, bool) {
 	if !templateNameMux.MatchString(in) {
 		return TemplateName{}, nil, false
 	}
@@ -81,7 +81,7 @@ func newTemplate(in, fileName string) (TemplateName, error, bool) {
 		return TemplateName{}, err, true
 	}
 
-	return p, parseHandler(p.fileSet, fileName, &p), true
+	return p, parseHandler(p.fileSet, &p), true
 }
 
 var (
@@ -132,11 +132,11 @@ func (def TemplateName) byPathThenMethod(d TemplateName) int {
 	return cmp.Compare(def.handler, d.handler)
 }
 
-func parseHandler(fileSet *token.FileSet, fileName string, def *TemplateName) error {
+func parseHandler(fileSet *token.FileSet, def *TemplateName) error {
 	if def.handler == "" {
 		return nil
 	}
-	e, err := parser.ParseExprFrom(fileSet, fileName, []byte(def.handler), 0)
+	e, err := parser.ParseExprFrom(fileSet, "template_name.go", []byte(def.handler), 0)
 	if err != nil {
 		return fmt.Errorf("failed to parse handler expression: %v", err)
 	}
