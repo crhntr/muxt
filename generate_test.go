@@ -172,6 +172,82 @@ func execute(response http.ResponseWriter, request *http.Request, t *template.Te
 `,
 		},
 		{
+			Name:      "method receiver is a pointer",
+			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `s
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (*T) F(username string) int { return 30 }
+`,
+			Receiver: "T",
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"bytes"
+	"html/template"
+)
+
+type RoutesReceiver interface {
+	F(username string) int
+}
+
+func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
+		username := request.PathValue("username")
+		data := receiver.F(username)
+		execute(response, request, templates.Lookup("GET /age/{username} F(username)"), http.StatusOK, data)
+	})
+}
+func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := t.Execute(buf, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.WriteHeader(code)
+	_, _ = buf.WriteTo(response)
+}
+`,
+		},
+		{
+			Name:      "execute function defined",
+			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `s
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (*T) F(username string) int { return 30 }
+
+func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+	response.WriteHeader(code)
+	_ = t.Execute(response, data)
+}
+`,
+			Receiver: "T",
+			ExpectedFile: `package main
+
+import "net/http"
+
+type RoutesReceiver interface {
+	F(username string) int
+}
+
+func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
+		username := request.PathValue("username")
+		data := receiver.F(username)
+		execute(response, request, templates.Lookup("GET /age/{username} F(username)"), http.StatusOK, data)
+	})
+}
+`,
+		},
+		{
 			Name:      "call method with two returns",
 			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
 			ReceiverPackage: `
