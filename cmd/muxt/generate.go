@@ -46,7 +46,7 @@ func newGenerate(args []string, getEnv func(string) string) (Generate, error) {
 		goLine:    getEnv("GOLINE"),
 	}
 	flagSet := flag.NewFlagSet("generate", flag.ContinueOnError)
-	flagSet.StringVar(&g.outputFilename, outputFlagFlagName, "template_routes.go", "file name of generated output")
+	flagSet.StringVar(&g.outputFilename, outputFlagFlagName, muxt.DefaultOutputFileName, "file name of generated output")
 	flagSet.StringVar(&g.templatesVariable, templatesVariable, muxt.DefaultTemplatesVariableName, "templates variable name")
 	flagSet.StringVar(&g.routesFunction, routesFunc, muxt.DefaultRoutesFunctionName, "file name of generated output")
 	flagSet.StringVar(&g.receiverIdent, receiverStaticType, "", "static receiver type identifier")

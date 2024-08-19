@@ -41,6 +41,7 @@ const (
 	defaultPackageName           = "main"
 	DefaultTemplatesVariableName = "templates"
 	DefaultRoutesFunctionName    = "Routes"
+	DefaultOutputFileName        = "template_routes.go"
 )
 
 func Generate(templateNames []TemplateName, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, _ *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
