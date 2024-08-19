@@ -71,4 +71,10 @@ func Test_newGenerate(t *testing.T) {
 		}, func(s string) string { return "" })
 		assert.ErrorContains(t, err, errIdentSuffix)
 	})
+	t.Run(outputFlagFlagName+" flag value is not a go file", func(t *testing.T) {
+		_, err := newGenerate([]string{
+			"--" + outputFlagFlagName, "output.txt",
+		}, func(s string) string { return "" })
+		assert.ErrorContains(t, err, "filename must use .go extension")
+	})
 }

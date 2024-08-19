@@ -62,6 +62,9 @@ func newGenerate(args []string, getEnv func(string) string) (Generate, error) {
 	if g.receiverIdent != "" && !token.IsIdentifier(g.receiverIdent) {
 		return Generate{}, fmt.Errorf(receiverStaticType + errIdentSuffix)
 	}
+	if g.outputFilename != "" && filepath.Ext(g.outputFilename) != ".go" {
+		return Generate{}, fmt.Errorf("output filename must use .go extension")
+	}
 	return g, nil
 }
 
