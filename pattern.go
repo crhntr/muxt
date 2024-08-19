@@ -17,6 +17,7 @@ import (
 
 func TemplatePatterns(ts *template.Template) ([]Pattern, error) {
 	var patterns []Pattern
+	routes := make(map[string]struct{})
 	for _, t := range ts.Templates() {
 		pat, err, ok := NewPattern(t.Name())
 		if !ok {
@@ -25,9 +26,10 @@ func TemplatePatterns(ts *template.Template) ([]Pattern, error) {
 		if err != nil {
 			return patterns, err
 		}
-		if slices.ContainsFunc(patterns, pat.sameRoute) {
+		if _, exists := routes[pat.Method+pat.Path]; exists {
 			return patterns, fmt.Errorf("duplicate route pattern: %s", pat.Route)
 		}
+		routes[pat.Method+pat.Path] = struct{}{}
 		patterns = append(patterns, pat)
 	}
 	slices.SortFunc(patterns, Pattern.byPathThenMethod)
