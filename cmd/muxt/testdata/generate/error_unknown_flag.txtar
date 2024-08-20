@@ -1,4 +1,4 @@
-! muxt generate --routes-func=TemplateRoutes --unknown
+! muxt generate --unknown
 stderr 'flag'
 
 -- template.gohtml --

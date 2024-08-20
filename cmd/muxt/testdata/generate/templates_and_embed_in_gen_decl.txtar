@@ -1,5 +1,5 @@
-muxt generate --routes-func=TemplateRoutes
-stdout 'Routes has route for GET /'
+muxt generate
+stdout 'routes has route for GET /'
 
 -- index.gohtml --
 {{define "GET /" }}

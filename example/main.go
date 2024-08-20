@@ -65,6 +65,6 @@ func main() {
 		},
 	}
 	mux := http.NewServeMux()
-	Routes(mux, backend)
+	routes(mux, backend)
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

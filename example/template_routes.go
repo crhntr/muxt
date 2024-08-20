@@ -15,7 +15,7 @@ type RoutesReceiver interface {
 	List(_ context.Context) []Row
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("PATCH /fruits/{fruit}", func(response http.ResponseWriter, request *http.Request) {
 		fruit := request.PathValue("fruit")
 		data := receiver.SubmitFormEditRow(request, fruit)

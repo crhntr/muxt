@@ -1,4 +1,4 @@
-! muxt generate --routes-func=TemplateRoutes
+! muxt generate
 stderr 'duplicate route pattern: GET /'
 
 -- template.gohtml --

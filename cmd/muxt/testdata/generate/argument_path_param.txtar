@@ -1,4 +1,4 @@
-muxt generate --routes-func=TemplateRoutes
+muxt generate
 
 exec go test -cover
 
@@ -40,7 +40,7 @@ func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
 	var service T
-	TemplateRoutes(mux, service)
+	routes(mux, service)
 
 	req := httptest.NewRequest(http.MethodGet, "/user/crhntr", nil)
 	rec := httptest.NewRecorder()

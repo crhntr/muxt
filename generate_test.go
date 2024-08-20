@@ -45,7 +45,7 @@ import (
 type RoutesReceiver interface {
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
 		execute(response, request, templates.Lookup("GET /"), http.StatusOK, request)
 	})
@@ -76,7 +76,7 @@ type RoutesReceiver interface {
 	F() any
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
 		data := receiver.F()
 		execute(response, request, templates.Lookup("GET / F()"), http.StatusOK, data)
@@ -109,7 +109,7 @@ type RoutesReceiver interface {
 	F(ctx context.Context, response http.ResponseWriter, request *http.Request, projectID string, taskID string) any
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /project/{projectID}/task/{taskID}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		projectID := request.PathValue("projectID")
@@ -153,7 +153,7 @@ type RoutesReceiver interface {
 	F(username string) int
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
 		username := request.PathValue("username")
 		data := receiver.F(username)
@@ -195,7 +195,7 @@ type RoutesReceiver interface {
 	F(username string) int
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
 		username := request.PathValue("username")
 		data := receiver.F(username)
@@ -238,7 +238,7 @@ type RoutesReceiver interface {
 	F(username string) int
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
 		username := request.PathValue("username")
 		data := receiver.F(username)
@@ -271,7 +271,7 @@ type RoutesReceiver interface {
 	F(username string) (int, error)
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
 		username := request.PathValue("username")
 		data, err := receiver.F(username)
@@ -347,7 +347,7 @@ type RoutesReceiver interface {
 	F(ctx context.Context, username string) int
 }
 
-func Routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		username := request.PathValue("username")

@@ -1,4 +1,4 @@
-muxt generate --routes-func=TemplateRoutes
+muxt generate
 
 exec go test -cover
 
@@ -45,7 +45,7 @@ func (T) ToUpper(in string) any { return Data{Name: strings.ToUpper(in)} }
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
-	TemplateRoutes(mux, T{})
+	routes(mux, T{})
 
 	req := httptest.NewRequest(http.MethodGet, "/fruits/peach/tree", nil)
 	rec := httptest.NewRecorder()
