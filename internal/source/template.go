@@ -104,6 +104,12 @@ func evaluateTemplateSelector(ts *template.Template, expression ast.Expr, workin
 				return nil, err
 			}
 			return up.ParseFiles(filePaths...)
+		case "Option":
+			list, err := parseStringLiterals(workingDirectory, fileSet, call.Args)
+			if err != nil {
+				return nil, err
+			}
+			return up.Option(list...), nil
 		default:
 			return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unsupported method %s", sel.Sel.Name))
 		}

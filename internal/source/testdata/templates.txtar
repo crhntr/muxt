@@ -57,6 +57,28 @@ var (
 	templateParseFSNonStringLiteralGlob = template.ParseFS(templateSource, "w", 42, "x")
 
 	templateParseFSWithBadGlob = template.ParseFS(templateSource, "[fail")
+
+	templateNewHasWrongNumberOfArgs = template.Must(template.New("x").ParseFS(templateSource, "*")).New()
+
+	templateNewHasWrongTypeOfArgs = template.New("x").New(9000)
+
+	templateNewHasTooManyArgs = template.New("x").New("x", "y")
+
+	templateDelimsGetsNoArgs = template.New("x").Delims()
+
+	templateDelimsGetsTooMany = template.New("x").Delims("x", "y", "")
+
+	templateDelimsWrongExpressionArg = template.New("x").Delims("x", y)
+
+	templateParseFSMethodFails = template.New("x").ParseFS(templateSource, fail)
+
+	templateOptionsRequiresStringLiterals = template.New("x").Option(fail)
+
+	templateUnknownMethod = template.New("x").Unknown()
+
+	templateOptionCall = template.New("x").Option("missingkey=default").ParseFS(templateSource, "*")
+
+	templateOptionCallUnknownArg = template.New("x").Option("unknown").ParseFS(templateSource, "*")
 )
 -- index.gohtml --
 Hello, friend!

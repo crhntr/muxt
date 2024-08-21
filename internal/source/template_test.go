@@ -340,6 +340,95 @@ func TestTemplates(t *testing.T) {
 		}
 		assert.ElementsMatch(t, []string{"triple_parens.gohtml", "parens", "double_square.gohtml", "square", "", "default.gohtml", "default"}, names)
 	})
+	t.Run("Run method call gets no args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewHasWrongNumberOfArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:60:101: expected exactly one string literal argument`)
+	})
+	t.Run("Run method call gets wrong type of args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewHasWrongTypeOfArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:62:56: expected string literal got 9000`)
+	})
+	t.Run("Run method call gets too many args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateNewHasTooManyArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:64:51: expected exactly one string literal argument`)
+	})
+	t.Run("Delims method call gets no args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateDelimsGetsNoArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:66:53: expected exactly two string literal arguments`)
+	})
+	t.Run("Delims method call gets too many args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateDelimsGetsTooMany", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:68:54: expected exactly two string literal arguments`)
+	})
+	t.Run("Delims have wrong type of argument expressions", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateDelimsWrongExpressionArg", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:70:67: expected string literal got y`)
+	})
+	t.Run("ParseFS method fails", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateParseFSMethodFails", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:72:73: expected string literal got fail`)
+	})
+	t.Run("Options method requires string literals", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateOptionsRequiresStringLiterals", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:74:67: expected string literal got fail`)
+	})
+	t.Run("unknown method", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateUnknownMethod", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.ErrorContains(t, err, `template.go:76:26: unsupported method Unknown`)
+	})
+	t.Run("Option call", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templateOptionCall", fileSet, goFiles, []string{
+			filepath.Join(dir, "index.gohtml"),
+		})
+		require.NoError(t, err)
+	})
+	t.Run("Option call wrong argument", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		assert.Panics(t, func() {
+			_, _ = source.Templates(dir, "templateOptionCallUnknownArg", fileSet, goFiles, []string{
+				filepath.Join(dir, "index.gohtml"),
+			})
+		})
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {
