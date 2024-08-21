@@ -429,6 +429,23 @@ func TestTemplates(t *testing.T) {
 			})
 		})
 	})
+	t.Run("Funcs call", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.NoError(t, err)
+	})
+	t.Run("Func not defined", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesFuncNotDefined", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `missing_func.gohtml:1: function "enemy" not defined`)
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {

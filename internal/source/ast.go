@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/printer"
 	"go/token"
+	"strconv"
 	"strings"
 )
 
@@ -98,4 +99,24 @@ func Format(node ast.Node) string {
 		return fmt.Sprintf("formatting error: %v", err)
 	}
 	return buf.String()
+}
+
+func evaluateStringLiteralExpressionList(wd string, set *token.FileSet, list []ast.Expr) ([]string, error) {
+	result := make([]string, 0, len(list))
+	for _, a := range list {
+		s, err := evaluateStringLiteralExpression(wd, set, a)
+		if err != nil {
+			return result, err
+		}
+		result = append(result, s)
+	}
+	return result, nil
+}
+
+func evaluateStringLiteralExpression(wd string, set *token.FileSet, exp ast.Expr) (string, error) {
+	arg, ok := exp.(*ast.BasicLit)
+	if !ok || arg.Kind != token.STRING {
+		return "", contextError(wd, set, exp.Pos(), fmt.Errorf("expected string literal got %s", Format(exp)))
+	}
+	return strconv.Unquote(arg.Value)
 }
