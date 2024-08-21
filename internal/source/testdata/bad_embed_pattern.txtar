@@ -12,6 +12,5 @@ var (
 
 	templates = template.Must(template.ParseFS(assetsFS, "*"))
 )
-
 -- greeting.gohtml --
 Hello, friend!

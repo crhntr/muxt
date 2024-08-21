@@ -119,7 +119,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateWrongX", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "template.go:20:30: expected template got UNKNOWN")
+		require.ErrorContains(t, err, "template.go:20:19: expected template got UNKNOWN")
 	})
 
 	t.Run("call New with wrong arg count", func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateNewOnIndexed", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "template.go:24:25: expected New to either be a call of function New from package template package or a call to method New on *template.Template")
+		require.ErrorContains(t, err, "template.go:24:25: expected exactly one argument ts[0] got 2")
 	})
 
 	t.Run("call New with non string literal arg", func(t *testing.T) {
@@ -146,7 +146,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateNewArg42", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "template.go:26:34: expected argument to be a string literal got 42")
+		require.ErrorContains(t, err, "template.go:26:34: expected string literal got 42")
 	})
 
 	t.Run("call New with non literal arg", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateNewArgIdent", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "template.go:28:37: expected argument to be a string literal got TemplateName")
+		require.ErrorContains(t, err, "template.go:28:37: expected string literal got TemplateName")
 	})
 
 	t.Run("call New with upstream error", func(t *testing.T) {
@@ -164,7 +164,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateNewErrUpstream", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template templateNewErrUpstream failed at template.go:30:40: expected argument to be a string literal got fail")
+		require.ErrorContains(t, err, "run template templateNewErrUpstream failed at template.go:30:40: expected string literal got fail")
 	})
 
 	t.Run("unknown templates variable", func(t *testing.T) {
@@ -183,7 +183,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "unsupportedMethod", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template unsupportedMethod failed at template.go:34:22: unsupported method Unknown")
+		require.ErrorContains(t, err, "run template unsupportedMethod failed at template.go:34:22: unsupported function Unknown")
 	})
 
 	t.Run("call Must with unexpected function expression", func(t *testing.T) {
@@ -192,7 +192,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "unexpectedFunExpression", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template unexpectedFunExpression failed at template.go:36:28: unexpected call: x[3]")
+		require.ErrorContains(t, err, "run template unexpectedFunExpression failed at template.go:36:28: unexpected expression *ast.IndexExpr: x[3]")
 	})
 
 	t.Run("call Must on non ident receiver", func(t *testing.T) {
@@ -201,7 +201,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateMustNonIdentReceiver", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template templateMustNonIdentReceiver failed at template.go:38:33: expected package identifier template got f()")
+		require.ErrorContains(t, err, "run template templateMustNonIdentReceiver failed at template.go:38:33: unexpected expression *ast.Ident: f")
 	})
 	t.Run("call Must with two arguments", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
@@ -225,7 +225,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateMustWrongPackageIdent", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template templateMustWrongPackageIdent failed at template.go:44:34: expected package identifier template got wrong")
+		require.ErrorContains(t, err, "run template templateMustWrongPackageIdent failed at template.go:44:34: expected template got wrong")
 	})
 	t.Run("call ParseFS wrong template package ident", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
@@ -233,7 +233,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateParseFSWrongPackageIdent", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template templateParseFSWrongPackageIdent failed at template.go:46:37: expected package identifier template got wrong")
+		require.ErrorContains(t, err, "run template templateParseFSWrongPackageIdent failed at template.go:46:37: expected template got wrong")
 	})
 	t.Run("call ParseFS receiver errored", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
@@ -249,7 +249,7 @@ func TestTemplates(t *testing.T) {
 		_, err := source.Templates(dir, "templateParseFSUnexpectedReceiver", fileSet, goFiles, []string{
 			filepath.Join(dir, "index.gohtml"),
 		})
-		require.ErrorContains(t, err, "run template templateParseFSUnexpectedReceiver failed at template.go:50:38: unexpected method receiver x[0]")
+		require.ErrorContains(t, err, "run template templateParseFSUnexpectedReceiver failed at template.go:50:38: expected exactly one argument x[0] got 2")
 	})
 	t.Run("call ParseFS with no arguments", func(t *testing.T) {
 		dir := createTestDir(t, filepath.FromSlash("testdata/templates.txtar"))
@@ -324,6 +324,21 @@ func TestTemplates(t *testing.T) {
 			filepath.Join(dir, "index.gohtml"),
 		})
 		require.ErrorContains(t, err, `template.go:22:65: variable hiding not found`)
+	})
+	t.Run("multiple delimiter types", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/delims.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		templates, err := source.Templates(dir, "templates", fileSet, goFiles, []string{
+			filepath.Join(dir, "default.gohtml"),
+			filepath.Join(dir, "triple_parens.gohtml"),
+			filepath.Join(dir, "double_square.gohtml"),
+		})
+		require.NoError(t, err)
+		var names []string
+		for _, ts := range templates.Templates() {
+			names = append(names, ts.Name())
+		}
+		assert.ElementsMatch(t, []string{"triple_parens.gohtml", "parens", "double_square.gohtml", "square", "", "default.gohtml", "default"}, names)
 	})
 }
 

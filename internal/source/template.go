@@ -25,7 +25,7 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 			return nil, fmt.Errorf("failed to calculate relative path for embedded files: %w", err)
 		}
 		const templatePackageIdent = "template"
-		ts, err := parseTemplates(workingDirectory, templatesVariable, templatePackageIdent, fileSet, files, tv.Values[i], embeddedPaths)
+		ts, err := evaluateTemplateSelector(nil, tv.Values[i], workingDirectory, templatesVariable, templatePackageIdent, "", "", fileSet, files, embeddedPaths)
 		if err != nil {
 			return nil, fmt.Errorf("run template %s failed at %w", templatesVariable, err)
 		}
@@ -34,119 +34,120 @@ func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSe
 	return nil, fmt.Errorf("variable %s not found", templatesVariable)
 }
 
-func parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent string, fileSet *token.FileSet, files []*ast.File, expression ast.Expr, embeddedPaths []string) (*template.Template, error) {
+func evaluateTemplateSelector(ts *template.Template, expression ast.Expr, workingDirectory, templatesVariable, templatesPackageIdent, rDelim, lDelim string, fileSet *token.FileSet, files []*ast.File, embeddedPaths []string) (*template.Template, error) {
 	call, ok := expression.(*ast.CallExpr)
 	if !ok {
 		return nil, contextError(workingDirectory, fileSet, expression.Pos(), fmt.Errorf("expected call expression"))
 	}
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
-		return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unexpected call: %s", Format(call.Fun)))
+		return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unexpected expression %T: %s", call.Fun, Format(call.Fun)))
 	}
-	switch sel.Sel.Name {
+	switch x := sel.X.(type) {
 	default:
-		return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unsupported method %s", sel.Sel.Name))
-	case "New":
-		var templatesNew func(string) *template.Template
-		switch x := sel.X.(type) {
-		case *ast.Ident:
-			if pkg := templatesPackageIdent; x.Name != pkg {
-				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected %s got %s", pkg, x.Name))
-			}
-			templatesNew = template.New
-		case *ast.CallExpr:
-			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedPaths)
-			if err != nil {
-				return nil, err
-			}
-			templatesNew = ts.New
-		default:
-			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected New to either be a call of function New from package template package or a call to method New on *template.Template"))
-		}
-
-		if len(call.Args) != 1 {
-			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
-		}
-
-		switch arg := call.Args[0].(type) {
-		case *ast.BasicLit:
-			if arg.Kind != token.STRING {
-				return nil, contextError(workingDirectory, fileSet, arg.Pos(), fmt.Errorf("expected argument to be a string literal got %s", Format(arg)))
-			}
-			name, _ := strconv.Unquote(arg.Value)
-			return templatesNew(name), nil
-		default:
-			return nil, contextError(workingDirectory, fileSet, arg.Pos(), fmt.Errorf("expected argument to be a string literal got %s", Format(arg)))
-		}
-	case "Must":
-		x, ok := sel.X.(*ast.Ident)
-		if !ok {
-			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
-		}
+		return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected exactly one argument %s got %d", Format(sel.X), len(call.Args)))
+	case *ast.Ident:
 		if x.Name != templatesPackageIdent {
-			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
+			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected %s got %s", templatesPackageIdent, Format(sel.X)))
 		}
-		if len(call.Args) != 1 {
-			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one argument %s got %d", Format(sel.X), len(call.Args)))
-		}
-		return parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, call.Args[0], embeddedPaths)
-	case "ParseFS":
-		var parseFiles func(files ...string) (*template.Template, error)
-		switch x := sel.X.(type) {
-		case *ast.Ident:
-			if x.Name != templatesPackageIdent {
-				return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("expected package identifier %s got %s", templatesPackageIdent, Format(sel.X)))
+		switch sel.Sel.Name {
+		case "Must":
+			if len(call.Args) != 1 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one argument %s got %d", Format(sel.X), len(call.Args)))
 			}
-			parseFiles = template.ParseFiles
-		case *ast.CallExpr:
-			ts, err := parseTemplates(workingDirectory, templatesVariable, templatesPackageIdent, fileSet, files, x, embeddedPaths)
+			return evaluateTemplateSelector(ts, call.Args[0], workingDirectory, templatesVariable, templatesPackageIdent, rDelim, lDelim, fileSet, files, embeddedPaths)
+		case "New":
+			if len(call.Args) != 1 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
+			}
+			templateNames, err := parseStringLiterals(workingDirectory, fileSet, call.Args)
 			if err != nil {
 				return nil, err
 			}
-			parseFiles = ts.ParseFiles
-		default:
-			return nil, contextError(workingDirectory, fileSet, sel.X.Pos(), fmt.Errorf("unexpected method receiver %s", Format(sel.X)))
-		}
-		if len(call.Args) < 1 {
-			return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("missing required arguments"))
-		}
-		matches, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedPaths)
-		if err != nil {
-			return nil, err
-		}
-		templateNames, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
-		if err != nil {
-			return nil, err
-		}
-		filtered := matches[:0]
-		for _, ef := range matches {
-			for j, pattern := range templateNames {
-				match, err := filepath.Match(pattern, ef)
-				if err != nil {
-					return nil, contextError(workingDirectory, fileSet, call.Args[j+1].Pos(), fmt.Errorf("bad pattern %q: %w", pattern, err))
-				}
-				if !match {
-					continue
-				}
-				filtered = append(filtered, ef)
-				break
+			return template.New(templateNames[0]), nil
+		case "ParseFS":
+			filePaths, err := evaluateCallParseFilesArgs(workingDirectory, fileSet, call, files, embeddedPaths)
+			if err != nil {
+				return nil, err
 			}
+			return template.ParseFiles(filePaths...)
+		default:
+			return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unsupported function %s", sel.Sel.Name))
 		}
-		return parseFiles(joinFilepaths(workingDirectory, filtered...)...)
+	case *ast.CallExpr:
+		up, err := evaluateTemplateSelector(ts, sel.X, workingDirectory, templatesVariable, templatesPackageIdent, rDelim, lDelim, fileSet, files, embeddedPaths)
+		if err != nil {
+			return nil, err
+		}
+		switch sel.Sel.Name {
+		case "Delims":
+			if len(call.Args) != 2 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly two string literal arguments"))
+			}
+			list, err := parseStringLiterals(workingDirectory, fileSet, call.Args)
+			if err != nil {
+				return nil, err
+			}
+			return up.Delims(list[0], list[1]), nil
+		case "New":
+			if len(call.Args) != 1 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
+			}
+			templateNames, err := parseStringLiterals(workingDirectory, fileSet, call.Args)
+			if err != nil {
+				return nil, err
+			}
+			return up.New(templateNames[0]), nil
+		case "ParseFS":
+			filePaths, err := evaluateCallParseFilesArgs(workingDirectory, fileSet, call, files, embeddedPaths)
+			if err != nil {
+				return nil, err
+			}
+			return up.ParseFiles(filePaths...)
+		default:
+			return nil, contextError(workingDirectory, fileSet, call.Fun.Pos(), fmt.Errorf("unsupported method %s", sel.Sel.Name))
+		}
 	}
+}
+
+func evaluateCallParseFilesArgs(workingDirectory string, fileSet *token.FileSet, call *ast.CallExpr, files []*ast.File, embeddedPaths []string) ([]string, error) {
+	if len(call.Args) < 1 {
+		return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("missing required arguments"))
+	}
+	matches, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedPaths)
+	if err != nil {
+		return nil, err
+	}
+	templateNames, err := parseStringLiterals(workingDirectory, fileSet, call.Args[1:])
+	if err != nil {
+		return nil, err
+	}
+	filtered := matches[:0]
+	for _, ef := range matches {
+		for j, pattern := range templateNames {
+			match, err := filepath.Match(pattern, ef)
+			if err != nil {
+				return nil, contextError(workingDirectory, fileSet, call.Args[j+1].Pos(), fmt.Errorf("bad pattern %q: %w", pattern, err))
+			}
+			if !match {
+				continue
+			}
+			filtered = append(filtered, ef)
+			break
+		}
+	}
+	return joinFilepaths(workingDirectory, filtered...), nil
 }
 
 func parseStringLiterals(wd string, set *token.FileSet, list []ast.Expr) ([]string, error) {
 	result := make([]string, 0, len(list))
 	for _, a := range list {
-		switch arg := a.(type) {
-		case *ast.BasicLit:
-			if arg.Kind != token.STRING {
-				return nil, contextError(wd, set, arg.Pos(), fmt.Errorf("expected string literal got %s", Format(arg)))
-			}
-			s, _ := strconv.Unquote(arg.Value)
-			result = append(result, s)
+		arg, ok := a.(*ast.BasicLit)
+		if !ok || arg.Kind != token.STRING {
+			return nil, contextError(wd, set, a.Pos(), fmt.Errorf("expected string literal got %s", Format(a)))
 		}
+		s, _ := strconv.Unquote(arg.Value)
+		result = append(result, s)
 	}
 	return result, nil
 }
