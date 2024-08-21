@@ -446,6 +446,79 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, `missing_func.gohtml:1: function "enemy" not defined`)
 	})
+	t.Run("Func wrong parameter kind", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongArg", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected a composite literal with type template.FuncMap got wrong`)
+	})
+
+	t.Run("Func wrong too many args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesTwoArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected exactly 1 template.FuncMap composite literal argument`)
+	})
+	t.Run("Func wrong too no args", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesNoArgs", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected exactly 1 template.FuncMap composite literal argument`)
+	})
+	t.Run("Func wrong package ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongTypePackageName", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected a composite literal with type template.FuncMap got wrong.FuncMap{}`)
+	})
+	t.Run("Func wrong Type ident", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongTypeName", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected a composite literal with type template.FuncMap got template.Wrong{}`)
+	})
+	t.Run("Func wrong Type", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongTypeExpression", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected a composite literal with type template.FuncMap got wrong{}`)
+	})
+	t.Run("Func wrong elem", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongTypeElem", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected element at index 0 to be a key value pair got wrong`)
+	})
+	t.Run("Func wrong elem key", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/funcs.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "templatesWrongElemKey", fileSet, goFiles, []string{
+			filepath.Join(dir, "missing_func.gohtml"),
+			filepath.Join(dir, "greet.gohtml"),
+		})
+		require.ErrorContains(t, err, `expected string literal got wrong`)
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {

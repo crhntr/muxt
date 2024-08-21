@@ -206,10 +206,7 @@ func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp
 			}
 			var comment strings.Builder
 			commentNode := readComments(&comment, decl.Doc, spec.Doc)
-			templateNames, err := parseTemplateNames(comment.String())
-			if err != nil {
-				return nil, err
-			}
+			templateNames := parseTemplateNames(comment.String())
 			absMat, err := embeddedFilesMatchingTemplateNameList(dir, fileSet, commentNode, templateNames, embeddedFiles)
 			if err != nil {
 				return nil, err
@@ -263,7 +260,7 @@ func readComments(s *strings.Builder, groups ...*ast.CommentGroup) ast.Node {
 	return n
 }
 
-func parseTemplateNames(input string) ([]string, error) {
+func parseTemplateNames(input string) []string {
 	// todo: refactor to use strconv.QuotedPrefix
 	var (
 		templateNames       []string
@@ -306,7 +303,7 @@ func parseTemplateNames(input string) ([]string, error) {
 		templateNames = append(templateNames, currentTemplateName.String())
 	}
 
-	return templateNames, nil
+	return templateNames
 }
 
 func contextError(workingDirectory string, set *token.FileSet, pos token.Pos, err error) error {

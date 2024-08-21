@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_parseTemplateNames(t *testing.T) {
@@ -40,9 +39,22 @@ func Test_parseTemplateNames(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseTemplateNames(tt.input)
-			require.NoError(t, err)
+			result := parseTemplateNames(tt.input)
 			assert.EqualValues(t, tt.expected, result)
 		})
 	}
+
+	t.Run("mismatched backtick", func(t *testing.T) {
+		// TODO: make parseTemplateNames return an error
+		assert.NotPanics(t, func() {
+			_ = parseTemplateNames("`x\"")
+		})
+	})
+
+	t.Run("mismatched double quote", func(t *testing.T) {
+		// TODO: make parseTemplateNames return an error
+		assert.NotPanics(t, func() {
+			_ = parseTemplateNames("\"x`")
+		})
+	})
 }
