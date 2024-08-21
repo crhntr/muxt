@@ -68,7 +68,7 @@ func newGenerate(args []string, getEnv func(string) string) (Generate, error) {
 	return g, nil
 }
 
-func generateCommand(args []string, workingDirectory string, getEnv func(string) string, stdout, stderr io.Writer) error {
+func generateCommand(args []string, workingDirectory string, getEnv func(string) string, stdout, _ /* stderr */ io.Writer) error {
 	g, err := newGenerate(args, getEnv)
 	if err != nil {
 		return err

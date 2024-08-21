@@ -74,23 +74,23 @@ func IterateFunctions(files []*ast.File) func(func(*ast.File, *ast.FuncDecl) boo
 	}
 }
 
-func IterateImports(files []*ast.File) func(func(*ast.File, *ast.ImportSpec) bool) {
-	return func(yield func(*ast.File, *ast.ImportSpec) bool) {
-		for _, file := range files {
-			for _, decl := range file.Decls {
-				genDecl, ok := decl.(*ast.GenDecl)
-				if !ok || genDecl.Tok != token.IMPORT {
-					continue
-				}
-				for _, s := range genDecl.Specs {
-					if !yield(file, s.(*ast.ImportSpec)) {
-						return
-					}
-				}
-			}
-		}
-	}
-}
+//func IterateImports(files []*ast.File) func(func(*ast.File, *ast.ImportSpec) bool) {
+//	return func(yield func(*ast.File, *ast.ImportSpec) bool) {
+//		for _, file := range files {
+//			for _, decl := range file.Decls {
+//				genDecl, ok := decl.(*ast.GenDecl)
+//				if !ok || genDecl.Tok != token.IMPORT {
+//					continue
+//				}
+//				for _, s := range genDecl.Specs {
+//					if !yield(file, s.(*ast.ImportSpec)) {
+//						return
+//					}
+//				}
+//			}
+//		}
+//	}
+//}
 
 func Format(node ast.Node) string {
 	var buf strings.Builder
