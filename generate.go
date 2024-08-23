@@ -266,6 +266,7 @@ func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
 }
 
 func checkArgument(method *ast.FuncType, argIndex int, exp ast.Expr, argType ast.Expr) error {
+	// TODO: rewrite to "cannot use 32 (untyped int constant) as string value in argument to strings.ToUpper"
 	arg := exp.(*ast.Ident)
 	switch arg.Name {
 	case TemplateNameScopeIdentifierHTTPRequest:
