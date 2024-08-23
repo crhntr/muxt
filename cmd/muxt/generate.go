@@ -73,7 +73,6 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	_ = os.Remove(filepath.Join(workingDirectory, g.outputFilename))
 	list, err := packages.Load(&packages.Config{
 		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:   workingDirectory,
