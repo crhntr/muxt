@@ -51,7 +51,6 @@ func (T) PassUint8(in uint8) uint8    { return in }
 func (T) PassBool(in bool) bool       { return in }
 func (T) PassByte(in byte) byte       { return in }
 func (T) PassRune(in rune) rune       { return in }
-
 -- template_test.go --
 package server
 
@@ -75,94 +74,94 @@ func Test(t *testing.T) {
 			t.Error("expected OK")
 		}
 	})
-  t.Run("int64", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/int64/52", nil)
+	t.Run("int64", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/int64/52", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("int32", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/int32/51", nil)
+	})
+	t.Run("int32", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/int32/51", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("int16", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/int16/50", nil)
+	})
+	t.Run("int16", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/int16/50", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("int8", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/int8/50", nil)
+	})
+	t.Run("int8", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/int8/50", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("uint", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/uint/12", nil)
+	})
+	t.Run("uint", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/uint/12", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("uint64", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/uint64/11", nil)
+	})
+	t.Run("uint64", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/uint64/11", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("uint32", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/uint32/11", nil)
+	})
+	t.Run("uint32", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/uint32/11", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("uint16", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/uint16/7", nil)
+	})
+	t.Run("uint16", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/uint16/7", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("uint8", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/uint8/5", nil)
+	})
+	t.Run("uint8", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/uint8/5", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
-  t.Run("bool", func(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/bool/true", nil)
+	})
+	t.Run("bool", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/bool/true", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()
 		if res.StatusCode != http.StatusOK {
 			t.Error("expected OK")
 		}
-  })
+	})
 }

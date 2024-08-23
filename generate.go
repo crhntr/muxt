@@ -35,8 +35,6 @@ const (
 	contextPackageIdent     = "context"
 	contextContextTypeIdent = "Context"
 
-	stringTypeIdent = "string"
-
 	defaultPackageName           = "main"
 	DefaultTemplatesVariableName = "templates"
 	DefaultRoutesFunctionName    = "routes"

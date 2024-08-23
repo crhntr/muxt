@@ -3,11 +3,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"html/template"
 	"net/http"
 	"strconv"
-	"bytes"
-	"html/template"
 )
 
 type RoutesReceiver interface {
