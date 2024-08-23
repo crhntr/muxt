@@ -5,24 +5,35 @@ package main
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"bytes"
 	"html/template"
 )
 
 type RoutesReceiver interface {
-	SubmitFormEditRow(request *http.Request, fruit string) EditRowPage
-	GetFormEditRow(fruit string) EditRowPage
+	SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage
+	GetFormEditRow(fruitID int) EditRowPage
 	List(_ context.Context) []Row
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("PATCH /fruits/{fruit}", func(response http.ResponseWriter, request *http.Request) {
-		fruit := request.PathValue("fruit")
+		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		fruit := int(fruitParsed)
 		data := receiver.SubmitFormEditRow(request, fruit)
 		execute(response, request, templates.Lookup("PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)"), http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /fruits/{fruit}/edit", func(response http.ResponseWriter, request *http.Request) {
-		fruit := request.PathValue("fruit")
+		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		fruit := int(fruitParsed)
 		data := receiver.GetFormEditRow(fruit)
 		execute(response, request, templates.Lookup("GET /fruits/{fruit}/edit GetFormEditRow(fruit)"), http.StatusOK, data)
 	})

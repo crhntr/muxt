@@ -24,27 +24,24 @@ type EditRowPage struct {
 	Error error
 }
 
-func (b *Backend) SubmitFormEditRow(request *http.Request, fruit string) EditRowPage {
+func (b *Backend) SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage {
+	if fruitID < 0 || fruitID >= len(b.data) {
+		return EditRowPage{Error: fmt.Errorf("fruit not found")}
+	}
 	count, err := strconv.Atoi(request.FormValue("count"))
 	if err != nil {
-		return EditRowPage{Error: err, Row: Row{Name: fruit}}
+		return EditRowPage{Error: err, Row: b.data[fruitID]}
 	}
-	for i := range b.data {
-		if b.data[i].Name == fruit {
-			b.data[i].Value = count
-			return EditRowPage{Error: nil, Row: b.data[i]}
-		}
-	}
-	return EditRowPage{Error: fmt.Errorf("fruit not found")}
+	row := b.data[fruitID]
+	row.Value = count
+	return EditRowPage{Error: nil, Row: row}
 }
 
-func (b *Backend) GetFormEditRow(fruit string) EditRowPage {
-	for i := range b.data {
-		if b.data[i].Name == fruit {
-			return EditRowPage{Error: nil, Row: b.data[i]}
-		}
+func (b *Backend) GetFormEditRow(fruitID int) EditRowPage {
+	if fruitID < 0 || fruitID >= len(b.data) {
+		return EditRowPage{Error: fmt.Errorf("fruit not found")}
 	}
-	return EditRowPage{Error: fmt.Errorf("fruit not found")}
+	return EditRowPage{Error: nil, Row: b.data[fruitID]}
 }
 
 type Row struct {
