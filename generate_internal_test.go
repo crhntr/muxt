@@ -22,7 +22,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			Name: "get",
 			In:   "GET /",
 			Out: `func(response http.ResponseWriter, request *http.Request) {
-	execute(response, request, templates.Lookup("GET /"), http.StatusOK, request)
+	execute(response, request, true, "GET /", http.StatusOK, request)
 }`,
 		},
 		{
@@ -30,7 +30,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			In:   "GET / F()",
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	data := receiver.F()
-	execute(response, request, templates.Lookup("GET / F()"), http.StatusOK, data)
+	execute(response, request, true, "GET / F()", http.StatusOK, data)
 }`,
 		},
 		{
@@ -42,7 +42,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			},
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	data := receiver.F(request)
-	execute(response, request, templates.Lookup("GET / F(request)"), http.StatusOK, data)
+	execute(response, request, true, "GET / F(request)", http.StatusOK, data)
 }`,
 		},
 		{
@@ -54,7 +54,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			},
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	data := receiver.F(response)
-	execute(response, request, templates.Lookup("GET / F(response)"), http.StatusOK, data)
+	execute(response, request, true, "GET / F(response)", http.StatusOK, data)
 }`,
 		},
 		{
@@ -67,7 +67,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	ctx := request.Context()
 	data := receiver.F(ctx)
-	execute(response, request, templates.Lookup("GET / F(ctx)"), http.StatusOK, data)
+	execute(response, request, true, "GET / F(ctx)", http.StatusOK, data)
 }`,
 		},
 		{
@@ -80,7 +80,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	param := request.PathValue("param")
 	data := receiver.F(param)
-	execute(response, request, templates.Lookup("GET /{param} F(param)"), http.StatusOK, data)
+	execute(response, request, true, "GET /{param} F(param)", http.StatusOK, data)
 }`,
 		},
 		{
@@ -97,7 +97,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 	ctx := request.Context()
 	userName := request.PathValue("userName")
 	data := receiver.F(ctx, userName)
-	execute(response, request, templates.Lookup("GET /{userName} F(ctx, userName)"), http.StatusOK, data)
+	execute(response, request, true, "GET /{userName} F(ctx, userName)", http.StatusOK, data)
 }`,
 		},
 	} {

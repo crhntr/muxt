@@ -104,8 +104,8 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 		}
 	}
 	if !hasExecuteFunc {
-		file.Decls = append(file.Decls, executeFuncDecl())
-		imports = append(imports, importSpec("bytes"), importSpec("html/template"))
+		file.Decls = append(file.Decls, executeFuncDecl(templatesVariableName))
+		imports = append(imports, importSpec("bytes"))
 	}
 	for _, imp := range imports {
 		importGen.Specs = append(importGen.Specs, imp)
@@ -205,7 +205,7 @@ func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncT
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
-	lit.Body.List = append(lit.Body.List, def.executeCall(ast.NewIdent(templatesVariableIdent), httpStatusCode(httpStatusCode200Ident), ast.NewIdent(dataVarIdent)))
+	lit.Body.List = append(lit.Body.List, def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(dataVarIdent)))
 	return lit, imports, nil
 }
 
@@ -363,13 +363,6 @@ func callReceiverMethod(fun *ast.Ident) *ast.SelectorExpr {
 
 func contextContextType() *ast.SelectorExpr {
 	return &ast.SelectorExpr{X: ast.NewIdent(contextPackageIdent), Sel: ast.NewIdent(contextContextTypeIdent)}
-}
-
-func templateTemplateField() *ast.Field {
-	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent("t")},
-		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent("template"), Sel: ast.NewIdent("Template")}},
-	}
 }
 
 func httpStatusCode(name string) *ast.SelectorExpr {
@@ -837,19 +830,14 @@ func paramParseError(errVar *ast.Ident) *ast.IfStmt {
 	}
 }
 
-func (def TemplateName) executeCall(templatesVariable *ast.Ident, status, data ast.Expr) *ast.ExprStmt {
+func (def TemplateName) executeCall(status, data ast.Expr) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: ast.NewIdent(executeIdentName),
 		Args: []ast.Expr{
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-			&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(templatesVariable.Name),
-					Sel: ast.NewIdent(templatesLookup),
-				},
-				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(def.name)}},
-			},
+			ast.NewIdent("true"),
+			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(def.name)},
 			status,
 			data,
 		},
@@ -859,7 +847,7 @@ func (def TemplateName) executeCall(templatesVariable *ast.Ident, status, data a
 func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(templatesVariableName string) *ast.FuncLit {
 	return &ast.FuncLit{
 		Type: httpHandlerFuncType(),
-		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(ast.NewIdent(templatesVariableName), httpStatusCode(httpStatusCode200Ident), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest))}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest))}},
 	}
 }
 
@@ -876,7 +864,8 @@ func (def TemplateName) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent 
 	return ok && ident.Name == receiverTypeIdent
 }
 
-func executeFuncDecl() *ast.FuncDecl {
+func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
+	const writeHeaderIdent = "writeHeader"
 	return &ast.FuncDecl{
 		Name: ast.NewIdent(executeIdentName),
 		Type: &ast.FuncType{
@@ -884,7 +873,8 @@ func executeFuncDecl() *ast.FuncDecl {
 				List: []*ast.Field{
 					httpResponseField(),
 					httpRequestField(),
-					templateTemplateField(),
+					{Names: []*ast.Ident{ast.NewIdent(writeHeaderIdent)}, Type: ast.NewIdent("bool")},
+					{Names: []*ast.Ident{ast.NewIdent("name")}, Type: ast.NewIdent("string")},
 					{Names: []*ast.Ident{ast.NewIdent("code")}, Type: ast.NewIdent("int")},
 					{Names: []*ast.Ident{ast.NewIdent(dataVarIdent)}, Type: ast.NewIdent("any")},
 				},
@@ -909,10 +899,10 @@ func executeFuncDecl() *ast.FuncDecl {
 						Tok: token.DEFINE,
 						Rhs: []ast.Expr{&ast.CallExpr{
 							Fun: &ast.SelectorExpr{
-								X:   ast.NewIdent("t"),
-								Sel: ast.NewIdent("Execute"),
+								X:   ast.NewIdent(templatesVariableIdent),
+								Sel: ast.NewIdent("ExecuteTemplate"),
 							},
-							Args: []ast.Expr{ast.NewIdent("buf"), ast.NewIdent(dataVarIdent)},
+							Args: []ast.Expr{ast.NewIdent("buf"), ast.NewIdent("name"), ast.NewIdent(dataVarIdent)},
 						}},
 					},
 					Cond: &ast.BinaryExpr{
@@ -943,15 +933,20 @@ func executeFuncDecl() *ast.FuncDecl {
 						},
 					},
 				},
-				&ast.ExprStmt{
-					X: &ast.CallExpr{
-						Fun: &ast.SelectorExpr{
-							X:   ast.NewIdent(httpResponseField().Names[0].Name),
-							Sel: ast.NewIdent("WriteHeader"),
+				&ast.IfStmt{
+					Cond: ast.NewIdent(writeHeaderIdent),
+					Body: &ast.BlockStmt{List: []ast.Stmt{
+						&ast.ExprStmt{
+							X: &ast.CallExpr{
+								Fun: &ast.SelectorExpr{
+									X:   ast.NewIdent(httpResponseField().Names[0].Name),
+									Sel: ast.NewIdent("WriteHeader"),
+								},
+								Args: []ast.Expr{ast.NewIdent("code")},
+							},
 						},
-						Args: []ast.Expr{ast.NewIdent("code")},
 					},
-				},
+					}},
 				&ast.AssignStmt{
 					Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
 					Tok: token.ASSIGN,

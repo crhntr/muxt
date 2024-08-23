@@ -3,11 +3,10 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"html/template"
 	"net/http"
 	"strconv"
+	"bytes"
 )
 
 type RoutesReceiver interface {
@@ -25,7 +24,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		fruit := int(fruitParsed)
 		data := receiver.SubmitFormEditRow(request, fruit)
-		execute(response, request, templates.Lookup("PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)"), http.StatusOK, data)
+		execute(response, request, true, "PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /fruits/{fruit}/edit", func(response http.ResponseWriter, request *http.Request) {
 		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
@@ -35,23 +34,25 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		fruit := int(fruitParsed)
 		data := receiver.GetFormEditRow(fruit)
-		execute(response, request, templates.Lookup("GET /fruits/{fruit}/edit GetFormEditRow(fruit)"), http.StatusOK, data)
+		execute(response, request, true, "GET /fruits/{fruit}/edit GetFormEditRow(fruit)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
-		execute(response, request, templates.Lookup("GET /help"), http.StatusOK, request)
+		execute(response, request, true, "GET /help", http.StatusOK, request)
 	})
 	mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		data := receiver.List(ctx)
-		execute(response, request, templates.Lookup("GET /{$} List(ctx)"), http.StatusOK, data)
+		execute(response, request, true, "GET /{$} List(ctx)", http.StatusOK, data)
 	})
 }
-func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
-	if err := t.Execute(buf, data); err != nil {
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.WriteHeader(code)
+	if writeHeader {
+		response.WriteHeader(code)
+	}
 	_, _ = buf.WriteTo(response)
 }

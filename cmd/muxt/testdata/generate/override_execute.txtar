@@ -29,10 +29,12 @@ var formHTML embed.FS
 
 var templates = template.Must(template.ParseFS(formHTML, "*"))
 
-func execute(res http.ResponseWriter, _ *http.Request, t *template.Template, code int, data any) {
+func execute(res http.ResponseWriter, _ *http.Request, writeHeader bool, name string, code int, data any) {
 	fmt.Printf("execute input type %T\n", data)
-	res.WriteHeader(code)
-	t.Execute(res, data)
+	if writeHeader {
+		res.WriteHeader(code)
+	}
+	templates.ExecuteTemplate(res, name, data)
 }
 -- template_test.go --
 package server
