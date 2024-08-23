@@ -129,14 +129,15 @@ func IterateFieldTypes(list []*ast.Field) func(func(int, ast.Expr) bool) {
 				if !yield(i, field.Type) {
 					return
 				}
+				i++
 			} else {
 				for range field.Names {
 					if !yield(i, field.Type) {
 						return
 					}
+					i++
 				}
 			}
-			i++
 		}
 	}
 }
