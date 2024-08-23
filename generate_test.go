@@ -366,6 +366,196 @@ func execute(response http.ResponseWriter, request *http.Request, t *template.Te
 }
 `,
 		},
+		{
+			Name:     "when using param parsers",
+			Receiver: "T",
+			Templates: `
+{{- define "GET /bool/{value}   PassBool(value)"   -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /int/{value}    PassInt(value)"    -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /int16/{value}  PassInt16(value)"  -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /int32/{value}  PassInt32(value)"  -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /int64/{value}  PassInt64(value)"  -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /int8/{value}   PassInt8(value)"   -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /uint/{value}   PassUint(value)"   -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /uint16/{value} PassUint16(value)" -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+`,
+			ReceiverPackage: `
+-- t.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed *.gohtml
+var formHTML embed.FS
+
+var templates = template.Must(template.ParseFS(formHTML, "*"))
+
+type T struct{}
+
+func (T) PassInt(in int) int          { return in }
+func (T) PassInt64(in int64) int64    { return in }
+func (T) PassInt32(in int32) int32    { return in }
+func (T) PassInt16(in int16) int16    { return in }
+func (T) PassInt8(in int8) int8       { return in }
+func (T) PassUint(in uint) uint       { return in }
+func (T) PassUint64(in uint64) uint64 { return in }
+func (T) PassUint16(in uint16) uint16 { return in }
+func (T) PassUint32(in uint32) uint32 { return in }
+func (T) PassUint64(in uint16) uint16 { return in }
+func (T) PassUint8(in uint8) uint8    { return in }
+func (T) PassBool(in bool) bool       { return in }
+func (T) PassByte(in byte) byte       { return in }
+func (T) PassRune(in rune) rune       { return in }
+`,
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"strconv"
+	"bytes"
+	"html/template"
+)
+
+type RoutesReceiver interface {
+	PassBool(in bool) bool
+	PassInt(in int) int
+	PassInt16(in int16) int16
+	PassInt32(in int32) int32
+	PassInt64(in int64) int64
+	PassInt8(in int8) int8
+	PassUint(in uint) uint
+	PassUint16(in uint16) uint16
+	PassUint32(in uint32) uint32
+	PassUint64(in uint64) uint64
+	PassUint8(in uint8) uint8
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /bool/{value}", func(response http.ResponseWriter, request *http.Request) {
+		value, err := strconv.ParseBool(request.PathValue("value"))
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		data := receiver.PassBool(value)
+		execute(response, request, templates.Lookup("GET /bool/{value}   PassBool(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /int/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseInt(request.PathValue("value"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := int(valueParsed)
+		data := receiver.PassInt(value)
+		execute(response, request, templates.Lookup("GET /int/{value}    PassInt(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /int16/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseInt(request.PathValue("value"), 10, 16)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := int16(valueParsed)
+		data := receiver.PassInt16(value)
+		execute(response, request, templates.Lookup("GET /int16/{value}  PassInt16(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /int32/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseInt(request.PathValue("value"), 10, 32)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := int32(valueParsed)
+		data := receiver.PassInt32(value)
+		execute(response, request, templates.Lookup("GET /int32/{value}  PassInt32(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /int64/{value}", func(response http.ResponseWriter, request *http.Request) {
+		value, err := strconv.ParseInt(request.PathValue("value"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		data := receiver.PassInt64(value)
+		execute(response, request, templates.Lookup("GET /int64/{value}  PassInt64(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /int8/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseInt(request.PathValue("value"), 10, 8)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := int8(valueParsed)
+		data := receiver.PassInt8(value)
+		execute(response, request, templates.Lookup("GET /int8/{value}   PassInt8(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /uint/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := uint(valueParsed)
+		data := receiver.PassUint(value)
+		execute(response, request, templates.Lookup("GET /uint/{value}   PassUint(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /uint16/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 16)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := uint16(valueParsed)
+		data := receiver.PassUint16(value)
+		execute(response, request, templates.Lookup("GET /uint16/{value} PassUint16(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /uint32/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 32)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := uint32(valueParsed)
+		data := receiver.PassUint32(value)
+		execute(response, request, templates.Lookup("GET /uint32/{value} PassUint32(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /uint64/{value}", func(response http.ResponseWriter, request *http.Request) {
+		value, err := strconv.ParseUint(request.PathValue("value"), 10, 64)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		data := receiver.PassUint64(value)
+		execute(response, request, templates.Lookup("GET /uint64/{value} PassUint64(value)"), http.StatusOK, data)
+	})
+	mux.HandleFunc("GET /uint8/{value}", func(response http.ResponseWriter, request *http.Request) {
+		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 8)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		value := uint8(valueParsed)
+		data := receiver.PassUint8(value)
+		execute(response, request, templates.Lookup("GET /uint8/{value}  PassUint8(value)"), http.StatusOK, data)
+	})
+}
+func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := t.Execute(buf, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.WriteHeader(code)
+	_, _ = buf.WriteTo(response)
+}
+`,
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))

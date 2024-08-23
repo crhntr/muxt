@@ -120,3 +120,23 @@ func evaluateStringLiteralExpression(wd string, set *token.FileSet, exp ast.Expr
 	}
 	return strconv.Unquote(arg.Value)
 }
+
+func IterateFieldTypes(list []*ast.Field) func(func(int, ast.Expr) bool) {
+	return func(yield func(int, ast.Expr) bool) {
+		i := 0
+		for _, field := range list {
+			if len(field.Names) == 0 {
+				if !yield(i, field.Type) {
+					return
+				}
+			} else {
+				for range field.Names {
+					if !yield(i, field.Type) {
+						return
+					}
+				}
+			}
+			i++
+		}
+	}
+}

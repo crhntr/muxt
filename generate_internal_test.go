@@ -178,11 +178,11 @@ func TestTemplateName_HandlerFuncLit_err(t *testing.T) {
 			In:   "GET /{name} F(name)",
 			Method: &ast.FuncType{
 				Params: &ast.FieldList{List: []*ast.Field{
-					{Type: ast.NewIdent("int")},
+					{Type: ast.NewIdent("float64")},
 				}},
 				Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("any")}}},
 			},
-			ErrSub: "method expects type int but name is a string",
+			ErrSub: "method param type float64 not supported",
 		},
 		{
 			Name: "wrong argument type request ptr",
