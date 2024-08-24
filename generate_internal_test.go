@@ -54,7 +54,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			},
 			Out: `func(response http.ResponseWriter, request *http.Request) {
 	data := receiver.F(response)
-	execute(response, request, true, "GET / F(response)", http.StatusOK, data)
+	execute(response, request, false, "GET / F(response)", http.StatusOK, data)
 }`,
 		},
 		{
@@ -105,8 +105,7 @@ func TestTemplateName_funcLit(t *testing.T) {
 			pat, err, ok := NewTemplateName(tt.In)
 			require.True(t, ok)
 			require.NoError(t, err)
-			tv := "templates"
-			out, _, err := pat.funcLit(tv, tt.Method)
+			out, _, err := pat.funcLit(tt.Method)
 			require.NoError(t, err)
 			assert.Equal(t, tt.Out, source.Format(out))
 		})
@@ -212,8 +211,7 @@ func TestTemplateName_HandlerFuncLit_err(t *testing.T) {
 			pat, err, ok := NewTemplateName(tt.In)
 			require.True(t, ok)
 			require.NoError(t, err)
-			tv := "templates"
-			_, _, err = pat.funcLit(tv, tt.Method)
+			_, _, err = pat.funcLit(tt.Method)
 			assert.ErrorContains(t, err, tt.ErrSub)
 		})
 	}

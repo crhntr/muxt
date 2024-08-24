@@ -80,7 +80,7 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 				Type:  method,
 			})
 		}
-		handlerFunc, methodImports, err := pattern.funcLit(templatesVariableName, method)
+		handlerFunc, methodImports, err := pattern.funcLit(method)
 		if err != nil {
 			return "", err
 		}
@@ -129,9 +129,9 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 	}}
 }
 
-func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncType) (*ast.FuncLit, []*ast.ImportSpec, error) {
+func (def TemplateName) funcLit(method *ast.FuncType) (*ast.FuncLit, []*ast.ImportSpec, error) {
 	if def.handler == "" {
-		return def.httpRequestReceiverTemplateHandlerFunc(templatesVariableIdent), nil, nil
+		return def.httpRequestReceiverTemplateHandlerFunc(), nil, nil
 	}
 	lit := &ast.FuncLit{
 		Type: httpHandlerFuncType(),
@@ -148,11 +148,17 @@ func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncT
 			}
 		}
 	}
-	var imports []*ast.ImportSpec
+	var (
+		imports     []*ast.ImportSpec
+		writeHeader = true
+	)
 	for i, a := range def.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
-		case TemplateNameScopeIdentifierHTTPRequest, TemplateNameScopeIdentifierHTTPResponse:
+		case TemplateNameScopeIdentifierHTTPResponse:
+			writeHeader = false
+			fallthrough
+		case TemplateNameScopeIdentifierHTTPRequest:
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 			imports = append(imports, importSpec("net/http"))
 		case TemplateNameScopeIdentifierContext:
@@ -205,7 +211,7 @@ func (def TemplateName) funcLit(templatesVariableIdent string, method *ast.FuncT
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
-	lit.Body.List = append(lit.Body.List, def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(dataVarIdent)))
+	lit.Body.List = append(lit.Body.List, def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(dataVarIdent), writeHeader))
 	return lit, imports, nil
 }
 
@@ -830,13 +836,13 @@ func paramParseError(errVar *ast.Ident) *ast.IfStmt {
 	}
 }
 
-func (def TemplateName) executeCall(status, data ast.Expr) *ast.ExprStmt {
+func (def TemplateName) executeCall(status, data ast.Expr, writeHeader bool) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: ast.NewIdent(executeIdentName),
 		Args: []ast.Expr{
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-			ast.NewIdent("true"),
+			ast.NewIdent(strconv.FormatBool(writeHeader)),
 			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(def.name)},
 			status,
 			data,
@@ -844,10 +850,10 @@ func (def TemplateName) executeCall(status, data ast.Expr) *ast.ExprStmt {
 	}}
 }
 
-func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(templatesVariableName string) *ast.FuncLit {
+func (def TemplateName) httpRequestReceiverTemplateHandlerFunc() *ast.FuncLit {
 	return &ast.FuncLit{
 		Type: httpHandlerFuncType(),
-		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest))}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(httpStatusCode(httpStatusCode200Ident), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
 	}
 }
 

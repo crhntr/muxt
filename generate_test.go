@@ -116,7 +116,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		projectID := request.PathValue("projectID")
 		taskID := request.PathValue("taskID")
 		data := receiver.F(ctx, response, request, projectID, taskID)
-		execute(response, request, true, "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)", http.StatusOK, data)
+		execute(response, request, false, "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)", http.StatusOK, data)
 	})
 }
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
