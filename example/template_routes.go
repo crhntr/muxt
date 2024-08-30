@@ -25,12 +25,14 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		id := idParsed
 		request.ParseForm()
 		var form EditRow
-		ValueParsed, err := strconv.Atoi(request.FormValue("count"))
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.Atoi(request.FormValue("count"))
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.Value = value
 		}
-		form.Value = ValueParsed
 		data := receiver.SubmitFormEditRow(id, form)
 		execute(response, request, true, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", http.StatusOK, data)
 	})

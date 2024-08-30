@@ -24,7 +24,7 @@ type EditRowPage struct {
 }
 
 type EditRow struct {
-	Value int `input:"count"`
+	Value int `name:"count"`
 }
 
 func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
