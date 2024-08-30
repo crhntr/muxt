@@ -27,7 +27,7 @@ var templates = template.Must(template.ParseFS(formHTML, "*"))
 
 type Form struct {
 	Count    []int `json:"count"`
-	Str string `input:"some-string" json:"str"`
+	Str string `name:"some-string" json:"str"`
 }
 
 type T struct {

@@ -677,7 +677,7 @@ package main
 type (
 	T struct{}
 	In struct{
-		field string ` + "`input:\"some-field\"`" + `
+		field string ` + "`name:\"some-field\"`" + `
 	}
 )
 

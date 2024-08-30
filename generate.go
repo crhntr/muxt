@@ -40,6 +40,8 @@ const (
 	DefaultRoutesFunctionName    = "routes"
 	DefaultOutputFileName        = "template_routes.go"
 	receiverInterfaceIdent       = "RoutesReceiver"
+
+	InputAttributeNameStructTag = "name"
 )
 
 func Generate(templateNames []TemplateName, _ *template.Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, output string, fileSet *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
@@ -339,7 +341,7 @@ func formInputName(field *ast.Field, name *ast.Ident) string {
 	if field.Tag != nil {
 		v, _ := strconv.Unquote(field.Tag.Value)
 		tags := reflect.StructTag(v)
-		n, hasInputTag := tags.Lookup("input")
+		n, hasInputTag := tags.Lookup(InputAttributeNameStructTag)
 		if hasInputTag {
 			return n
 		}
