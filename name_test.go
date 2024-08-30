@@ -25,46 +25,52 @@ func TestTemplateNames(t *testing.T) {
 
 func TestPattern_parseHandler(t *testing.T) {
 	for _, tt := range []struct {
-		Name   string
-		In     string
-		ExpErr string
+		Name     string
+		In       string
+		ExpErr   string
+		ExpMatch bool
 	}{
 		{
-			Name: "no arg post",
-			In:   "GET / F()",
+			Name:     "no arg post",
+			In:       "GET / F()",
+			ExpMatch: true,
 		},
 		{
-			Name: "no arg get",
-			In:   "POST / F()",
+			Name:     "no arg get",
+			In:       "POST / F()",
+			ExpMatch: true,
 		},
 		{
-			Name:   "int as handler",
-			In:     "POST / 1",
-			ExpErr: "expected call, got: 1",
+			Name:     "float64 as handler",
+			In:       "POST / 1.2",
+			ExpMatch: false,
 		},
 		{
-			Name:   "not an expression",
-			In:     "GET / package main",
-			ExpErr: "failed to parse handler expression: ",
+			Name:     "not an expression",
+			In:       "GET / package main",
+			ExpMatch: false,
 		},
 		{
-			Name:   "function literal",
-			In:     "GET / func() {} ()",
-			ExpErr: "expected function identifier",
+			Name:     "function literal",
+			In:       "GET / func() {} ()",
+			ExpMatch: true,
+			ExpErr:   "expected function identifier",
 		},
 		{
-			Name:   "call ellipsis",
-			In:     "GET /{fileName} F(fileName...)",
-			ExpErr: "unexpected ellipsis",
+			Name:     "call ellipsis",
+			In:       "GET /{fileName} F(fileName...)",
+			ExpMatch: true,
+			ExpErr:   "unexpected ellipsis",
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			_, err, ok := muxt.NewTemplateName(tt.In)
-			require.True(t, ok)
-			if tt.ExpErr != "" {
-				assert.ErrorContains(t, err, tt.ExpErr)
-			} else {
-				assert.NoError(t, err)
+			if assert.Equal(t, tt.ExpMatch, ok) {
+				if tt.ExpErr != "" {
+					assert.ErrorContains(t, err, tt.ExpErr)
+				} else {
+					assert.NoError(t, err)
+				}
 			}
 		})
 	}

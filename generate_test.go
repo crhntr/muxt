@@ -1462,9 +1462,6 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			if tt.ExpectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.ExpectedFile, out)
-				if t.Failed() {
-					t.Logf(out)
-				}
 			} else {
 				assert.ErrorContains(t, err, tt.ExpectedError)
 			}

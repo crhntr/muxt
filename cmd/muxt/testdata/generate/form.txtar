@@ -5,7 +5,7 @@ cat template_routes.go
 exec go test -cover
 
 -- template.gohtml --
-{{define "POST / Method(form)" }}<script>var _ = {{.}}</script>{{end}}
+{{define "POST / Method(form) 201" }}<script>var _ = {{.}}</script>{{end}}
 
 -- go.mod --
 module server
@@ -26,8 +26,8 @@ var formHTML embed.FS
 var templates = template.Must(template.ParseFS(formHTML, "*"))
 
 type Form struct {
-	Count    []int `json:"count"`
-	Str string `name:"some-string" json:"str"`
+	Count []int  `json:"count"`
+	Str   string `name:"some-string" json:"str"`
 }
 
 type T struct {
@@ -78,8 +78,8 @@ func Test(t *testing.T) {
 
 	res := rec.Result()
 
-	if res.StatusCode != http.StatusOK {
-		t.Error("expected OK")
+	if res.StatusCode != http.StatusCreated {
+		t.Error("exp", http.StatusText(http.StatusCreated), "got", http.StatusText(res.StatusCode))
 	}
 
 	body, err := io.ReadAll(res.Body)

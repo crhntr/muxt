@@ -244,6 +244,22 @@ func TestNewTemplateName(t *testing.T) {
 				assert.ErrorContains(t, err, `forbidden repeated path parameter names: found at least 2 path parameters with name "name"`)
 			},
 		},
+		{
+			Name:     "with status code",
+			In:       "POST / 202",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.StatusAccepted, pat.statusCode)
+			},
+		},
+		{
+			Name:     "with code",
+			In:       "POST /",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.StatusOK, pat.statusCode)
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)

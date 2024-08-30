@@ -137,7 +137,7 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 
 func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.FuncLit, []*ast.ImportSpec, error) {
 	if method == nil {
-		return def.httpRequestReceiverTemplateHandlerFunc(), nil, nil
+		return def.httpRequestReceiverTemplateHandlerFunc(def.statusCode), nil, nil
 	}
 	lit := &ast.FuncLit{
 		Type: httpHandlerFuncType(),
@@ -340,7 +340,7 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
-	lit.Body.List = append(lit.Body.List, def.executeCall(source.HTTPStatusCode(httpPackageIdent, http.StatusOK), ast.NewIdent(dataVarIdent), writeHeader))
+	lit.Body.List = append(lit.Body.List, def.executeCall(source.HTTPStatusCode(httpPackageIdent, def.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
 	return lit, imports, nil
 }
 
@@ -855,10 +855,10 @@ func (def TemplateName) executeCall(status, data ast.Expr, writeHeader bool) *as
 	}}
 }
 
-func (def TemplateName) httpRequestReceiverTemplateHandlerFunc() *ast.FuncLit {
+func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(statusCode int) *ast.FuncLit {
 	return &ast.FuncLit{
 		Type: httpHandlerFuncType(),
-		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(source.HTTPStatusCode(httpPackageIdent, http.StatusOK), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(source.HTTPStatusCode(httpPackageIdent, statusCode), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
 	}
 }
 

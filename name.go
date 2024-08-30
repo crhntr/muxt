@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/crhntr/muxt/internal/source"
@@ -40,6 +41,7 @@ type TemplateName struct {
 	name                         string
 	method, host, path, endpoint string
 	handler                      string
+	statusCode                   int
 
 	fun  *ast.Ident
 	call *ast.CallExpr
@@ -57,13 +59,21 @@ func newTemplate(in string) (TemplateName, error, bool) {
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
 	p := TemplateName{
-		name:     in,
-		method:   matches[templateNameMux.SubexpIndex("method")],
-		host:     matches[templateNameMux.SubexpIndex("host")],
-		path:     matches[templateNameMux.SubexpIndex("path")],
-		handler:  strings.TrimSpace(matches[templateNameMux.SubexpIndex("handler")]),
-		endpoint: matches[templateNameMux.SubexpIndex("endpoint")],
-		fileSet:  token.NewFileSet(),
+		name:       in,
+		method:     matches[templateNameMux.SubexpIndex("method")],
+		host:       matches[templateNameMux.SubexpIndex("host")],
+		path:       matches[templateNameMux.SubexpIndex("path")],
+		handler:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("handler")]),
+		endpoint:   matches[templateNameMux.SubexpIndex("endpoint")],
+		fileSet:    token.NewFileSet(),
+		statusCode: http.StatusOK,
+	}
+	if s := matches[templateNameMux.SubexpIndex("code")]; s != "" {
+		code, err := strconv.Atoi(strings.TrimSpace(s))
+		if err != nil {
+			return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+		}
+		p.statusCode = code
 	}
 
 	switch p.method {
@@ -86,7 +96,7 @@ func newTemplate(in string) (TemplateName, error, bool) {
 
 var (
 	pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<handler>.*)$`)
+	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<handler>\PL+.*\(.*\))?(?P<code>\s\d+)?$`)
 )
 
 func (def TemplateName) parsePathValueNames() ([]string, error) {
