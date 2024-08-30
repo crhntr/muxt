@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strconv"
@@ -41,7 +42,7 @@ const (
 	receiverInterfaceIdent       = "RoutesReceiver"
 )
 
-func Generate(templateNames []TemplateName, _ *template.Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent string, _ *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(templateNames []TemplateName, _ *template.Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, output string, fileSet *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
@@ -99,7 +100,11 @@ func Generate(templateNames []TemplateName, _ *template.Template, packageName, t
 	hasExecuteFunc := false
 	for _, fn := range source.IterateFunctions(templatesPackage) {
 		if fn.Recv == nil && fn.Name.Name == executeIdentName {
-			hasExecuteFunc = true
+			p := fileSet.Position(fn.Pos())
+			if filepath.Base(p.Filename) != output {
+				hasExecuteFunc = true
+			}
+			break
 		}
 	}
 	if !hasExecuteFunc {

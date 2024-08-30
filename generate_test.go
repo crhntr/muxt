@@ -205,7 +205,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 `,
 		},
 		{
-			Name:      "execute function defined",
+			Name:      "execute function defined in receiver file",
 			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
 			ReceiverPackage: `s
 -- receiver.go --
@@ -215,7 +215,7 @@ type T struct{}
 
 func (*T) F(username string) int { return 30 }
 
-func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	response.WriteHeader(code)
 	_ = templates.ExecuteTemplate(response, name, data)
 }
@@ -235,6 +235,52 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		data := receiver.F(username)
 		execute(response, request, true, "GET /age/{username} F(username)", http.StatusOK, data)
 	})
+}
+`,
+		},
+		{
+			Name:      "execute function already defined in output file",
+			Templates: ``,
+			ReceiverPackage: `
+-- receiver.go --
+package main
+
+-- template_routes.go --
+package main
+
+import(
+	"html/template"
+	"net/html"
+)
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {}
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
+	response.WriteHeader(code)
+	_ = templates.ExecuteTemplate(response, name, data)
+}
+`,
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"bytes"
+)
+
+type RoutesReceiver interface {
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+}
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if writeHeader {
+		response.WriteHeader(code)
+	}
+	_, _ = buf.WriteTo(response)
 }
 `,
 		},
@@ -1388,7 +1434,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			logs := log.New(io.Discard, "", 0)
 			set := token.NewFileSet()
 			goFiles := methodFuncTypeLoader(t, set, tt.ReceiverPackage)
-			out, err := muxt.Generate(templateNames, ts, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, set, goFiles, goFiles, logs)
+			out, err := muxt.Generate(templateNames, ts, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, muxt.DefaultOutputFileName, set, goFiles, goFiles, logs)
 			if tt.ExpectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.ExpectedFile, out)

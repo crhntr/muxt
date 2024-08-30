@@ -17,22 +17,22 @@ type RoutesReceiver interface {
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("PATCH /fruits/{fruit}", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+		fruitParsed, err := strconv.Atoi(request.PathValue("fruit"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := int(fruitParsed)
+		fruit := fruitParsed
 		data := receiver.SubmitFormEditRow(request, fruit)
 		execute(response, request, true, "PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /fruits/{fruit}/edit", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+		fruitParsed, err := strconv.Atoi(request.PathValue("fruit"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := int(fruitParsed)
+		fruit := fruitParsed
 		data := receiver.GetFormEditRow(fruit)
 		execute(response, request, true, "GET /fruits/{fruit}/edit GetFormEditRow(fruit)", http.StatusOK, data)
 	})
