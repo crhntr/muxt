@@ -69,11 +69,19 @@ func newTemplate(in string) (TemplateName, error, bool) {
 		statusCode: http.StatusOK,
 	}
 	if s := matches[templateNameMux.SubexpIndex("code")]; s != "" {
-		code, err := strconv.Atoi(strings.TrimSpace(s))
-		if err != nil {
-			return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+		if strings.HasPrefix(s, "http.Status") {
+			code, err := source.HTTPStatusName(s)
+			if err != nil {
+				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+			}
+			p.statusCode = code
+		} else {
+			code, err := strconv.Atoi(strings.TrimSpace(s))
+			if err != nil {
+				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+			}
+			p.statusCode = code
 		}
-		p.statusCode = code
 	}
 
 	switch p.method {
@@ -96,7 +104,7 @@ func newTemplate(in string) (TemplateName, error, bool) {
 
 var (
 	pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<code>\s\d+)?(?P<handler>\PL+.*\(.*\))?$`)
+	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(\s+(?P<code>(\d|http\.Status)\S+))?(?P<handler>.*)?$`)
 )
 
 func (def TemplateName) parsePathValueNames() ([]string, error) {

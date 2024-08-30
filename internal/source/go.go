@@ -212,6 +212,16 @@ var httpCodes = map[int]string{
 	http.StatusNetworkAuthenticationRequired: "StatusNetworkAuthenticationRequired",
 }
 
+func HTTPStatusName(name string) (int, error) {
+	n := strings.TrimPrefix(name, "http.")
+	for code, constName := range httpCodes {
+		if constName == n {
+			return code, nil
+		}
+	}
+	return 0, fmt.Errorf("unknown %s", name)
+}
+
 func HTTPStatusCode(pkg string, n int) ast.Expr {
 	ident, ok := httpCodes[n]
 	if !ok {

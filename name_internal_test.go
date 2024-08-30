@@ -268,6 +268,22 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.StatusAccepted, pat.statusCode)
 			},
 		},
+		{
+			Name:     "with status code constant",
+			In:       "POST / http.StatusTeapot F()",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.StatusTeapot, pat.statusCode)
+			},
+		},
+		{
+			Name:     "with status code constant",
+			In:       "POST / http.StatusBANANA F()",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "failed to parse status code: unknown http.StatusBANANA")
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)

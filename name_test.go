@@ -43,12 +43,19 @@ func TestPattern_parseHandler(t *testing.T) {
 		{
 			Name:     "float64 as handler",
 			In:       "POST / 1.2",
-			ExpMatch: false,
+			ExpMatch: true,
+			ExpErr:   `failed to parse status code: strconv.Atoi: parsing "1.2": invalid syntax`,
+		},
+		{
+			Name:     "status constant",
+			In:       "POST / http.StatusOK",
+			ExpMatch: true,
 		},
 		{
 			Name:     "not an expression",
 			In:       "GET / package main",
-			ExpMatch: false,
+			ExpMatch: true,
+			ExpErr:   "failed to parse handler expression: ",
 		},
 		{
 			Name:     "function literal",
