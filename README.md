@@ -1,7 +1,5 @@
 # Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
-This is especially helpful when you are writing HTMX.
-
 Given [main.go](#main_go) and [index.gohtml](#index_gohtml), muxt will generate [template_routes.go](#template_routes_go).
 
 ### <span id='index_gohtml'></span> index.gohtml
