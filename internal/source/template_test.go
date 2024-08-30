@@ -519,6 +519,33 @@ func TestTemplates(t *testing.T) {
 		})
 		require.ErrorContains(t, err, `expected string literal got wrong`)
 	})
+	t.Run("Parse template name from new", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/parse.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "templates", fileSet, goFiles, nil)
+		require.NoError(t, err)
+		assert.NotNil(t, ts.Lookup("GET /"))
+	})
+	t.Run("Parse string has multiple routes", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/parse.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		ts, err := source.Templates(dir, "multiple", fileSet, goFiles, nil)
+		require.NoError(t, err)
+		assert.NotNil(t, ts.Lookup("GET /"))
+		assert.NotNil(t, ts.Lookup("GET /{name}"))
+	})
+	t.Run("Parse is missing argument", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/parse.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "noArg", fileSet, goFiles, nil)
+		require.ErrorContains(t, err, "run template noArg failed at parse.go:12:35: expected exactly one string literal argument")
+	})
+	t.Run("Parse gets wrong argument type", func(t *testing.T) {
+		dir := createTestDir(t, filepath.FromSlash("testdata/parse.txtar"))
+		goFiles, fileSet := parseGo(t, dir)
+		_, err := source.Templates(dir, "wrongArg", fileSet, goFiles, nil)
+		require.ErrorContains(t, err, "run template wrongArg failed at parse.go:14:40: expected string literal got 500")
+	})
 }
 
 func createTestDir(t *testing.T, filename string) string {

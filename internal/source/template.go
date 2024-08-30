@@ -88,6 +88,15 @@ func evaluateTemplateSelector(ts *template.Template, expression ast.Expr, workin
 				return nil, err
 			}
 			return up.Delims(list[0], list[1]), nil
+		case "Parse":
+			if len(call.Args) != 1 {
+				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
+			}
+			sl, err := evaluateStringLiteralExpression(workingDirectory, fileSet, call.Args[0])
+			if err != nil {
+				return nil, err
+			}
+			return up.Parse(sl)
 		case "New":
 			if len(call.Args) != 1 {
 				return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("expected exactly one string literal argument"))
