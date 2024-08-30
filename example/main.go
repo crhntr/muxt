@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 //go:embed *.gohtml
@@ -24,16 +23,16 @@ type EditRowPage struct {
 	Error error
 }
 
-func (b *Backend) SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage {
+type EditRow struct {
+	Value int `input:"count"`
+}
+
+func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
 	if fruitID < 0 || fruitID >= len(b.data) {
 		return EditRowPage{Error: fmt.Errorf("fruit not found")}
 	}
-	count, err := strconv.Atoi(request.FormValue("count"))
-	if err != nil {
-		return EditRowPage{Error: err, Row: b.data[fruitID]}
-	}
 	row := b.data[fruitID]
-	row.Value = count
+	row.Value = form.Value
 	return EditRowPage{Error: nil, Row: row}
 }
 

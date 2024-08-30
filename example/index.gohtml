@@ -36,7 +36,7 @@
         {{template "index.gohtml" .}}
         {{- end -}}
 
-        {{- define "GET /fruits/{fruit}/edit GetFormEditRow(fruit)" -}}
+        {{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
         <tr>
             <td>{{ .Row.Name }}</td>
             <td>
@@ -49,9 +49,9 @@
         </tr>
         {{- end -}}
 
-        {{- define "PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)" }}
+        {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
             {{- if .Error -}}
-                {{template  "GET /fruits/{fruit}/edit GetFormEditRow(fruit)" .}}
+                {{template  "GET /fruits/{id}/edit GetFormEditRow(id)" .}}
             {{- else -}}
                 {{template "fruit row" .Row}}
             {{- end -}}

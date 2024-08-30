@@ -10,31 +10,39 @@ import (
 )
 
 type RoutesReceiver interface {
-	SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage
+	SubmitFormEditRow(fruitID int, form EditRow) EditRowPage
 	GetFormEditRow(fruitID int) EditRowPage
 	List(_ context.Context) []Row
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
-	mux.HandleFunc("PATCH /fruits/{fruit}", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.Atoi(request.PathValue("fruit"))
+	mux.HandleFunc("PATCH /fruits/{id}", func(response http.ResponseWriter, request *http.Request) {
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := fruitParsed
-		data := receiver.SubmitFormEditRow(request, fruit)
-		execute(response, request, true, "PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)", http.StatusOK, data)
+		id := idParsed
+		request.ParseForm()
+		var form EditRow
+		ValueParsed, err := strconv.Atoi(request.FormValue("count"))
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		form.Value = ValueParsed
+		data := receiver.SubmitFormEditRow(id, form)
+		execute(response, request, true, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", http.StatusOK, data)
 	})
-	mux.HandleFunc("GET /fruits/{fruit}/edit", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.Atoi(request.PathValue("fruit"))
+	mux.HandleFunc("GET /fruits/{id}/edit", func(response http.ResponseWriter, request *http.Request) {
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := fruitParsed
-		data := receiver.GetFormEditRow(fruit)
-		execute(response, request, true, "GET /fruits/{fruit}/edit GetFormEditRow(fruit)", http.StatusOK, data)
+		id := idParsed
+		data := receiver.GetFormEditRow(id)
+		execute(response, request, true, "GET /fruits/{id}/edit GetFormEditRow(id)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
 		execute(response, request, true, "GET /help", http.StatusOK, request)
