@@ -750,78 +750,102 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
 		request.ParseForm()
 		var form In
-		fieldIntParsed, err := strconv.Atoi(request.FormValue("fieldInt"))
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.Atoi(request.FormValue("fieldInt"))
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldInt = value
 		}
-		form.fieldInt = fieldIntParsed
-		fieldInt64Parsed, err := strconv.ParseInt(request.FormValue("fieldInt64"), 10, 64)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseInt(request.FormValue("fieldInt64"), 10, 64)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldInt64 = value
 		}
-		form.fieldInt64 = fieldInt64Parsed
-		fieldInt32Parsed, err := strconv.ParseInt(request.FormValue("fieldInt32"), 10, 32)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseInt(request.FormValue("fieldInt32"), 10, 32)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldInt32 = int32(value)
 		}
-		form.fieldInt32 = int32(fieldInt32Parsed)
-		fieldInt16Parsed, err := strconv.ParseInt(request.FormValue("fieldInt16"), 10, 16)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseInt(request.FormValue("fieldInt16"), 10, 16)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldInt16 = int16(value)
 		}
-		form.fieldInt16 = int16(fieldInt16Parsed)
-		fieldInt8Parsed, err := strconv.ParseInt(request.FormValue("fieldInt8"), 10, 8)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseInt(request.FormValue("fieldInt8"), 10, 8)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldInt8 = int8(value)
 		}
-		form.fieldInt8 = int8(fieldInt8Parsed)
-		fieldUintParsed, err := strconv.ParseUint(request.FormValue("fieldUint"), 10, 64)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint"), 10, 64)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint = uint(value)
 		}
-		form.fieldUint = uint(fieldUintParsed)
-		fieldUint64Parsed, err := strconv.ParseUint(request.FormValue("fieldUint64"), 10, 64)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint64"), 10, 64)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint64 = value
 		}
-		form.fieldUint64 = fieldUint64Parsed
-		fieldUint16Parsed, err := strconv.ParseUint(request.FormValue("fieldUint16"), 10, 16)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint16"), 10, 16)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint16 = uint16(value)
 		}
-		form.fieldUint16 = uint16(fieldUint16Parsed)
-		fieldUint32Parsed, err := strconv.ParseUint(request.FormValue("fieldUint32"), 10, 32)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint32"), 10, 32)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint32 = uint32(value)
 		}
-		form.fieldUint32 = uint32(fieldUint32Parsed)
-		fieldUint16Parsed, err := strconv.ParseUint(request.FormValue("fieldUint16"), 10, 16)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint16"), 10, 16)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint16 = uint16(value)
 		}
-		form.fieldUint16 = uint16(fieldUint16Parsed)
-		fieldUint8Parsed, err := strconv.ParseUint(request.FormValue("fieldUint8"), 10, 8)
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseUint(request.FormValue("fieldUint8"), 10, 8)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldUint8 = uint8(value)
 		}
-		form.fieldUint8 = uint8(fieldUint8Parsed)
-		fieldBoolParsed, err := strconv.ParseBool(request.FormValue("fieldBool"))
-		if err != nil {
-			http.Error(response, err.Error(), http.StatusBadRequest)
-			return
+		{
+			value, err := strconv.ParseBool(request.FormValue("fieldBool"))
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldBool = value
 		}
-		form.fieldBool = fieldBoolParsed
 		data := receiver.F(form)
 		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
 	})
@@ -955,100 +979,100 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		request.ParseForm()
 		var form In
 		for _, val := range request.Form["fieldInt"] {
-			fieldIntParsed, err := strconv.Atoi(val)
+			value, err := strconv.Atoi(val)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldInt = append(form.fieldInt, fieldIntParsed)
+			form.fieldInt = append(form.fieldInt, value)
 		}
 		for _, val := range request.Form["fieldInt64"] {
-			fieldInt64Parsed, err := strconv.ParseInt(val, 10, 64)
+			value, err := strconv.ParseInt(val, 10, 64)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldInt64 = append(form.fieldInt64, fieldInt64Parsed)
+			form.fieldInt64 = append(form.fieldInt64, value)
 		}
 		for _, val := range request.Form["fieldInt32"] {
-			fieldInt32Parsed, err := strconv.ParseInt(val, 10, 32)
+			value, err := strconv.ParseInt(val, 10, 32)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldInt32 = append(form.fieldInt32, int32(fieldInt32Parsed))
+			form.fieldInt32 = append(form.fieldInt32, int32(value))
 		}
 		for _, val := range request.Form["fieldInt16"] {
-			fieldInt16Parsed, err := strconv.ParseInt(val, 10, 16)
+			value, err := strconv.ParseInt(val, 10, 16)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldInt16 = append(form.fieldInt16, int16(fieldInt16Parsed))
+			form.fieldInt16 = append(form.fieldInt16, int16(value))
 		}
 		for _, val := range request.Form["fieldInt8"] {
-			fieldInt8Parsed, err := strconv.ParseInt(val, 10, 8)
+			value, err := strconv.ParseInt(val, 10, 8)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldInt8 = append(form.fieldInt8, int8(fieldInt8Parsed))
+			form.fieldInt8 = append(form.fieldInt8, int8(value))
 		}
 		for _, val := range request.Form["fieldUint"] {
-			fieldUintParsed, err := strconv.ParseUint(val, 10, 64)
+			value, err := strconv.ParseUint(val, 10, 64)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint = append(form.fieldUint, uint(fieldUintParsed))
+			form.fieldUint = append(form.fieldUint, uint(value))
 		}
 		for _, val := range request.Form["fieldUint64"] {
-			fieldUint64Parsed, err := strconv.ParseUint(val, 10, 64)
+			value, err := strconv.ParseUint(val, 10, 64)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint64 = append(form.fieldUint64, fieldUint64Parsed)
+			form.fieldUint64 = append(form.fieldUint64, value)
 		}
 		for _, val := range request.Form["fieldUint16"] {
-			fieldUint16Parsed, err := strconv.ParseUint(val, 10, 16)
+			value, err := strconv.ParseUint(val, 10, 16)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint16 = append(form.fieldUint16, uint16(fieldUint16Parsed))
+			form.fieldUint16 = append(form.fieldUint16, uint16(value))
 		}
 		for _, val := range request.Form["fieldUint32"] {
-			fieldUint32Parsed, err := strconv.ParseUint(val, 10, 32)
+			value, err := strconv.ParseUint(val, 10, 32)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint32 = append(form.fieldUint32, uint32(fieldUint32Parsed))
+			form.fieldUint32 = append(form.fieldUint32, uint32(value))
 		}
 		for _, val := range request.Form["fieldUint16"] {
-			fieldUint16Parsed, err := strconv.ParseUint(val, 10, 16)
+			value, err := strconv.ParseUint(val, 10, 16)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint16 = append(form.fieldUint16, uint16(fieldUint16Parsed))
+			form.fieldUint16 = append(form.fieldUint16, uint16(value))
 		}
 		for _, val := range request.Form["fieldUint8"] {
-			fieldUint8Parsed, err := strconv.ParseUint(val, 10, 8)
+			value, err := strconv.ParseUint(val, 10, 8)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldUint8 = append(form.fieldUint8, uint8(fieldUint8Parsed))
+			form.fieldUint8 = append(form.fieldUint8, uint8(value))
 		}
 		for _, val := range request.Form["fieldBool"] {
-			fieldBoolParsed, err := strconv.ParseBool(val)
+			value, err := strconv.ParseBool(val)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
-			form.fieldBool = append(form.fieldBool, fieldBoolParsed)
+			form.fieldBool = append(form.fieldBool, value)
 		}
 		data := receiver.F(form)
 		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
@@ -1438,6 +1462,9 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			if tt.ExpectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.ExpectedFile, out)
+				if t.Failed() {
+					t.Logf(out)
+				}
 			} else {
 				assert.ErrorContains(t, err, tt.ExpectedError)
 			}
