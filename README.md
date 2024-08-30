@@ -44,7 +44,7 @@ Given [main.go](#main_go) and [index.gohtml](#index_gohtml), muxt will generate 
         {{template "index.gohtml" .}}
         {{- end -}}
 
-        {{- define "GET /fruits/{fruit}/edit GetFormEditRow(fruit)" -}}
+        {{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
         <tr>
             <td>{{ .Row.Name }}</td>
             <td>
@@ -57,9 +57,9 @@ Given [main.go](#main_go) and [index.gohtml](#index_gohtml), muxt will generate 
         </tr>
         {{- end -}}
 
-        {{- define "PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)" }}
+        {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
         {{- if .Error -}}
-        {{template  "GET /fruits/{fruit}/edit GetFormEditRow(fruit)" .}}
+        {{template  "GET /fruits/{id}/edit GetFormEditRow(id)" .}}
         {{- else -}}
         {{template "fruit row" .Row}}
         {{- end -}}
@@ -98,7 +98,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 //go:embed *.gohtml
@@ -115,16 +114,16 @@ type EditRowPage struct {
 	Error error
 }
 
-func (b *Backend) SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage {
+type EditRow struct {
+	Value int `input:"count"`
+}
+
+func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
 	if fruitID < 0 || fruitID >= len(b.data) {
 		return EditRowPage{Error: fmt.Errorf("fruit not found")}
 	}
-	count, err := strconv.Atoi(request.FormValue("count"))
-	if err != nil {
-		return EditRowPage{Error: err, Row: b.data[fruitID]}
-	}
 	row := b.data[fruitID]
-	row.Value = count
+	row.Value = form.Value
 	return EditRowPage{Error: nil, Row: row}
 }
 
@@ -170,52 +169,62 @@ import (
 	"net/http"
 	"strconv"
 	"bytes"
-	"html/template"
 )
 
 type RoutesReceiver interface {
-	SubmitFormEditRow(request *http.Request, fruitID int) EditRowPage
+	SubmitFormEditRow(fruitID int, form EditRow) EditRowPage
 	GetFormEditRow(fruitID int) EditRowPage
 	List(_ context.Context) []Row
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
-	mux.HandleFunc("PATCH /fruits/{fruit}", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+	mux.HandleFunc("PATCH /fruits/{id}", func(response http.ResponseWriter, request *http.Request) {
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := int(fruitParsed)
-		data := receiver.SubmitFormEditRow(request, fruit)
-		execute(response, request, templates.Lookup("PATCH /fruits/{fruit} SubmitFormEditRow(request, fruit)"), http.StatusOK, data)
+		id := idParsed
+		request.ParseForm()
+		var form EditRow
+		ValueParsed, err := strconv.Atoi(request.FormValue("count"))
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		form.Value = ValueParsed
+		data := receiver.SubmitFormEditRow(id, form)
+		execute(response, request, true, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", http.StatusOK, data)
 	})
-	mux.HandleFunc("GET /fruits/{fruit}/edit", func(response http.ResponseWriter, request *http.Request) {
-		fruitParsed, err := strconv.ParseInt(request.PathValue("fruit"), 10, 64)
+	mux.HandleFunc("GET /fruits/{id}/edit", func(response http.ResponseWriter, request *http.Request) {
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
-		fruit := int(fruitParsed)
-		data := receiver.GetFormEditRow(fruit)
-		execute(response, request, templates.Lookup("GET /fruits/{fruit}/edit GetFormEditRow(fruit)"), http.StatusOK, data)
+		id := idParsed
+		data := receiver.GetFormEditRow(id)
+		execute(response, request, true, "GET /fruits/{id}/edit GetFormEditRow(id)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
-		execute(response, request, templates.Lookup("GET /help"), http.StatusOK, request)
+		execute(response, request, true, "GET /help", http.StatusOK, request)
 	})
 	mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		data := receiver.List(ctx)
-		execute(response, request, templates.Lookup("GET /{$} List(ctx)"), http.StatusOK, data)
+		execute(response, request, true, "GET /{$} List(ctx)", http.StatusOK, data)
 	})
 }
-func execute(response http.ResponseWriter, request *http.Request, t *template.Template, code int, data any) {
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
-	if err := t.Execute(buf, data); err != nil {
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.WriteHeader(code)
+	if writeHeader {
+		response.WriteHeader(code)
+	}
 	_, _ = buf.WriteTo(response)
 }
+
 ```
