@@ -253,11 +253,19 @@ func TestNewTemplateName(t *testing.T) {
 			},
 		},
 		{
-			Name:     "with code",
+			Name:     "without status code",
 			In:       "POST /",
 			ExpMatch: true,
 			TemplateName: func(t *testing.T, pat TemplateName) {
 				assert.Equal(t, http.StatusOK, pat.statusCode)
+			},
+		},
+		{
+			Name:     "with status code and handler",
+			In:       "POST / 202 F()",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat TemplateName) {
+				assert.Equal(t, http.StatusAccepted, pat.statusCode)
 			},
 		},
 	} {

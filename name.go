@@ -96,7 +96,7 @@ func newTemplate(in string) (TemplateName, error, bool) {
 
 var (
 	pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<handler>\PL+.*\(.*\))?(?P<code>\s\d+)?$`)
+	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(?P<code>\s\d+)?(?P<handler>\PL+.*\(.*\))?$`)
 )
 
 func (def TemplateName) parsePathValueNames() ([]string, error) {

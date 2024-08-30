@@ -5,7 +5,7 @@ cat template_routes.go
 exec go test -cover
 
 -- template.gohtml --
-{{define "POST / Method(form) 201" }}<script>var _ = {{.}}</script>{{end}}
+{{define "POST / 201 Method(form)" }}<script>var _ = {{.}}</script>{{end}}
 
 -- go.mod --
 module server
