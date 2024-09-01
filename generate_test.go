@@ -55,6 +55,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		return
 	}
 	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.WriteHeader(code)
 	}
 	_, _ = buf.WriteTo(response)
@@ -88,6 +89,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		return
 	}
 	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.WriteHeader(code)
 	}
 	_, _ = buf.WriteTo(response)
@@ -125,6 +127,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		return
 	}
 	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.WriteHeader(code)
 	}
 	_, _ = buf.WriteTo(response)
@@ -168,6 +171,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		return
 	}
 	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.WriteHeader(code)
 	}
 	_, _ = buf.WriteTo(response)
@@ -278,6 +282,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		return
 	}
 	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.WriteHeader(code)
 	}
 	_, _ = buf.WriteTo(response)

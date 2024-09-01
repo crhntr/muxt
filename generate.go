@@ -947,17 +947,15 @@ func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
 				&ast.IfStmt{
 					Cond: ast.NewIdent(writeHeaderIdent),
 					Body: &ast.BlockStmt{List: []ast.Stmt{
-						&ast.ExprStmt{
-							X: &ast.CallExpr{
-								Fun: &ast.SelectorExpr{
-									X:   ast.NewIdent(httpResponseField().Names[0].Name),
-									Sel: ast.NewIdent("WriteHeader"),
-								},
-								Args: []ast.Expr{ast.NewIdent("code")},
-							},
-						},
-					},
-					}},
+						&ast.ExprStmt{X: &ast.CallExpr{
+							Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+							Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("content-type")}, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("text/html; charset=utf-8")}},
+						}},
+						&ast.ExprStmt{X: &ast.CallExpr{
+							Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField().Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
+							Args: []ast.Expr{ast.NewIdent("code")},
+						}},
+					}}},
 				&ast.AssignStmt{
 					Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
 					Tok: token.ASSIGN,
