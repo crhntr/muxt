@@ -139,7 +139,7 @@ type Row struct {
 
 func (b *Backend) List(_ context.Context) []Row { return b.data }
 
-//go:generate go run ../cmd/muxt generate --receiver-static-type Backend
+//go:generate muxt generate --receiver-static-type Backend
 
 func main() {
 	backend := &Backend{
