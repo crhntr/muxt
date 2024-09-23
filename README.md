@@ -1,5 +1,8 @@
 # Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
+Sometimes as a developer it is nice to stay in an HTML headspace.
+This tool helps you do that and generates helpful test seams.
+
 Given [main.go](#main_go) and [index.gohtml](#index_gohtml), muxt will generate [template_routes.go](#template_routes_go).
 
 ### <span id='index_gohtml'></span> index.gohtml
