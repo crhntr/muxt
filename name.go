@@ -38,10 +38,17 @@ func TemplateNames(ts *template.Template) ([]TemplateName, error) {
 }
 
 type TemplateName struct {
-	name                         string
+	// name has the full unaltered template name
+	name string
+
+	// method, host, path, and endpoint are parsed sub-parts of the string passed to mux.Handle
 	method, host, path, endpoint string
-	handler                      string
-	statusCode                   int
+
+	// handler is used to generate the method interface
+	handler string
+
+	// statusCode is the status code to use in the response header
+	statusCode int
 
 	fun  *ast.Ident
 	call *ast.CallExpr

@@ -673,6 +673,57 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 `,
 		},
 		{
+			Name:      "form html has a cromulent min attribute",
+			Templates: `{{define "GET / F(form)"}}<input name="field" min="13">{{end}}`,
+			ReceiverPackage: `
+-- in.go --
+package main
+
+type (
+	T struct{}
+	In struct{
+		field int
+	}
+)
+
+func (T) F(form In) int { return 0 }
+
+` + executeGo,
+			Receiver: "T",
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"strconv"
+)
+
+type RoutesReceiver interface {
+	F(form In) int
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
+		request.ParseForm()
+		var form In
+		{
+			value, err := strconv.Atoi(request.FormValue("field"))
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if value < 13 {
+				http.Error(response, "field must not be less than 13", http.StatusBadRequest)
+				return
+			}
+			form.field = value
+		}
+		data := receiver.F(form)
+		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
+	})
+}
+`,
+		},
+		{
 			Name:      "F is defined and form field has an input tag",
 			Templates: `{{define "GET / F(form)"}}Hello, {{.}}!{{end}}`,
 			ReceiverPackage: `
