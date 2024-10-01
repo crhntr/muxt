@@ -10,9 +10,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/crhntr/muxt/internal/source"
 )
@@ -26,13 +24,11 @@ const (
 
 	requestPathValue         = "PathValue"
 	httpRequestContextMethod = "Context"
-	httpPackageIdent         = "http"
 	httpResponseWriterIdent  = "ResponseWriter"
 	httpServeMuxIdent        = "ServeMux"
 	httpRequestIdent         = "Request"
 	httpHandleFuncIdent      = "HandleFunc"
 
-	contextPackageIdent     = "context"
 	contextContextTypeIdent = "Context"
 
 	defaultPackageName           = "main"
@@ -51,16 +47,17 @@ func Generate(templateNames []TemplateName, _ *template.Template, packageName, t
 	file := &ast.File{
 		Name: ast.NewIdent(packageName),
 	}
+	importsDecl := &ast.GenDecl{
+		Tok: token.IMPORT,
+	}
+	imports := source.NewImports(importsDecl)
 	routes := &ast.FuncDecl{
 		Name: ast.NewIdent(routesFunctionName),
-		Type: routesFuncType(ast.NewIdent(receiverInterfaceIdent)),
+		Type: routesFuncType(imports, ast.NewIdent(receiverInterfaceIdent)),
 		Body: &ast.BlockStmt{},
 	}
 	receiverInterface := &ast.InterfaceType{
 		Methods: &ast.FieldList{},
-	}
-	imports := []*ast.ImportSpec{
-		importSpec("net/" + httpPackageIdent),
 	}
 	for _, name := range templateNames {
 		var method *ast.FuncType
@@ -73,27 +70,23 @@ func Generate(templateNames []TemplateName, _ *template.Template, packageName, t
 				break
 			}
 			if method == nil {
-				me, im := name.funcType()
-				method = me
-				imports = append(imports, im...)
+				method = name.funcType(imports)
 			}
 			receiverInterface.Methods.List = append(receiverInterface.Methods.List, &ast.Field{
 				Names: []*ast.Ident{ast.NewIdent(name.fun.Name)},
 				Type:  method,
 			})
 		}
-		handlerFunc, methodImports, err := name.funcLit(method, receiverPackage)
+		handlerFunc, err := name.funcLit(imports, method, receiverPackage)
 		if err != nil {
 			return "", err
 		}
-		imports = sortImports(append(imports, methodImports...))
+
 		routes.Body.List = append(routes.Body.List, name.callHandleFunc(handlerFunc))
 		log.Printf("%s has route for %s", routesFunctionName, name.String())
 	}
-	importGen := &ast.GenDecl{
-		Tok: token.IMPORT,
-	}
-	file.Decls = append(file.Decls, importGen)
+	imports.SortImports()
+	file.Decls = append(file.Decls, importsDecl)
 	file.Decls = append(file.Decls, &ast.GenDecl{
 		Tok:   token.TYPE,
 		Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
@@ -110,11 +103,7 @@ func Generate(templateNames []TemplateName, _ *template.Template, packageName, t
 		}
 	}
 	if !hasExecuteFunc {
-		file.Decls = append(file.Decls, executeFuncDecl(templatesVariableName))
-		imports = append(imports, importSpec("bytes"))
-	}
-	for _, imp := range imports {
-		importGen.Specs = append(importGen.Specs, imp)
+		file.Decls = append(file.Decls, executeFuncDecl(imports, templatesVariableName))
 	}
 	return source.Format(file), nil
 }
@@ -135,32 +124,29 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 	}}
 }
 
-func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.FuncLit, []*ast.ImportSpec, error) {
+func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, files []*ast.File) (*ast.FuncLit, error) {
 	if method == nil {
-		return def.httpRequestReceiverTemplateHandlerFunc(def.statusCode), nil, nil
+		return def.httpRequestReceiverTemplateHandlerFunc(imports, def.statusCode), nil
 	}
 	lit := &ast.FuncLit{
-		Type: httpHandlerFuncType(),
+		Type: httpHandlerFuncType(imports),
 		Body: &ast.BlockStmt{},
 	}
 	call := &ast.CallExpr{Fun: callReceiverMethod(def.fun)}
 	if method.Params.NumFields() != len(def.call.Args) {
-		return nil, nil, errWrongNumberOfArguments(def, method)
+		return nil, errWrongNumberOfArguments(def, method)
 	}
 	var formStruct *ast.StructType
 	for pi, pt := range fieldListTypes(method.Params) {
-		if err := checkArgument(method, pi, def.call.Args[pi], pt, files); err != nil {
-			return nil, nil, err
+		if err := checkArgument(imports, method, pi, def.call.Args[pi], pt, files); err != nil {
+			return nil, err
 		}
 		if s, ok := findFormStruct(pt, files); ok {
 			formStruct = s
 		}
 	}
 	const errVarIdent = "err"
-	var (
-		imports     []*ast.ImportSpec
-		writeHeader = true
-	)
+	writeHeader := true
 	for i, a := range def.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
@@ -169,11 +155,11 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 			fallthrough
 		case TemplateNameScopeIdentifierHTTPRequest:
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
-			imports = append(imports, importSpec("net/http"))
+			imports.AddNetHTTP()
 		case TemplateNameScopeIdentifierContext:
 			lit.Body.List = append(lit.Body.List, contextAssignment())
 			call.Args = append(call.Args, ast.NewIdent(TemplateNameScopeIdentifierContext))
-			imports = append(imports, importSpec("context"))
+			imports.AddContext()
 		case TemplateNameScopeIdentifierForm:
 			_, tp, _ := source.FieldIndex(method.Params.List, i)
 			lit.Body.List = append(lit.Body.List,
@@ -184,7 +170,7 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 					},
 					Args: []ast.Expr{},
 				}},
-				formDeclaration(arg.Name, tp))
+				formDeclaration(imports, arg.Name, tp))
 			if formStruct != nil {
 				for _, field := range formStruct.Fields.List {
 					for _, name := range field.Names {
@@ -194,16 +180,16 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 						}
 						errCheck := source.ErrorCheckReturn(errVarIdent, &ast.ExprStmt{X: &ast.CallExpr{
 							Fun: &ast.SelectorExpr{
-								X:   ast.NewIdent(httpPackageIdent),
+								X:   ast.NewIdent(imports.AddNetHTTP()),
 								Sel: ast.NewIdent("Error"),
 							},
 							Args: []ast.Expr{
-								ast.NewIdent(httpResponseField().Names[0].Name),
+								ast.NewIdent(httpResponseField(imports).Names[0].Name),
 								&ast.CallExpr{
 									Fun:  &ast.SelectorExpr{X: ast.NewIdent("err"), Sel: ast.NewIdent("Error")},
 									Args: []ast.Expr{},
 								},
-								source.HTTPStatusCode(httpPackageIdent, http.StatusBadRequest),
+								source.HTTPStatusCode(imports, http.StatusBadRequest),
 							},
 						}}, &ast.ReturnStmt{})
 
@@ -214,9 +200,9 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 								X:   ast.NewIdent(arg.Name),
 								Sel: ast.NewIdent(name.Name),
 							})
-							statements, parseImports, err := parseStringStatements(parsedVariableName, errVarIdent, ast.NewIdent(valVar), fieldType.Elt, errCheck, assignment)
+							statements, err := parseStringStatements(imports, parsedVariableName, errVarIdent, ast.NewIdent(valVar), fieldType.Elt, errCheck, assignment)
 							if err != nil {
-								return nil, nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
+								return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
 
 							forLoop := &ast.RangeStmt{
@@ -239,7 +225,6 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 							}
 
 							lit.Body.List = append(lit.Body.List, forLoop)
-							imports = append(imports, parseImports...)
 						} else {
 							assignment := singleAssignment(token.ASSIGN, fieldExpr)
 							str := &ast.CallExpr{
@@ -254,9 +239,9 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 									},
 								},
 							}
-							statements, parseImports, err := parseStringStatements(parsedVariableName, errVarIdent, str, field.Type, errCheck, assignment)
+							statements, err := parseStringStatements(imports, parsedVariableName, errVarIdent, str, field.Type, errCheck, assignment)
 							if err != nil {
-								return nil, nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
+								return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
 
 							if len(statements) > 1 {
@@ -266,27 +251,26 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 							}
 
 							lit.Body.List = append(lit.Body.List, statements...)
-							imports = append(imports, parseImports...)
 						}
 					}
 				}
 			} else {
-				imports = append(imports, importSpec("net/url"))
+				imports.Add("", "net/url")
 			}
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 		default:
 			errCheck := source.ErrorCheckReturn(errVarIdent, &ast.ExprStmt{X: &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(httpPackageIdent),
+					X:   ast.NewIdent(imports.AddNetHTTP()),
 					Sel: ast.NewIdent("Error"),
 				},
 				Args: []ast.Expr{
-					ast.NewIdent(httpResponseField().Names[0].Name),
+					ast.NewIdent(httpResponseField(imports).Names[0].Name),
 					&ast.CallExpr{
 						Fun:  &ast.SelectorExpr{X: ast.NewIdent("err"), Sel: ast.NewIdent("Error")},
 						Args: []ast.Expr{},
 					},
-					source.HTTPStatusCode(httpPackageIdent, http.StatusBadRequest),
+					source.HTTPStatusCode(imports, http.StatusBadRequest),
 				},
 			}}, &ast.ReturnStmt{})
 			src := &ast.CallExpr{
@@ -296,13 +280,12 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 				},
 				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(arg.Name)}},
 			}
-			statements, parseImports, err := httpPathValueAssignment(method, i, arg, errVarIdent, src, token.DEFINE, errCheck)
+			statements, err := httpPathValueAssignment(imports, method, i, arg, errVarIdent, src, token.DEFINE, errCheck)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			lit.Body.List = append(lit.Body.List, statements...)
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
-			imports = append(imports, parseImports...)
 		}
 	}
 
@@ -318,11 +301,11 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 					List: []ast.Stmt{
 						&ast.ExprStmt{X: &ast.CallExpr{
 							Fun: &ast.SelectorExpr{
-								X:   ast.NewIdent(httpPackageIdent),
+								X:   ast.NewIdent(imports.AddNetHTTP()),
 								Sel: ast.NewIdent("Error"),
 							},
 							Args: []ast.Expr{
-								ast.NewIdent(httpResponseField().Names[0].Name),
+								ast.NewIdent(httpResponseField(imports).Names[0].Name),
 								&ast.CallExpr{
 									Fun: &ast.SelectorExpr{
 										X:   ast.NewIdent("err"),
@@ -330,7 +313,7 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 									},
 									Args: []ast.Expr{},
 								},
-								source.HTTPStatusCode(httpPackageIdent, http.StatusInternalServerError),
+								source.HTTPStatusCode(imports, http.StatusInternalServerError),
 							},
 						}},
 						&ast.ReturnStmt{},
@@ -341,8 +324,8 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
-	lit.Body.List = append(lit.Body.List, def.executeCall(source.HTTPStatusCode(httpPackageIdent, def.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
-	return lit, imports, nil
+	lit.Body.List = append(lit.Body.List, def.executeCall(source.HTTPStatusCode(imports, def.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
+	return lit, nil
 }
 
 func formInputName(field *ast.Field, name *ast.Ident) string {
@@ -357,35 +340,27 @@ func formInputName(field *ast.Field, name *ast.Ident) string {
 	return name.Name
 }
 
-func (def TemplateName) funcType() (*ast.FuncType, []*ast.ImportSpec) {
+func (def TemplateName) funcType(imports *source.Imports) *ast.FuncType {
 	method := &ast.FuncType{
 		Params:  &ast.FieldList{},
 		Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("any")}}},
 	}
-	var imports []*ast.ImportSpec
 	for _, a := range def.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
 		case TemplateNameScopeIdentifierHTTPRequest:
-			method.Params.List = append(method.Params.List, httpRequestField())
-			imports = append(imports, importSpec("net/"+httpPackageIdent))
+			method.Params.List = append(method.Params.List, httpRequestField(imports))
 		case TemplateNameScopeIdentifierHTTPResponse:
-			method.Params.List = append(method.Params.List, httpResponseField())
-			imports = append(imports, importSpec("net/"+httpPackageIdent))
+			method.Params.List = append(method.Params.List, httpResponseField(imports))
 		case TemplateNameScopeIdentifierContext:
-			method.Params.List = append(method.Params.List, contextContextField())
-			imports = append(imports, importSpec(contextPackageIdent))
+			method.Params.List = append(method.Params.List, contextContextField(imports))
 		case TemplateNameScopeIdentifierForm:
 			method.Params.List = append(method.Params.List, urlValuesField(arg.Name))
 		default:
 			method.Params.List = append(method.Params.List, pathValueField(arg.Name))
 		}
 	}
-	return method, imports
-}
-
-func importSpec(path string) *ast.ImportSpec {
-	return &ast.ImportSpec{Path: &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(path)}}
+	return method
 }
 
 func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
@@ -413,23 +388,23 @@ func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
 	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.handler, len(def.call.Args))
 }
 
-func checkArgument(method *ast.FuncType, argIndex int, exp ast.Expr, argType ast.Expr, files []*ast.File) error {
+func checkArgument(imports *source.Imports, method *ast.FuncType, argIndex int, exp ast.Expr, argType ast.Expr, files []*ast.File) error {
 	// TODO: rewrite to "cannot use 32 (untyped int constant) as string value in argument to strings.ToUpper"
 	arg := exp.(*ast.Ident)
 	switch arg.Name {
 	case TemplateNameScopeIdentifierHTTPRequest:
-		if !matchSelectorIdents(argType, httpPackageIdent, httpRequestIdent, true) {
-			return fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(argType), arg.Name, httpPackageIdent, httpRequestIdent)
+		if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpRequestIdent, true) {
+			return fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpRequestIdent)
 		}
 		return nil
 	case TemplateNameScopeIdentifierHTTPResponse:
-		if !matchSelectorIdents(argType, httpPackageIdent, httpResponseWriterIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, httpPackageIdent, httpResponseWriterIdent)
+		if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpResponseWriterIdent, false) {
+			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpResponseWriterIdent)
 		}
 		return nil
 	case TemplateNameScopeIdentifierContext:
-		if !matchSelectorIdents(argType, contextPackageIdent, contextContextTypeIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, contextPackageIdent, contextContextTypeIdent)
+		if !matchSelectorIdents(argType, imports.AddContext(), contextContextTypeIdent, false) {
+			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddContext(), contextContextTypeIdent)
 		}
 		return nil
 	case TemplateNameScopeIdentifierForm:
@@ -501,25 +476,25 @@ func pathValueField(name string) *ast.Field {
 	}
 }
 
-func contextContextField() *ast.Field {
+func contextContextField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierContext)},
-		Type:  contextContextType(),
+		Type:  contextContextType(imports.AddContext()),
 	}
 }
 
-func httpResponseField() *ast.Field {
+func httpResponseField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
-		Type:  &ast.SelectorExpr{X: ast.NewIdent(httpPackageIdent), Sel: ast.NewIdent(httpResponseWriterIdent)},
+		Type:  &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpResponseWriterIdent)},
 	}
 }
 
-func routesFuncType(receiverType ast.Expr) *ast.FuncType {
+func routesFuncType(imports *source.Imports, receiverType ast.Expr) *ast.FuncType {
 	return &ast.FuncType{Params: &ast.FieldList{
 		List: []*ast.Field{
 			{Names: []*ast.Ident{ast.NewIdent(muxVarIdent)}, Type: &ast.StarExpr{
-				X: &ast.SelectorExpr{X: ast.NewIdent(httpPackageIdent), Sel: ast.NewIdent(httpServeMuxIdent)},
+				X: &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpServeMuxIdent)},
 			}},
 			{Names: []*ast.Ident{ast.NewIdent(receiverIdent)}, Type: receiverType},
 		},
@@ -533,22 +508,22 @@ func urlValuesField(ident string) *ast.Field {
 	}
 }
 
-func httpRequestField() *ast.Field {
+func httpRequestField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
-		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(httpPackageIdent), Sel: ast.NewIdent(httpRequestIdent)}},
+		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpRequestIdent)}},
 	}
 }
 
-func httpHandlerFuncType() *ast.FuncType {
-	return &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{httpResponseField(), httpRequestField()}}}
+func httpHandlerFuncType(imports *source.Imports) *ast.FuncType {
+	return &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{httpResponseField(imports), httpRequestField(imports)}}}
 }
 
 func callReceiverMethod(fun *ast.Ident) *ast.SelectorExpr {
 	return &ast.SelectorExpr{X: ast.NewIdent(receiverIdent), Sel: ast.NewIdent(fun.Name)}
 }
 
-func contextContextType() *ast.SelectorExpr {
+func contextContextType(contextPackageIdent string) *ast.SelectorExpr {
 	return &ast.SelectorExpr{X: ast.NewIdent(contextPackageIdent), Sel: ast.NewIdent(contextContextTypeIdent)}
 }
 
@@ -565,7 +540,7 @@ func contextAssignment() *ast.AssignStmt {
 	}
 }
 
-func formDeclaration(ident string, typeExp ast.Expr) *ast.DeclStmt {
+func formDeclaration(imports *source.Imports, ident string, typeExp ast.Expr) *ast.DeclStmt {
 	if matchSelectorIdents(typeExp, "url", "Values", false) {
 		return &ast.DeclStmt{
 			Decl: &ast.GenDecl{
@@ -575,7 +550,7 @@ func formDeclaration(ident string, typeExp ast.Expr) *ast.DeclStmt {
 						Names: []*ast.Ident{ast.NewIdent(ident)},
 						Type:  typeExp,
 						Values: []ast.Expr{
-							&ast.SelectorExpr{X: ast.NewIdent(httpResponseField().Names[0].Name), Sel: ast.NewIdent("Form")},
+							&ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("Form")},
 						},
 					},
 				},
@@ -596,15 +571,15 @@ func formDeclaration(ident string, typeExp ast.Expr) *ast.DeclStmt {
 	}
 }
 
-func httpPathValueAssignment(method *ast.FuncType, i int, arg *ast.Ident, errVarIdent string, str ast.Expr, assignTok token.Token, errCheck *ast.IfStmt) ([]ast.Stmt, []*ast.ImportSpec, error) {
+func httpPathValueAssignment(imports *source.Imports, method *ast.FuncType, i int, arg *ast.Ident, errVarIdent string, str ast.Expr, assignTok token.Token, errCheck *ast.IfStmt) ([]ast.Stmt, error) {
 	for typeIndex, typeExp := range source.IterateFieldTypes(method.Params.List) {
 		if typeIndex != i {
 			continue
 		}
 		assignment := singleAssignment(assignTok, ast.NewIdent(arg.Name))
-		return parseStringStatements(arg.Name+"Parsed", errVarIdent, str, typeExp, errCheck, assignment)
+		return parseStringStatements(imports, arg.Name+"Parsed", errVarIdent, str, typeExp, errCheck, assignment)
 	}
-	return nil, nil, fmt.Errorf("type for argumement %d not found", i)
+	return nil, fmt.Errorf("type for argumement %d not found", i)
 }
 
 func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr) ast.Stmt {
@@ -630,22 +605,22 @@ func appendAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr, errCheck *ast.IfStmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, []*ast.ImportSpec, error) {
+func parseStringStatements(imports *source.Imports, tmp string, errVarIdent string, str, typeExp ast.Expr, errCheck *ast.IfStmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
 	paramTypeIdent, ok := typeExp.(*ast.Ident)
 	if !ok {
-		return nil, nil, fmt.Errorf("unsupported type: %s", source.Format(typeExp))
+		return nil, fmt.Errorf("unsupported type: %s", source.Format(typeExp))
 	}
 	base10 := source.Int(10)
 	switch paramTypeIdent.Name {
 	default:
-		return nil, nil, fmt.Errorf("method param type %s not supported", source.Format(typeExp))
+		return nil, fmt.Errorf("method param type %s not supported", source.Format(typeExp))
 	case "bool":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseBool"),
 				},
 				Args: []ast.Expr{str},
@@ -653,15 +628,14 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "int":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("Atoi"),
 				},
 				Args: []ast.Expr{str},
@@ -669,15 +643,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "int16":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseInt"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(16)},
@@ -688,15 +662,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Fun:  ast.NewIdent(paramTypeIdent.Name),
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "int32":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseInt"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(32)},
@@ -707,15 +681,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Fun:  ast.NewIdent(paramTypeIdent.Name),
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "int8":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseInt"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(8)},
@@ -726,15 +700,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Fun:  ast.NewIdent(paramTypeIdent.Name),
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "int64":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseInt"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(64)},
@@ -742,15 +716,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "uint":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseUint"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(64)},
@@ -761,15 +735,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Fun:  ast.NewIdent(paramTypeIdent.Name),
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "uint16":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseUint"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(16)},
@@ -780,15 +754,15 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Fun:  ast.NewIdent(paramTypeIdent.Name),
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
-
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		imports.Add("", "strconv")
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "uint32":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseUint"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(32)},
@@ -800,14 +774,14 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
 
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "uint64":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseUint"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(64)},
@@ -816,14 +790,14 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 
 		assign := assignment(ast.NewIdent(tmp))
 
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "uint8":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{&ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("strconv"),
+					X:   ast.NewIdent(imports.Add("", "strconv")),
 					Sel: ast.NewIdent("ParseUint"),
 				},
 				Args: []ast.Expr{str, base10, source.Int(8)},
@@ -835,10 +809,10 @@ func parseStringStatements(tmp string, errVarIdent string, str, typeExp ast.Expr
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
 
-		return []ast.Stmt{parse, errCheck, assign}, []*ast.ImportSpec{importSpec("strconv")}, nil
+		return []ast.Stmt{parse, errCheck, assign}, nil
 	case "string":
 		assign := assignment(str)
-		return []ast.Stmt{assign}, nil, nil
+		return []ast.Stmt{assign}, nil
 	}
 }
 
@@ -856,10 +830,10 @@ func (def TemplateName) executeCall(status, data ast.Expr, writeHeader bool) *as
 	}}
 }
 
-func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(statusCode int) *ast.FuncLit {
+func (def TemplateName) httpRequestReceiverTemplateHandlerFunc(imports *source.Imports, statusCode int) *ast.FuncLit {
 	return &ast.FuncLit{
-		Type: httpHandlerFuncType(),
-		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(source.HTTPStatusCode(httpPackageIdent, statusCode), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
+		Type: httpHandlerFuncType(imports),
+		Body: &ast.BlockStmt{List: []ast.Stmt{def.executeCall(source.HTTPStatusCode(imports, statusCode), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
 	}
 }
 
@@ -876,15 +850,16 @@ func (def TemplateName) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent 
 	return ok && ident.Name == receiverTypeIdent
 }
 
-func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
+func executeFuncDecl(imports *source.Imports, templatesVariableIdent string) *ast.FuncDecl {
 	const writeHeaderIdent = "writeHeader"
+	imports.Add("", "bytes")
 	return &ast.FuncDecl{
 		Name: ast.NewIdent(executeIdentName),
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{
-					httpResponseField(),
-					httpRequestField(),
+					httpResponseField(imports),
+					httpRequestField(imports),
 					{Names: []*ast.Ident{ast.NewIdent(writeHeaderIdent)}, Type: ast.NewIdent("bool")},
 					{Names: []*ast.Ident{ast.NewIdent("name")}, Type: ast.NewIdent("string")},
 					{Names: []*ast.Ident{ast.NewIdent("code")}, Type: ast.NewIdent("int")},
@@ -926,11 +901,11 @@ func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
 						List: []ast.Stmt{
 							&ast.ExprStmt{X: &ast.CallExpr{
 								Fun: &ast.SelectorExpr{
-									X:   ast.NewIdent(httpPackageIdent),
+									X:   ast.NewIdent(imports.AddNetHTTP()),
 									Sel: ast.NewIdent("Error"),
 								},
 								Args: []ast.Expr{
-									ast.NewIdent(httpResponseField().Names[0].Name),
+									ast.NewIdent(httpResponseField(imports).Names[0].Name),
 									&ast.CallExpr{
 										Fun: &ast.SelectorExpr{
 											X:   ast.NewIdent("err"),
@@ -938,7 +913,7 @@ func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
 										},
 										Args: []ast.Expr{},
 									},
-									source.HTTPStatusCode(httpPackageIdent, http.StatusInternalServerError),
+									source.HTTPStatusCode(imports, http.StatusInternalServerError),
 								},
 							}},
 							&ast.ReturnStmt{},
@@ -953,7 +928,7 @@ func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
 							Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("content-type")}, &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote("text/html; charset=utf-8")}},
 						}},
 						&ast.ExprStmt{X: &ast.CallExpr{
-							Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField().Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
+							Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
 							Args: []ast.Expr{ast.NewIdent("code")},
 						}},
 					}}},
@@ -965,15 +940,10 @@ func executeFuncDecl(templatesVariableIdent string) *ast.FuncDecl {
 							X:   ast.NewIdent("buf"),
 							Sel: ast.NewIdent("WriteTo"),
 						},
-						Args: []ast.Expr{ast.NewIdent(httpResponseField().Names[0].Name)},
+						Args: []ast.Expr{ast.NewIdent(httpResponseField(imports).Names[0].Name)},
 					}},
 				},
 			},
 		},
 	}
-}
-
-func sortImports(input []*ast.ImportSpec) []*ast.ImportSpec {
-	slices.SortFunc(input, func(a, b *ast.ImportSpec) int { return strings.Compare(a.Path.Value, b.Path.Value) })
-	return slices.CompactFunc(input, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
 }

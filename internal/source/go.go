@@ -222,18 +222,24 @@ func HTTPStatusName(name string) (int, error) {
 	return 0, fmt.Errorf("unknown %s", name)
 }
 
-func HTTPStatusCode(pkg string, n int) ast.Expr {
+func HTTPStatusCode(imports *Imports, n int) ast.Expr {
 	ident, ok := httpCodes[n]
 	if !ok {
 		return &ast.BasicLit{Kind: token.INT, Value: strconv.Itoa(n)}
 	}
 	return &ast.SelectorExpr{
-		X:   ast.NewIdent(pkg),
+		X:   ast.NewIdent(imports.Add("", "net/http")),
 		Sel: ast.NewIdent(ident),
 	}
 }
 
+func Ident(n string) *ast.Ident { return &ast.Ident{Name: n} }
+
 func Int(n int) *ast.BasicLit { return &ast.BasicLit{Value: strconv.Itoa(n), Kind: token.INT} }
+
+func String(s string) *ast.BasicLit {
+	return &ast.BasicLit{Value: strconv.Quote(s), Kind: token.STRING}
+}
 
 func ErrorCheckReturn(errVarIdent string, body ...ast.Stmt) *ast.IfStmt {
 	return &ast.IfStmt{

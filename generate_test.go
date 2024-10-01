@@ -254,7 +254,7 @@ package main
 
 import(
 	"html/template"
-	"net/html"
+	"net/http"
 )
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {}
@@ -1336,7 +1336,7 @@ package main
 
 import ( 
 	"context"
-	"net/html"
+	"net/http"
 )
 
 type T struct{}
@@ -1356,7 +1356,7 @@ package main
 
 import ( 
 	"context"
-	"net/html"
+	"net/http"
 )
 
 type T struct{}
@@ -1374,7 +1374,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ReceiverPackage: `-- in.go --
 package main
 
-import "net/html"
+import "net/http"
 
 type T struct{}
 
@@ -1391,7 +1391,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ReceiverPackage: `-- in.go --
 package main
 
-import "net/html"
+import "net/http"
 
 type T struct{}
 
@@ -1408,7 +1408,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ReceiverPackage: `-- in.go --
 package main
 
-import "net/html"
+import "net/http"
 
 type T struct{}
 
@@ -1425,7 +1425,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ReceiverPackage: `-- in.go --
 package main
 
-import "net/html"
+import "net/http"
 
 type T struct{}
 
@@ -1444,7 +1444,7 @@ package main
 
 import (
 	"context"
-	"net/html"
+	"net/http"
 )
 
 type T struct{}
