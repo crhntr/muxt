@@ -243,6 +243,12 @@ func Test_inputValidations(t *testing.T) {
 			Template: `<input name="field" min="NaN">`,
 			Error:    `strconv.ParseInt: parsing "NaN": invalid syntax`,
 		},
+		{
+			Type:     "int",
+			Name:     "wrong tag",
+			Template: `<form name="field" min="32"></form>`,
+			Error:    `expected element to have tag <input> got <form>`,
+		},
 	} {
 		t.Run(fmt.Sprintf("cromulent attribute type %s %s", tt.Type, tt.Name), func(t *testing.T) {
 			v := ast.NewIdent("v")
