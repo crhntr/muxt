@@ -31,6 +31,10 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
+			if value < 0 {
+				http.Error(response, "count must not be less than 0", http.StatusBadRequest)
+				return
+			}
 			form.Value = value
 		}
 		data := receiver.SubmitFormEditRow(id, form)

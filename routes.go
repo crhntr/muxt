@@ -42,7 +42,8 @@ const (
 	DefaultOutputFileName        = "template_routes.go"
 	receiverInterfaceIdent       = "RoutesReceiver"
 
-	InputAttributeNameStructTag = "name"
+	InputAttributeNameStructTag     = "name"
+	InputAttributeTemplateStructTag = "template"
 
 	errIdent = "err"
 )
@@ -181,6 +182,8 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 							Sel: ast.NewIdent(name.Name),
 						}
 
+						fieldTemplate := formInputTemplate(field, t)
+
 						errCheck := source.ErrorCheckReturn(errIdent, imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest))
 
 						const parsedVariableName = "value"
@@ -191,12 +194,15 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 								X:   ast.NewIdent(arg.Name),
 								Sel: ast.NewIdent(name.Name),
 							})
-							nodes, _ := html.ParseFragment(strings.NewReader(t.Tree.Root.String()), &html.Node{
-								Type:     html.ElementNode,
-								DataAtom: atom.Body,
-								Data:     atom.Body.String(),
-							})
-							validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), fieldType.Elt, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(nodes))
+							var templateNodes []*html.Node
+							if fieldTemplate != nil {
+								templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
+									Type:     html.ElementNode,
+									DataAtom: atom.Body,
+									Data:     atom.Body.String(),
+								})
+							}
+							validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), fieldType.Elt, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
 							if ok && err != nil {
 								return nil, err
 							}
@@ -237,12 +243,15 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 									},
 								},
 							}
-							nodes, _ := html.ParseFragment(strings.NewReader(t.Tree.Root.String()), &html.Node{
-								Type:     html.ElementNode,
-								DataAtom: atom.Body,
-								Data:     atom.Body.String(),
-							})
-							validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), field.Type, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(nodes))
+							var templateNodes []*html.Node
+							if fieldTemplate != nil {
+								templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
+									Type:     html.ElementNode,
+									DataAtom: atom.Body,
+									Data:     atom.Body.String(),
+								})
+							}
+							validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), field.Type, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
 							if ok && err != nil {
 								return nil, err
 							}
@@ -316,6 +325,18 @@ func formInputName(field *ast.Field, name *ast.Ident) string {
 		}
 	}
 	return name.Name
+}
+
+func formInputTemplate(field *ast.Field, t *template.Template) *template.Template {
+	if field.Tag != nil {
+		v, _ := strconv.Unquote(field.Tag.Value)
+		tags := reflect.StructTag(v)
+		n, hasInputTag := tags.Lookup(InputAttributeTemplateStructTag)
+		if hasInputTag {
+			return t.Lookup(n)
+		}
+	}
+	return t
 }
 
 func (def TemplateName) funcType(imports *source.Imports) *ast.FuncType {

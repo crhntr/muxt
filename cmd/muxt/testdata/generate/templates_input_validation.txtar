@@ -1,0 +1,114 @@
+muxt generate --receiver-static-type=T
+
+cat template_routes.go
+
+exec go test
+
+-- index.gohtml --
+{{define "GET / UpdateValue(form)" }}
+	{{block "gimme" . -}}
+		<input name="value" min="5" max="10">
+	{{- end}}
+{{end}}
+
+-- go.mod --
+module server
+
+go 1.22
+
+-- template.go --
+package server
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed *.gohtml
+var formHTML embed.FS
+
+var templates = template.Must(template.ParseFS(formHTML, "*"))
+
+type T struct{}
+
+func (T) UpdateValue(Form) any { return nil }
+
+type Form struct {
+	value int `template:"gimme"`
+}
+-- template_test.go --
+package server
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+
+	var service T
+	routes(mux, service)
+
+	t.Run("below min", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=3", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusBadRequest {
+			t.Error("expected bad request")
+		}
+	})
+	t.Run("at min", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=5", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected ok")
+		}
+	})
+	t.Run("above max", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=11", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusBadRequest {
+			t.Error("expected bad request")
+		}
+	})
+	t.Run("at max", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=10", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected ok")
+		}
+	})
+	t.Run("in range", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=7", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected ok")
+		}
+	})
+}

@@ -41,7 +41,9 @@
             <td>{{ .Row.Name }}</td>
             <td>
                 <form hx-patch='/fruits/{{.Row.Name}}'>
+                    {{block "count" . -}}
                     <input aria-label='Count' type='number' name='count' value='{{ .Row.Value }}' step='1' min='0'>
+                    {{- end}}
                     <input type='submit' value='Update'>
                 </form>
                 <p id='error'>{{.Error}}</p>
