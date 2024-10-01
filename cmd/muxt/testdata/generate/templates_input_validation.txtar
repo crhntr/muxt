@@ -59,8 +59,8 @@ func Test(t *testing.T) {
 
 		res := rec.Result()
 
-		if res.StatusCode != http.StatusBadRequest {
-			t.Error("expected bad request")
+		if got, exp := res.StatusCode, http.StatusBadRequest; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
 		}
 	})
 	t.Run("at min", func(t *testing.T) {
@@ -71,8 +71,8 @@ func Test(t *testing.T) {
 
 		res := rec.Result()
 
-		if res.StatusCode != http.StatusOK {
-			t.Error("expected ok")
+		if got, exp := res.StatusCode, http.StatusOK; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
 		}
 	})
 	t.Run("above max", func(t *testing.T) {
@@ -83,8 +83,8 @@ func Test(t *testing.T) {
 
 		res := rec.Result()
 
-		if res.StatusCode != http.StatusBadRequest {
-			t.Error("expected bad request")
+		if got, exp := res.StatusCode, http.StatusBadRequest; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
 		}
 	})
 	t.Run("at max", func(t *testing.T) {
@@ -95,8 +95,8 @@ func Test(t *testing.T) {
 
 		res := rec.Result()
 
-		if res.StatusCode != http.StatusOK {
-			t.Error("expected ok")
+		if got, exp := res.StatusCode, http.StatusOK; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
 		}
 	})
 	t.Run("in range", func(t *testing.T) {
@@ -107,8 +107,8 @@ func Test(t *testing.T) {
 
 		res := rec.Result()
 
-		if res.StatusCode != http.StatusOK {
-			t.Error("expected ok")
+		if got, exp := res.StatusCode, http.StatusOK; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
 		}
 	})
 }
