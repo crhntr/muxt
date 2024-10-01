@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"regexp"
 	"strings"
 
 	"github.com/crhntr/dom/spec"
@@ -39,6 +40,17 @@ func ParseInputValidations(name string, input spec.Element, tp ast.Expr) ([]Vali
 		result = append(result, MaxValidation{
 			Name:   name,
 			MinExp: &ast.BasicLit{Value: val, Kind: token.INT},
+		})
+	}
+	if input.HasAttribute("pattern") {
+		val := input.GetAttribute("pattern")
+		exp, err := regexp.Compile(val)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, PatternValidation{
+			Name: name,
+			Exp:  exp,
 		})
 	}
 	return result, nil

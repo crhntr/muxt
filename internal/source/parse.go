@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"net/http"
+	"regexp"
 	"slices"
 	"strconv"
 
@@ -219,8 +220,16 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
 		return statements, nil
 	case "string":
-		assign := assignment(str)
-		statements := slices.Concat(validations, []ast.Stmt{assign})
+		if len(validations) == 0 {
+			assign := assignment(str)
+			statements := slices.Concat(validations, []ast.Stmt{assign})
+			return statements, nil
+		}
+		statements := slices.Concat([]ast.Stmt{&ast.AssignStmt{
+			Lhs: []ast.Expr{ast.NewIdent(tmp)},
+			Tok: token.DEFINE,
+			Rhs: []ast.Expr{str},
+		}}, validations, []ast.Stmt{assignment(ast.NewIdent(tmp))})
 		return statements, nil
 	}
 }
@@ -284,6 +293,38 @@ func (val MaxValidation) GenerateValidation(_ *Imports, variable ast.Expr, handl
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				handleError(fmt.Sprintf("%s must not be more than %s", val.Name, Format(val.MinExp))),
+				&ast.ReturnStmt{},
+			},
+		},
+	}
+}
+
+type PatternValidation struct {
+	Name string
+	Exp  *regexp.Regexp
+}
+
+func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+	return &ast.IfStmt{
+		Cond: &ast.UnaryExpr{
+			Op: token.NOT,
+			X: &ast.CallExpr{
+				Fun: &ast.SelectorExpr{
+					X: &ast.CallExpr{
+						Fun: &ast.SelectorExpr{
+							X:   ast.NewIdent(imports.Add("", "regexp")),
+							Sel: ast.NewIdent("MustCompile"),
+						},
+						Args: []ast.Expr{String(val.Exp.String())},
+					},
+					Sel: ast.NewIdent("MatchString"),
+				},
+				Args: []ast.Expr{variable},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				handleError(fmt.Sprintf("%s must match %q", val.Name, val.Exp.String())),
 				&ast.ReturnStmt{},
 			},
 		},

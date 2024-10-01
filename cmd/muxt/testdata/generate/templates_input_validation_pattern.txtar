@@ -1,0 +1,79 @@
+muxt generate --receiver-static-type=T
+
+cat template_routes.go
+
+exec go test
+
+-- index.gohtml --
+{{define "GET / UpdateValue(form)" }}
+	{{block "pat" . -}}
+    <input type="text" name="value" pattern="[0-9]{3}">
+  {{- end}}
+{{end}}
+
+-- go.mod --
+module server
+
+go 1.22
+
+-- template.go --
+package server
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed *.gohtml
+var formHTML embed.FS
+
+var templates = template.Must(template.ParseFS(formHTML, "*"))
+
+type T struct{}
+
+func (T) UpdateValue(Form) any { return nil }
+
+type Form struct {
+	value string `template:"pat"`
+}
+
+-- template_test.go --
+package server
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+
+	var service T
+	routes(mux, service)
+
+	t.Run("below min", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=3", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if got, exp := res.StatusCode, http.StatusBadRequest; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
+		}
+	})
+	t.Run("at min", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/?value=123", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if got, exp := res.StatusCode, http.StatusOK; got != exp {
+			t.Error("expected", http.StatusText(exp), "got", http.StatusText(got))
+		}
+	})
+}
