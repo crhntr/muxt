@@ -17,7 +17,6 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 	if !ok {
 		return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
 	}
-	base10 := Int(10)
 	switch paramTypeIdent.Name {
 	default:
 		return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
@@ -25,13 +24,7 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseBool"),
-				},
-				Args: []ast.Expr{str},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseBoolCall(str)},
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
@@ -41,29 +34,30 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("Atoi"),
-				},
-				Args: []ast.Expr{str},
-			}},
+			Rhs: []ast.Expr{imports.StrconvAtoiCall(str)},
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
+		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
+		return statements, nil
+	case "int8":
+		parse := &ast.AssignStmt{
+			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
+			Tok: token.DEFINE,
+			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 8)},
+		}
+
+		assign := assignment(&ast.CallExpr{
+			Fun:  ast.NewIdent(paramTypeIdent.Name),
+			Args: []ast.Expr{ast.NewIdent(tmp)},
+		})
 		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
 		return statements, nil
 	case "int16":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseInt"),
-				},
-				Args: []ast.Expr{str, base10, Int(16)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 16)},
 		}
 
 		assign := assignment(&ast.CallExpr{
@@ -76,13 +70,7 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseInt"),
-				},
-				Args: []ast.Expr{str, base10, Int(32)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 32)},
 		}
 
 		assign := assignment(&ast.CallExpr{
@@ -90,38 +78,13 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 			Args: []ast.Expr{ast.NewIdent(tmp)},
 		})
 
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
-	case "int8":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseInt"),
-				},
-				Args: []ast.Expr{str, base10, Int(8)},
-			}},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
 		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
 		return statements, nil
 	case "int64":
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseInt"),
-				},
-				Args: []ast.Expr{str, base10, Int(64)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 64)},
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
@@ -131,13 +94,20 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseUint"),
-				},
-				Args: []ast.Expr{str, base10, Int(64)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 64)},
+		}
+
+		assign := assignment(&ast.CallExpr{
+			Fun:  ast.NewIdent(paramTypeIdent.Name),
+			Args: []ast.Expr{ast.NewIdent(tmp)},
+		})
+		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
+		return statements, nil
+	case "uint8":
+		parse := &ast.AssignStmt{
+			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
+			Tok: token.DEFINE,
+			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 8)},
 		}
 
 		assign := assignment(&ast.CallExpr{
@@ -150,13 +120,7 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseUint"),
-				},
-				Args: []ast.Expr{str, base10, Int(16)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 16)},
 		}
 
 		assign := assignment(&ast.CallExpr{
@@ -169,13 +133,7 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseUint"),
-				},
-				Args: []ast.Expr{str, base10, Int(32)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 32)},
 		}
 
 		assign := assignment(&ast.CallExpr{
@@ -188,35 +146,10 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 		parse := &ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseUint"),
-				},
-				Args: []ast.Expr{str, base10, Int(64)},
-			}},
+			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 64)},
 		}
 
 		assign := assignment(ast.NewIdent(tmp))
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
-	case "uint8":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("ParseUint"),
-				},
-				Args: []ast.Expr{str, base10, Int(8)},
-			}},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
 		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
 		return statements, nil
 	case "string":
@@ -310,13 +243,7 @@ func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.E
 			Op: token.NOT,
 			X: &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X: &ast.CallExpr{
-						Fun: &ast.SelectorExpr{
-							X:   ast.NewIdent(imports.Add("", "regexp")),
-							Sel: ast.NewIdent("MustCompile"),
-						},
-						Args: []ast.Expr{String(val.Exp.String())},
-					},
+					X:   imports.Call("", "regexp", "MustCompile", []ast.Expr{String(val.Exp.String())}),
 					Sel: ast.NewIdent("MatchString"),
 				},
 				Args: []ast.Expr{variable},

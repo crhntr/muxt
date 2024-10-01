@@ -68,6 +68,16 @@ func (imports *Imports) Ident(pkgPath string) string {
 	return path.Base(pkgPath)
 }
 
+func (imports *Imports) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(imports.Add(pkgName, pkgPath)),
+			Sel: ast.NewIdent(funcIdent),
+		},
+		Args: args,
+	}
+}
+
 func (imports *Imports) ImportSpecs() []*ast.ImportSpec {
 	result := make([]*ast.ImportSpec, 0, len(imports.GenDecl.Specs))
 	for _, spec := range imports.GenDecl.Specs {
@@ -90,15 +100,31 @@ func (imports *Imports) AddHTMLTemplate() string { return imports.Add("", "html/
 func (imports *Imports) AddContext() string      { return imports.Add("", "context") }
 
 func (imports *Imports) HTTPErrorCall(response ast.Expr, message ast.Expr, code int) *ast.ExprStmt {
-	return &ast.ExprStmt{X: &ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(imports.AddNetHTTP()),
-			Sel: ast.NewIdent("Error"),
-		},
-		Args: []ast.Expr{
+	return &ast.ExprStmt{
+		X: imports.Call("", "net/http", "Error", []ast.Expr{
 			response,
 			message,
 			HTTPStatusCode(imports, code),
-		},
-	}}
+		}),
+	}
+}
+
+func (imports *Imports) StrconvAtoiCall(expr ast.Expr) *ast.CallExpr {
+	return imports.Call("", "strconv", "Atoi", []ast.Expr{expr})
+}
+
+func (imports *Imports) StrconvParseIntCall(expr ast.Expr, base, size int) *ast.CallExpr {
+	return imports.Call("", "strconv", "ParseInt", []ast.Expr{expr, Int(base), Int(size)})
+}
+
+func (imports *Imports) StrconvParseUintCall(expr ast.Expr, base, size int) *ast.CallExpr {
+	return imports.Call("", "strconv", "ParseUint", []ast.Expr{expr, Int(base), Int(size)})
+}
+
+func (imports *Imports) StrconvParseFloatCall(expr ast.Expr, size int) *ast.CallExpr {
+	return imports.Call("", "strconv", "ParseFloat", []ast.Expr{expr, Int(size)})
+}
+
+func (imports *Imports) StrconvParseBoolCall(expr ast.Expr) *ast.CallExpr {
+	return imports.Call("", "strconv", "ParseBool", []ast.Expr{expr})
 }
