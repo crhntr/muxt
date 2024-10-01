@@ -207,13 +207,14 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 							},
 						}}, &ast.ReturnStmt{})
 
+						const parsedVariableName = "value"
 						if fieldType, ok := field.Type.(*ast.ArrayType); ok {
 							const valVar = "val"
 							assignment := appendAssignment(token.ASSIGN, &ast.SelectorExpr{
 								X:   ast.NewIdent(arg.Name),
 								Sel: ast.NewIdent(name.Name),
 							})
-							statements, parseImports, err := parseStringStatements("value", errVarIdent, ast.NewIdent(valVar), fieldType.Elt, errCheck, assignment)
+							statements, parseImports, err := parseStringStatements(parsedVariableName, errVarIdent, ast.NewIdent(valVar), fieldType.Elt, errCheck, assignment)
 							if err != nil {
 								return nil, nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
@@ -253,7 +254,7 @@ func (def TemplateName) funcLit(method *ast.FuncType, files []*ast.File) (*ast.F
 									},
 								},
 							}
-							statements, parseImports, err := parseStringStatements("value", errVarIdent, str, field.Type, errCheck, assignment)
+							statements, parseImports, err := parseStringStatements(parsedVariableName, errVarIdent, str, field.Type, errCheck, assignment)
 							if err != nil {
 								return nil, nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
