@@ -30,5 +30,16 @@ func ParseInputValidations(name string, input spec.Element, tp ast.Expr) ([]Vali
 			MinExp: &ast.BasicLit{Value: val, Kind: token.INT},
 		})
 	}
+	if input.HasAttribute("max") {
+		val := input.GetAttribute("max")
+		_, err := ParseStringWithType(val, tp)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, MaxValidation{
+			Name:   name,
+			MinExp: &ast.BasicLit{Value: val, Kind: token.INT},
+		})
+	}
 	return result, nil
 }

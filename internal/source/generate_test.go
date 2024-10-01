@@ -249,6 +249,17 @@ func Test_inputValidations(t *testing.T) {
 			Template: `<form name="field" min="32"></form>`,
 			Error:    `expected element to have tag <input> got <form>`,
 		},
+		{
+			Type:     "uint32",
+			Name:     "zero max",
+			Template: `<input name="field" max="0">`,
+			Result: `{
+	if v > 0 {
+		http.Error(response, "field must not be more than 0", http.StatusBadRequest)
+		return
+	}
+}`,
+		},
 	} {
 		t.Run(fmt.Sprintf("cromulent attribute type %s %s", tt.Type, tt.Name), func(t *testing.T) {
 			v := ast.NewIdent("v")

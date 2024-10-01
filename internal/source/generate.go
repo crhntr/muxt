@@ -278,3 +278,24 @@ func (val MinValidation) GenerateValidation(_ *Imports, variable ast.Expr, handl
 		},
 	}
 }
+
+type MaxValidation struct {
+	Name   string
+	MinExp ast.Expr
+}
+
+func (val MaxValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			X:  variable,
+			Op: token.GTR, // value > 13
+			Y:  val.MinExp,
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				handleError(fmt.Sprintf("%s must not be more than %s", val.Name, Format(val.MinExp))),
+				&ast.ReturnStmt{},
+			},
+		},
+	}
+}
