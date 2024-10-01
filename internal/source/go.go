@@ -241,10 +241,12 @@ func String(s string) *ast.BasicLit {
 	return &ast.BasicLit{Value: strconv.Quote(s), Kind: token.STRING}
 }
 
+func Nil() *ast.Ident { return ast.NewIdent("nil") }
+
 func ErrorCheckReturn(errVarIdent string, body ...ast.Stmt) *ast.IfStmt {
 	return &ast.IfStmt{
-		Cond: &ast.BinaryExpr{X: ast.NewIdent(errVarIdent), Op: token.NEQ, Y: ast.NewIdent("nil")},
-		Body: &ast.BlockStmt{List: body},
+		Cond: &ast.BinaryExpr{X: ast.NewIdent(errVarIdent), Op: token.NEQ, Y: Nil()},
+		Body: &ast.BlockStmt{List: append(body, &ast.ReturnStmt{})},
 	}
 }
 
@@ -260,4 +262,14 @@ func FieldIndex(fields []*ast.Field, i int) (*ast.Ident, ast.Expr, bool) {
 		}
 	}
 	return nil, nil, false
+}
+
+func CallError(errIdent string) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(errIdent),
+			Sel: ast.NewIdent("Error"),
+		},
+		Args: []ast.Expr{},
+	}
 }

@@ -52,6 +52,22 @@ func (imports *Imports) Add(pkgIdent, pkgPath string) string {
 	return pkgIdent
 }
 
+func (imports *Imports) Ident(pkgPath string) string {
+	if imports != nil && imports.GenDecl != nil {
+		for _, s := range imports.GenDecl.Specs {
+			spec := s.(*ast.ImportSpec)
+			pp, _ := strconv.Unquote(spec.Path.Value)
+			if pp == pkgPath {
+				if spec.Name != nil && spec.Name.Name != "" {
+					return spec.Name.Name
+				}
+				return path.Base(pp)
+			}
+		}
+	}
+	return path.Base(pkgPath)
+}
+
 func (imports *Imports) ImportSpecs() []*ast.ImportSpec {
 	result := make([]*ast.ImportSpec, 0, len(imports.GenDecl.Specs))
 	for _, spec := range imports.GenDecl.Specs {
@@ -72,3 +88,17 @@ func (imports *Imports) SortImports() {
 func (imports *Imports) AddNetHTTP() string      { return imports.Add("", "net/http") }
 func (imports *Imports) AddHTMLTemplate() string { return imports.Add("", "html/template") }
 func (imports *Imports) AddContext() string      { return imports.Add("", "context") }
+
+func (imports *Imports) HTTPErrorCall(response ast.Expr, message ast.Expr, code int) *ast.ExprStmt {
+	return &ast.ExprStmt{X: &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(imports.AddNetHTTP()),
+			Sel: ast.NewIdent("Error"),
+		},
+		Args: []ast.Expr{
+			response,
+			message,
+			HTTPStatusCode(imports, code),
+		},
+	}}
+}

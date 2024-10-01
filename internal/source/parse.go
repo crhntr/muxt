@@ -239,20 +239,10 @@ func GenerateValidations(imports *Imports, variable, variableType ast.Expr, inpu
 	var statements []ast.Stmt
 	for _, validation := range validations {
 		statements = append(statements, validation.GenerateValidation(imports, variable, func(message string) ast.Stmt {
-			return &ast.ExprStmt{X: &ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.AddNetHTTP()),
-					Sel: ast.NewIdent("Error"),
-				},
-				Args: []ast.Expr{
-					ast.NewIdent(responseIdent),
-					&ast.BasicLit{
-						Kind:  token.STRING,
-						Value: strconv.Quote(message),
-					},
-					HTTPStatusCode(imports, http.StatusBadRequest),
-				},
-			}}
+			return imports.HTTPErrorCall(ast.NewIdent(responseIdent), &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: strconv.Quote(message),
+			}, http.StatusBadRequest)
 		}))
 	}
 	return statements, nil, true
