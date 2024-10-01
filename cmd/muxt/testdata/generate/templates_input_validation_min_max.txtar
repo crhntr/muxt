@@ -7,7 +7,7 @@ exec go test
 -- index.gohtml --
 {{define "GET / UpdateValue(form)" }}
 	{{block "gimme" . -}}
-		<input name="value" min="5" max="10">
+		<input type="number" name="value" min="5" max="10">
 	{{- end}}
 {{end}}
 

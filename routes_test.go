@@ -674,7 +674,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		},
 		{
 			Name:      "form html has a cromulent min attribute",
-			Templates: `{{define "GET / F(form)"}}<input name="field" min="13">{{end}}`,
+			Templates: `{{define "GET / F(form)"}}<input type="number" name="field" min="13">{{end}}`,
 			ReceiverPackage: `
 -- in.go --
 package main
