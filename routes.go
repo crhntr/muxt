@@ -284,7 +284,9 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 	}
 
 	const dataVarIdent = "data"
-	if len(method.Results.List) > 1 {
+	if method.Results == nil || len(method.Results.List) == 0 {
+		return lit, fmt.Errorf("method for endpoint %q has no results it should have one or two", def)
+	} else if len(method.Results.List) > 1 {
 		lit.Body.List = append(lit.Body.List,
 			&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(errIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
 			&ast.IfStmt{

@@ -1453,6 +1453,20 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ExpectedError: "method expects type string but response is http.ResponseWriter",
 		},
 		{
+			Name:      "method missing a result",
+			Templates: `{{define "GET / F()"}}{{end}}`,
+			Receiver:  "T",
+			ReceiverPackage: `-- t.go --
+package main
+
+type T struct{}
+
+func (T) F() {}
+
+` + executeGo,
+			ExpectedError: `method for endpoint "GET / F()" has no results it should have one or two`,
+		},
+		{
 			Name:      "wrong argument type path value",
 			Templates: `{{define "GET /{name} F(name)"}}{{end}}`,
 			Receiver:  "T",
