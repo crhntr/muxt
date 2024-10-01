@@ -29,14 +29,14 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int",
 			Name:     "no attributes",
-			Template: `<input name="field"></input>`,
+			Template: `<input name="field">`,
 			Result: `{
 }`,
 		},
 		{
 			Type:     "int",
 			Name:     "min",
-			Template: `<input name="field" min="100"></input>`,
+			Template: `<input name="field" min="100">`,
 			Result: `{
 	if v < 100 {
 		http.Error(response, "field must not be less than 100", http.StatusBadRequest)
@@ -47,7 +47,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int",
 			Name:     "negative min",
-			Template: `<input name="field" min="-5"></input>`,
+			Template: `<input name="field" min="-5">`,
 			Result: `{
 	if v < -5 {
 		http.Error(response, "field must not be less than -5", http.StatusBadRequest)
@@ -58,7 +58,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -69,7 +69,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int8",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -80,7 +80,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int16",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -91,7 +91,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int32",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -102,7 +102,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int64",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -113,7 +113,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "uint",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -124,7 +124,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "uint8",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -135,7 +135,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "uint16",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -146,7 +146,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "uint32",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -157,7 +157,7 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "uint64",
 			Name:     "zero min",
-			Template: `<input name="field" min="0"></input>`,
+			Template: `<input name="field" min="0">`,
 			Result: `{
 	if v < 0 {
 		http.Error(response, "field must not be less than 0", http.StatusBadRequest)
@@ -168,79 +168,79 @@ func Test_inputValidations(t *testing.T) {
 		{
 			Type:     "int",
 			Name:     "out of range",
-			Template: `<input name="field" min="18446744073709551616"></input>`,
+			Template: `<input name="field" min="18446744073709551616">`,
 			Error:    `strconv.ParseInt: parsing "18446744073709551616": value out of range`,
 		},
 		{
 			Type:     "int8",
 			Name:     "out of range",
-			Template: `<input name="field" min="256"></input>`,
+			Template: `<input name="field" min="256">`,
 			Error:    `strconv.ParseInt: parsing "256": value out of range`,
 		},
 		{
 			Type:     "int16",
 			Name:     "out of range",
-			Template: `<input name="field" min="32768"></input>`,
+			Template: `<input name="field" min="32768">`,
 			Error:    `strconv.ParseInt: parsing "32768": value out of range`,
 		},
 		{
 			Type:     "int32",
 			Name:     "out of range",
-			Template: `<input name="field" min="2147483648"></input>`,
+			Template: `<input name="field" min="2147483648">`,
 			Error:    `strconv.ParseInt: parsing "2147483648": value out of range`,
 		},
 		{
 			Type:     "int64",
 			Name:     "out of range",
-			Template: `<input name="field" min="9223372036854775808"></input>`,
+			Template: `<input name="field" min="9223372036854775808">`,
 			Error:    `strconv.ParseInt: parsing "9223372036854775808": value out of range`,
 		},
 		{
 			Type:     "uint",
 			Name:     "out of range",
-			Template: `<input name="field" min="-10"></input>`,
+			Template: `<input name="field" min="-10">`,
 			Error:    `strconv.ParseUint: parsing "-10": invalid syntax`,
 		},
 		{
 			Type:     "uint8",
 			Name:     "out of range",
-			Template: `<input name="field" min="256"></input>`,
+			Template: `<input name="field" min="256">`,
 			Error:    `strconv.ParseUint: parsing "256": value out of range`,
 		},
 		{
 			Type:     "uint16",
 			Name:     "out of range",
-			Template: `<input name="field" min="65536"></input>`,
+			Template: `<input name="field" min="65536">`,
 			Error:    `strconv.ParseUint: parsing "65536": value out of range`,
 		},
 		{
 			Type:     "uint32",
 			Name:     "out of range",
-			Template: `<input name="field" min="4294967296"></input>`,
+			Template: `<input name="field" min="4294967296">`,
 			Error:    `strconv.ParseUint: parsing "4294967296": value out of range`,
 		},
 		{
 			Type:     "uint64",
 			Name:     "out of range",
-			Template: `<input name="field" min="18446744073709551616"></input>`,
+			Template: `<input name="field" min="18446744073709551616">`,
 			Error:    `strconv.ParseUint: parsing "18446744073709551616": value out of range`,
 		},
 		{
 			Type:     "*T",
 			Name:     "unsupported type",
-			Template: `<input name="field" min="1"></input>`,
+			Template: `<input name="field" min="1">`,
 			Error:    `type *T is not supported`,
 		},
 		{
 			Type:     "T",
 			Name:     "type unknown",
-			Template: `<input name="field" min="1"></input>`,
+			Template: `<input name="field" min="1">`,
 			Error:    `type T unknown`,
 		},
 		{
 			Type:     "int",
 			Name:     "not a number",
-			Template: `<input name="field" min="NaN"></input>`,
+			Template: `<input name="field" min="NaN">`,
 			Error:    `strconv.ParseInt: parsing "NaN": invalid syntax`,
 		},
 	} {
