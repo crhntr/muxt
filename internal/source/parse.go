@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/crhntr/dom/spec"
 )
@@ -58,6 +59,13 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, t
 				Rhs: []ast.Expr{str},
 			}}, validations, []ast.Stmt{assignment(ast.NewIdent(tmp))})
 			return statements, nil
+		}
+	case *ast.SelectorExpr:
+		if pkg, ok := tp.X.(*ast.Ident); ok {
+			switch pkg.Name {
+			case imports.Ident("time"):
+				return parseBlock(tmp, imports.TimeParseCall(time.DateOnly, str), validations, errCheck, assignment), nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))

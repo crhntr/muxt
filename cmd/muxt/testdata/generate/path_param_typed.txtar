@@ -17,6 +17,7 @@ exec go test -cover
 {{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
 {{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
 {{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" . -}}</p> {{- end -}}
+{{- define "GET /time/{value}   PassTime(value)"   -}} <p>{{- .Format "2006-01-02"    -}}</p> {{- end -}}
 
 -- go.mod --
 module server
@@ -29,6 +30,7 @@ package server
 import (
 	"embed"
 	"html/template"
+	"time"
 )
 
 //go:embed *.gohtml
@@ -38,19 +40,20 @@ var templates = template.Must(template.ParseFS(formHTML, "*"))
 
 type T struct{}
 
-func (T) PassInt(in int) int          { return in }
-func (T) PassInt64(in int64) int64    { return in }
-func (T) PassInt32(in int32) int32    { return in }
-func (T) PassInt16(in int16) int16    { return in }
-func (T) PassInt8(in int8) int8       { return in }
-func (T) PassUint(in uint) uint       { return in }
-func (T) PassUint64(in uint64) uint64 { return in }
-func (T) PassUint32(in uint32) uint32 { return in }
-func (T) PassUint16(in uint16) uint16 { return in }
-func (T) PassUint8(in uint8) uint8    { return in }
-func (T) PassBool(in bool) bool       { return in }
-func (T) PassByte(in byte) byte       { return in }
-func (T) PassRune(in rune) rune       { return in }
+func (T) PassInt(in int) int              { return in }
+func (T) PassInt64(in int64) int64        { return in }
+func (T) PassInt32(in int32) int32        { return in }
+func (T) PassInt16(in int16) int16        { return in }
+func (T) PassInt8(in int8) int8           { return in }
+func (T) PassUint(in uint) uint           { return in }
+func (T) PassUint64(in uint64) uint64     { return in }
+func (T) PassUint32(in uint32) uint32     { return in }
+func (T) PassUint16(in uint16) uint16     { return in }
+func (T) PassUint8(in uint8) uint8        { return in }
+func (T) PassBool(in bool) bool           { return in }
+func (T) PassByte(in byte) byte           { return in }
+func (T) PassRune(in rune) rune           { return in }
+func (T) PassTime(in time.Time) time.Time { return in }
 -- template_test.go --
 package server
 
@@ -157,6 +160,15 @@ func Test(t *testing.T) {
 	})
 	t.Run("bool", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/bool/true", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		res := rec.Result()
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected OK")
+		}
+	})
+	t.Run("time", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/time/1994-11-01", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()

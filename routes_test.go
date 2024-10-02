@@ -783,6 +783,7 @@ type (
 		fieldUint16 uint16
 		fieldUint8  uint8
 		fieldBool   bool
+		fieldTime   time.Time
 	}
 )
 
@@ -796,6 +797,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 import (
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type RoutesReceiver interface {
@@ -902,6 +904,14 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			}
 			form.fieldBool = value
 		}
+		{
+			value, err := time.Parse("2006-01-02", request.FormValue("fieldTime"))
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldTime = value
+		}
 		data := receiver.F(form)
 		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
 	})
@@ -997,6 +1007,8 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 -- in.go --
 package main
 
+import "time"
+
 type (
 	T struct{}
 	In struct{
@@ -1012,6 +1024,7 @@ type (
 		fieldUint16 []uint16
 		fieldUint8  []uint8
 		fieldBool   []bool
+		fieldTime   []time.Time
 	}
 )
 
@@ -1024,6 +1037,7 @@ func (T) F(form In) int { return 0 }
 import (
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type RoutesReceiver interface {
@@ -1130,6 +1144,14 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			}
 			form.fieldBool = append(form.fieldBool, value)
 		}
+		for _, val := range request.Form["fieldTime"] {
+			value, err := time.Parse("2006-01-02", val)
+			if err != nil {
+				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			form.fieldTime = append(form.fieldTime, value)
+		}
 		data := receiver.F(form)
 		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
 	})
@@ -1143,10 +1165,15 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 -- in.go --
 package main
 
+import (
+	"net/http"
+	"net/url"
+)
+
 type (
 	T struct{}
 	In struct{
-		ts time.Time
+		href url.URL
 	}
 )
 
@@ -1155,7 +1182,7 @@ func (T) F(form In) int { return 0 }
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {}
 `,
 			Receiver:      "T",
-			ExpectedError: "failed to generate parse statements for form field ts: unsupported type: time.Time",
+			ExpectedError: "failed to generate parse statements for form field href: unsupported type: url.URL",
 		},
 		{
 			Name:        "call F",

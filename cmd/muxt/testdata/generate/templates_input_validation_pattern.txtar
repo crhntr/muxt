@@ -36,7 +36,6 @@ func (T) UpdateValue(Form) any { return nil }
 type Form struct {
 	value string `template:"pat"`
 }
-
 -- template_test.go --
 package server
 

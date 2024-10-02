@@ -428,15 +428,31 @@ func checkArgument(imports *source.Imports, method *ast.FuncType, argIndex int, 
 			if argIndex != paramIndex {
 				continue
 			}
-			paramTypeIdent, paramOk := paramType.(*ast.Ident)
-			argTypeIdent, argOk := argType.(*ast.Ident)
-			if !argOk || !paramOk || argTypeIdent.Name != paramTypeIdent.Name {
-				return fmt.Errorf("method expects type %s but %s is a %s", source.Format(argType), arg.Name, paramTypeIdent.Name)
+			if err := compareTypes(paramType, argType); err != nil {
+				return fmt.Errorf("method argument and param mismatch: %w", err)
 			}
 			break
 		}
 		return nil
 	}
+}
+
+func compareTypes(expA, expB ast.Expr) error {
+	if a, b, ok := matchExpressionType[*ast.Ident](expA, expB); ok && a.Name == b.Name {
+		return nil
+	}
+	if a, b, ok := matchExpressionType[*ast.SelectorExpr](expA, expB); ok && a.Sel == b.Sel {
+		if _, _, ok = matchExpressionType[*ast.Ident](a.X, b.X); ok {
+			return nil
+		}
+	}
+	return fmt.Errorf("type %s is not assignable to %s", source.Format(expA), source.Format(expB))
+}
+
+func matchExpressionType[T ast.Expr](a, b ast.Expr) (T, T, bool) {
+	ax, aOk := a.(T)
+	bx, bOk := b.(T)
+	return ax, bx, aOk && bOk
 }
 
 func findFormStruct(argType ast.Expr, files []*ast.File) (*ast.StructType, bool) {
