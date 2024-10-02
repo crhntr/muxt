@@ -17,6 +17,12 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, t
 	if !ok {
 		return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
 	}
+	convert := func(exp ast.Expr) ast.Stmt {
+		return assignment(&ast.CallExpr{
+			Fun:  ast.NewIdent(paramTypeIdent.Name),
+			Args: []ast.Expr{exp},
+		})
+	}
 	switch paramTypeIdent.Name {
 	default:
 		return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
@@ -25,56 +31,21 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, t
 	case "int":
 		return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
 	case "int8":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, convert), nil
 	case "int16":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, convert), nil
 	case "int32":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, convert), nil
 	case "int64":
 		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
 	case "uint":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, convert), nil
 	case "uint8":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, convert), nil
 	case "uint16":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, convert), nil
 	case "uint32":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, func(out ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(paramTypeIdent.Name),
-				Args: []ast.Expr{ast.NewIdent(tmp)},
-			})
-		}), nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, convert), nil
 	case "uint64":
 		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
 	case "string":
