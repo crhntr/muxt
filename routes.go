@@ -184,7 +184,11 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 
 						fieldTemplate := formInputTemplate(field, t)
 
-						errCheck := source.ErrorCheckReturn(errIdent, imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest))
+						errCheck := func(exp ast.Expr) ast.Stmt {
+							return &ast.ExprStmt{
+								X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest),
+							}
+						}
 
 						const parsedVariableName = "value"
 						if fieldType, ok := field.Type.(*ast.ArrayType); ok {
@@ -206,7 +210,7 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 							if ok && err != nil {
 								return nil, err
 							}
-							statements, err := source.GenerateParseValueFromStringStatements(imports, parsedVariableName, errIdent, ast.NewIdent(valVar), fieldType.Elt, errCheck, validations, assignment)
+							statements, err := source.GenerateParseValueFromStringStatements(imports, parsedVariableName, ast.NewIdent(valVar), fieldType.Elt, errCheck, validations, assignment)
 							if err != nil {
 								return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
@@ -255,7 +259,7 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 							if ok && err != nil {
 								return nil, err
 							}
-							statements, err := source.GenerateParseValueFromStringStatements(imports, parsedVariableName, errIdent, str, field.Type, errCheck, validations, assignment)
+							statements, err := source.GenerateParseValueFromStringStatements(imports, parsedVariableName, str, field.Type, errCheck, validations, assignment)
 							if err != nil {
 								return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", name.Name, err)
 							}
@@ -275,7 +279,11 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 			}
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 		default:
-			errCheck := source.ErrorCheckReturn(errIdent, imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest))
+			errCheck := func(msg ast.Expr) ast.Stmt {
+				return &ast.ExprStmt{
+					X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), msg, http.StatusBadRequest),
+				}
+			}
 			src := &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
@@ -283,7 +291,7 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 				},
 				Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(arg.Name)}},
 			}
-			statements, err := httpPathValueAssignment(imports, method, i, arg, errIdent, src, token.DEFINE, errCheck)
+			statements, err := httpPathValueAssignment(imports, method, i, arg, src, token.DEFINE, errCheck)
 			if err != nil {
 				return nil, err
 			}
@@ -302,7 +310,7 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 				Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
-						imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError),
+						&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
 						&ast.ReturnStmt{},
 					},
 				},
@@ -570,13 +578,13 @@ func formDeclaration(imports *source.Imports, ident string, typeExp ast.Expr) *a
 	}
 }
 
-func httpPathValueAssignment(imports *source.Imports, method *ast.FuncType, i int, arg *ast.Ident, errVarIdent string, str ast.Expr, assignTok token.Token, errCheck *ast.IfStmt) ([]ast.Stmt, error) {
+func httpPathValueAssignment(imports *source.Imports, method *ast.FuncType, i int, arg *ast.Ident, str ast.Expr, assignTok token.Token, errCheck func(stmt ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
 	for typeIndex, typeExp := range source.IterateFieldTypes(method.Params.List) {
 		if typeIndex != i {
 			continue
 		}
 		assignment := singleAssignment(assignTok, ast.NewIdent(arg.Name))
-		return source.GenerateParseValueFromStringStatements(imports, arg.Name+"Parsed", errVarIdent, str, typeExp, errCheck, nil, assignment)
+		return source.GenerateParseValueFromStringStatements(imports, arg.Name+"Parsed", str, typeExp, errCheck, nil, assignment)
 	}
 	return nil, fmt.Errorf("type for argumement %d not found", i)
 }
@@ -686,7 +694,7 @@ func executeFuncDecl(imports *source.Imports, templatesVariableIdent string) *as
 					},
 					Body: &ast.BlockStmt{
 						List: []ast.Stmt{
-							imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError),
+							&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
 							&ast.ReturnStmt{},
 						},
 					},

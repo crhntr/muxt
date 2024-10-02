@@ -12,7 +12,7 @@ import (
 	"github.com/crhntr/dom/spec"
 )
 
-func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVarIdent string, str, typeExp ast.Expr, errCheck *ast.IfStmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
+func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, typeExp ast.Expr, errCheck func(expr ast.Expr) ast.Stmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
 	paramTypeIdent, ok := typeExp.(*ast.Ident)
 	if !ok {
 		return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
@@ -21,137 +21,62 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, errVar
 	default:
 		return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
 	case "bool":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseBoolCall(str)},
-		}
-
-		assign := assignment(ast.NewIdent(tmp))
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
 	case "int":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvAtoiCall(str)},
-		}
-
-		assign := assignment(ast.NewIdent(tmp))
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
 	case "int8":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 8)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "int16":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 16)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "int32":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 32)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "int64":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseIntCall(str, 10, 64)},
-		}
-
-		assign := assignment(ast.NewIdent(tmp))
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
 	case "uint":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 64)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "uint8":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 8)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "uint16":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 16)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "uint32":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 32)},
-		}
-
-		assign := assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{ast.NewIdent(tmp)},
-		})
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, func(out ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(paramTypeIdent.Name),
+				Args: []ast.Expr{ast.NewIdent(tmp)},
+			})
+		}), nil
 	case "uint64":
-		parse := &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp), ast.NewIdent(errVarIdent)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.StrconvParseUintCall(str, 10, 64)},
-		}
-
-		assign := assignment(ast.NewIdent(tmp))
-		statements := slices.Concat([]ast.Stmt{parse, errCheck}, validations, []ast.Stmt{assign})
-		return statements, nil
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
 	case "string":
 		if len(validations) == 0 {
 			assign := assignment(str)
@@ -181,10 +106,10 @@ func GenerateValidations(imports *Imports, variable, variableType ast.Expr, inpu
 	var statements []ast.Stmt
 	for _, validation := range validations {
 		statements = append(statements, validation.GenerateValidation(imports, variable, func(message string) ast.Stmt {
-			return imports.HTTPErrorCall(ast.NewIdent(responseIdent), &ast.BasicLit{
+			return &ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(responseIdent), &ast.BasicLit{
 				Kind:  token.STRING,
 				Value: strconv.Quote(message),
-			}, http.StatusBadRequest)
+			}, http.StatusBadRequest)}
 		}))
 	}
 	return statements, nil, true
@@ -256,4 +181,24 @@ func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.E
 			},
 		},
 	}
+}
+
+func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, handleErr, handleResult func(out ast.Expr) ast.Stmt) []ast.Stmt {
+	const errIdent = "err"
+	parse := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent(tmpIdent), ast.NewIdent(errIdent)},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{parseCall},
+	}
+	errCheck := ErrorCheckReturn(errIdent, handleErr(&ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(errIdent),
+			Sel: ast.NewIdent("Error"),
+		},
+		Args: []ast.Expr{},
+	}))
+	block := &ast.BlockStmt{List: []ast.Stmt{parse, errCheck}}
+	block.List = append(block.List, validations...)
+	block.List = append(block.List, handleResult(ast.NewIdent(tmpIdent)))
+	return block.List
 }

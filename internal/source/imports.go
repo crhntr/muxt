@@ -99,14 +99,12 @@ func (imports *Imports) AddNetHTTP() string      { return imports.Add("", "net/h
 func (imports *Imports) AddHTMLTemplate() string { return imports.Add("", "html/template") }
 func (imports *Imports) AddContext() string      { return imports.Add("", "context") }
 
-func (imports *Imports) HTTPErrorCall(response ast.Expr, message ast.Expr, code int) *ast.ExprStmt {
-	return &ast.ExprStmt{
-		X: imports.Call("", "net/http", "Error", []ast.Expr{
-			response,
-			message,
-			HTTPStatusCode(imports, code),
-		}),
-	}
+func (imports *Imports) HTTPErrorCall(response ast.Expr, message ast.Expr, code int) *ast.CallExpr {
+	return imports.Call("", "net/http", "Error", []ast.Expr{
+		response,
+		message,
+		HTTPStatusCode(imports, code),
+	})
 }
 
 func (imports *Imports) StrconvAtoiCall(expr ast.Expr) *ast.CallExpr {
