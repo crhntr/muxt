@@ -518,7 +518,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET /int8/{value}   PassInt8(value)", http.StatusOK, data)
 	})
 	mux.HandleFunc("GET /uint/{value}", func(response http.ResponseWriter, request *http.Request) {
-		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 64)
+		valueParsed, err := strconv.ParseUint(request.PathValue("value"), 10, 0)
 		if err != nil {
 			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
@@ -847,7 +847,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			form.fieldInt8 = int8(value)
 		}
 		{
-			value, err := strconv.ParseUint(request.FormValue("fieldUint"), 10, 64)
+			value, err := strconv.ParseUint(request.FormValue("fieldUint"), 10, 0)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
@@ -1075,7 +1075,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			form.fieldInt8 = append(form.fieldInt8, int8(value))
 		}
 		for _, val := range request.Form["fieldUint"] {
-			value, err := strconv.ParseUint(val, 10, 64)
+			value, err := strconv.ParseUint(val, 10, 0)
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
 				return

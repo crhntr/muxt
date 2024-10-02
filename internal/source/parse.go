@@ -48,7 +48,7 @@ func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, t
 	case "int64":
 		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
 	case "uint":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, func(out ast.Expr) ast.Stmt {
+		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, func(out ast.Expr) ast.Stmt {
 			return assignment(&ast.CallExpr{
 				Fun:  ast.NewIdent(paramTypeIdent.Name),
 				Args: []ast.Expr{ast.NewIdent(tmp)},
