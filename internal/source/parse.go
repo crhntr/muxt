@@ -13,54 +13,54 @@ import (
 )
 
 func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, typeExp ast.Expr, errCheck func(expr ast.Expr) ast.Stmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
-	paramTypeIdent, ok := typeExp.(*ast.Ident)
-	if !ok {
-		return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
-	}
-	convert := func(exp ast.Expr) ast.Stmt {
-		return assignment(&ast.CallExpr{
-			Fun:  ast.NewIdent(paramTypeIdent.Name),
-			Args: []ast.Expr{exp},
-		})
-	}
-	switch paramTypeIdent.Name {
-	default:
-		return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
-	case "bool":
-		return parseBlock(tmp, imports.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
-	case "int":
-		return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
-	case "int8":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, convert), nil
-	case "int16":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, convert), nil
-	case "int32":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, convert), nil
-	case "int64":
-		return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
-	case "uint":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, convert), nil
-	case "uint8":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, convert), nil
-	case "uint16":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, convert), nil
-	case "uint32":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, convert), nil
-	case "uint64":
-		return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
-	case "string":
-		if len(validations) == 0 {
-			assign := assignment(str)
-			statements := slices.Concat(validations, []ast.Stmt{assign})
+	switch tp := typeExp.(type) {
+	case *ast.Ident:
+		convert := func(exp ast.Expr) ast.Stmt {
+			return assignment(&ast.CallExpr{
+				Fun:  ast.NewIdent(tp.Name),
+				Args: []ast.Expr{exp},
+			})
+		}
+		switch tp.Name {
+		default:
+			return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
+		case "bool":
+			return parseBlock(tmp, imports.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
+		case "int":
+			return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
+		case "int8":
+			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, convert), nil
+		case "int16":
+			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, convert), nil
+		case "int32":
+			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, convert), nil
+		case "int64":
+			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
+		case "uint":
+			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, convert), nil
+		case "uint8":
+			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, convert), nil
+		case "uint16":
+			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, convert), nil
+		case "uint32":
+			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, convert), nil
+		case "uint64":
+			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
+		case "string":
+			if len(validations) == 0 {
+				assign := assignment(str)
+				statements := slices.Concat(validations, []ast.Stmt{assign})
+				return statements, nil
+			}
+			statements := slices.Concat([]ast.Stmt{&ast.AssignStmt{
+				Lhs: []ast.Expr{ast.NewIdent(tmp)},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{str},
+			}}, validations, []ast.Stmt{assignment(ast.NewIdent(tmp))})
 			return statements, nil
 		}
-		statements := slices.Concat([]ast.Stmt{&ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(tmp)},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{str},
-		}}, validations, []ast.Stmt{assignment(ast.NewIdent(tmp))})
-		return statements, nil
 	}
+	return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
 }
 
 func GenerateValidations(imports *Imports, variable, variableType ast.Expr, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment) ([]ast.Stmt, error, bool) {
