@@ -40,7 +40,7 @@ const (
 	DefaultTemplatesVariableName = "templates"
 	DefaultRoutesFunctionName    = "routes"
 	DefaultOutputFileName        = "template_routes.go"
-	receiverInterfaceIdent       = "RoutesReceiver"
+	DefaultReceiverInterfaceName = "RoutesReceiver"
 
 	InputAttributeNameStructTag     = "name"
 	InputAttributeTemplateStructTag = "template"
@@ -48,10 +48,11 @@ const (
 	errIdent = "err"
 )
 
-func Generate(templateNames []TemplateName, ts *template.Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, output string, fileSet *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(templateNames []TemplateName, ts *template.Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, receiverInterfaceIdent, output string, fileSet *token.FileSet, receiverPackage, templatesPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
+	receiverInterfaceIdent = cmp.Or(receiverInterfaceIdent, DefaultReceiverInterfaceName)
 	file := &ast.File{
 		Name: ast.NewIdent(packageName),
 	}

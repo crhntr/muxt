@@ -25,6 +25,7 @@ func TestGenerate(t *testing.T) {
 		PackageName     string
 		TemplatesVar    string
 		RoutesFunc      string
+		Interface       string
 		Imports         []string
 
 		ExpectedError string
@@ -162,6 +163,42 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		username := request.PathValue("username")
 		data := receiver.F(username)
 		execute(response, request, true, "GET /age/{username} F(username)", http.StatusOK, data)
+	})
+}
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.WriteHeader(code)
+	}
+	_, _ = buf.WriteTo(response)
+}
+`,
+		},
+		{
+			Name:      "when the default interface name is overwritten",
+			Templates: `{{define "GET / F()"}}Hello{{end}}`,
+			Receiver:  "T",
+			Interface: "Server",
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"bytes"
+)
+
+type Server interface {
+	F() any
+}
+
+func routes(mux *http.ServeMux, receiver Server) {
+	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
+		data := receiver.F()
+		execute(response, request, true, "GET / F()", http.StatusOK, data)
 	})
 }
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
@@ -1630,7 +1667,7 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			logs := log.New(io.Discard, "", 0)
 			set := token.NewFileSet()
 			goFiles := methodFuncTypeLoader(t, set, tt.ReceiverPackage)
-			out, err := muxt.Generate(templateNames, ts, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, muxt.DefaultOutputFileName, set, goFiles, goFiles, logs)
+			out, err := muxt.Generate(templateNames, ts, tt.PackageName, tt.TemplatesVar, tt.RoutesFunc, tt.Receiver, tt.Interface, muxt.DefaultOutputFileName, set, goFiles, goFiles, logs)
 			if tt.ExpectedError == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.ExpectedFile, out)
