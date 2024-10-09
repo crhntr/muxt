@@ -179,6 +179,81 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 `,
 		},
 		{
+			Name:      "F returns a value and a boolean",
+			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (T) F(username string) (int, bool) { return 30, true }
+`,
+			Receiver: "T",
+			ExpectedFile: `package main
+
+import (
+	"net/http"
+	"bytes"
+)
+
+type RoutesReceiver interface {
+	F(username string) (int, bool)
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /age/{username}", func(response http.ResponseWriter, request *http.Request) {
+		username := request.PathValue("username")
+		data, ok := receiver.F(username)
+		if !ok {
+			return
+		}
+		execute(response, request, true, "GET /age/{username} F(username)", http.StatusOK, data)
+	})
+}
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
+	buf := bytes.NewBuffer(nil)
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if writeHeader {
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.WriteHeader(code)
+	}
+	_, _ = buf.WriteTo(response)
+}
+`,
+		},
+		{
+			Name:      "F returns a value and an unsupported type",
+			Templates: `{{define "GET /{$} F()"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (T) F() (int, float64) { return 30, true }
+`,
+			Receiver:      "T",
+			ExpectedError: "expected last result to be either an error or a bool",
+		},
+		{
+			Name:      "F returns a value and an unsupported type",
+			Templates: `{{define "GET /{$} F()"}}Hello, {{.}}!{{end}}`,
+			ReceiverPackage: `
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (T) F() (int, []error) { return 30, nil }
+`,
+			Receiver:      "T",
+			ExpectedError: "expected last result to be either an error or a bool",
+		},
+		{
 			Name:      "method receiver is a pointer",
 			Templates: `{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}`,
 			ReceiverPackage: `s

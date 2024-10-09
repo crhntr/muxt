@@ -300,22 +300,52 @@ func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t
 		}
 	}
 
-	const dataVarIdent = "data"
+	const (
+		dataVarIdent = "data"
+		okIdent      = "ok"
+	)
 	if method.Results == nil || len(method.Results.List) == 0 {
 		return lit, fmt.Errorf("method for endpoint %q has no results it should have one or two", def)
 	} else if len(method.Results.List) > 1 {
-		lit.Body.List = append(lit.Body.List,
-			&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(errIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
-			&ast.IfStmt{
-				Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
-						&ast.ReturnStmt{},
+		_, lastResultType, ok := source.FieldIndex(method.Results.List, method.Results.NumFields()-1)
+		if !ok {
+			return lit, fmt.Errorf("failed to get the last method result")
+		}
+		switch rt := lastResultType.(type) {
+		case *ast.Ident:
+			switch rt.Name {
+			case "error":
+				lit.Body.List = append(lit.Body.List,
+					&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(errIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
+					&ast.IfStmt{
+						Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{
+								&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
+								&ast.ReturnStmt{},
+							},
+						},
 					},
-				},
-			},
-		)
+				)
+			case "bool":
+				lit.Body.List = append(lit.Body.List,
+					&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(okIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
+					&ast.IfStmt{
+						Cond: &ast.UnaryExpr{Op: token.NOT, X: ast.NewIdent(okIdent)},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{
+								&ast.ReturnStmt{},
+							},
+						},
+					},
+				)
+			default:
+				return lit, fmt.Errorf("expected last result to be either an error or a bool")
+			}
+		default:
+			return lit, fmt.Errorf("expected last result to be either an error or a bool")
+		}
+
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
