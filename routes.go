@@ -53,6 +53,7 @@ func Generate(templateNames []TemplateName, ts *template.Template, packageName, 
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
 	receiverInterfaceIdent = cmp.Or(receiverInterfaceIdent, DefaultReceiverInterfaceName)
+
 	file := &ast.File{
 		Name: ast.NewIdent(packageName),
 	}
@@ -60,41 +61,12 @@ func Generate(templateNames []TemplateName, ts *template.Template, packageName, 
 		Tok: token.IMPORT,
 	}
 	imports := source.NewImports(importsDecl)
-	routes := &ast.FuncDecl{
-		Name: ast.NewIdent(routesFunctionName),
-		Type: routesFuncType(imports, ast.NewIdent(receiverInterfaceIdent)),
-		Body: &ast.BlockStmt{},
-	}
-	receiverInterface := &ast.InterfaceType{
-		Methods: &ast.FieldList{},
-	}
-	for _, name := range templateNames {
-		t := ts.Lookup(name.name)
-		var method *ast.FuncType
-		if name.fun != nil {
-			for _, funcDecl := range source.IterateFunctions(receiverPackage) {
-				if !name.matchReceiver(funcDecl, receiverTypeIdent) {
-					continue
-				}
-				method = funcDecl.Type
-				break
-			}
-			if method == nil {
-				method = name.funcType(imports)
-			}
-			receiverInterface.Methods.List = append(receiverInterface.Methods.List, &ast.Field{
-				Names: []*ast.Ident{ast.NewIdent(name.fun.Name)},
-				Type:  method,
-			})
-		}
 
-		handlerFunc, err := name.funcLit(imports, method, t, receiverPackage)
-		if err != nil {
-			return "", err
-		}
-
-		routes.Body.List = append(routes.Body.List, name.callHandleFunc(handlerFunc))
-		log.Printf("%s has route for %s", routesFunctionName, name.String())
+	receiverMethods := source.StaticTypeMethods(receiverPackage, receiverTypeIdent)
+	receiverInterface := receiverInterfaceType(imports, receiverMethods, templateNames)
+	routesFunc, err := routesFuncDeclaration(imports, ts, routesFunctionName, receiverInterfaceIdent, receiverInterface, receiverPackage, templateNames)
+	if err != nil {
+		return "", err
 	}
 	imports.SortImports()
 	file.Decls = append(file.Decls, importsDecl)
@@ -102,21 +74,67 @@ func Generate(templateNames []TemplateName, ts *template.Template, packageName, 
 		Tok:   token.TYPE,
 		Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
 	})
-	file.Decls = append(file.Decls, routes)
-	hasExecuteFunc := false
-	for _, fn := range source.IterateFunctions(templatesPackage) {
+	file.Decls = append(file.Decls, routesFunc)
+	addExecuteFunction(imports, fileSet, receiverPackage, output, file, templatesVariableName)
+	return source.Format(file), nil
+}
+
+func addExecuteFunction(imports *source.Imports, fileSet *token.FileSet, files []*ast.File, output string, file *ast.File, templatesVariableName string) {
+	for _, fn := range source.IterateFunctions(files) {
 		if fn.Recv == nil && fn.Name.Name == executeIdentName {
 			p := fileSet.Position(fn.Pos())
 			if filepath.Base(p.Filename) != output {
-				hasExecuteFunc = true
+				return
 			}
 			break
 		}
 	}
-	if !hasExecuteFunc {
-		file.Decls = append(file.Decls, executeFuncDecl(imports, templatesVariableName))
+	file.Decls = append(file.Decls, executeFuncDecl(imports, templatesVariableName))
+}
+
+func routesFuncDeclaration(imports *source.Imports, ts *template.Template, routesFunctionName, receiverInterfaceIdent string, receiverInterfaceType *ast.InterfaceType, receiverPackage []*ast.File, templateNames []TemplateName) (*ast.FuncDecl, error) {
+	routes := &ast.FuncDecl{
+		Name: ast.NewIdent(routesFunctionName),
+		Type: routesFuncType(imports, ast.NewIdent(receiverInterfaceIdent)),
+		Body: &ast.BlockStmt{},
 	}
-	return source.Format(file), nil
+
+	for _, name := range templateNames {
+		t := ts.Lookup(name.name)
+		var hf *ast.FuncLit
+		if name.fun == nil {
+			hf = name.httpRequestReceiverTemplateHandlerFunc(imports, name.statusCode)
+		} else {
+			var err error
+			hf, err = name.funcLit(imports, t, receiverInterfaceType, receiverPackage)
+			if err != nil {
+				return nil, err
+			}
+		}
+		routes.Body.List = append(routes.Body.List, name.callHandleFunc(hf))
+	}
+
+	return routes, nil
+}
+
+func receiverInterfaceType(imports *source.Imports, receiverMethods *ast.FieldList, templateNames []TemplateName) *ast.InterfaceType {
+	interfaceMethods := new(ast.FieldList)
+
+	for _, name := range templateNames {
+		if name.fun == nil {
+			continue
+		}
+		if source.HasFieldWithName(interfaceMethods, name.fun.Name) {
+			continue
+		}
+		if field, ok := source.FindFieldWithName(receiverMethods, name.fun.Name); ok {
+			interfaceMethods.List = append(interfaceMethods.List, field)
+			continue
+		}
+		interfaceMethods.List = append(interfaceMethods.List, name.methodField(imports))
+	}
+
+	return &ast.InterfaceType{Methods: interfaceMethods}
 }
 
 func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
@@ -129,10 +147,12 @@ func (def TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStm
 	}}
 }
 
-func (def TemplateName) funcLit(imports *source.Imports, method *ast.FuncType, t *template.Template, files []*ast.File) (*ast.FuncLit, error) {
-	if method == nil {
-		return def.httpRequestReceiverTemplateHandlerFunc(imports, def.statusCode), nil
+func (def TemplateName) funcLit(imports *source.Imports, t *template.Template, receiverInterfaceType *ast.InterfaceType, files []*ast.File) (*ast.FuncLit, error) {
+	methodField, ok := source.FindFieldWithName(receiverInterfaceType.Methods, def.fun.Name)
+	if !ok {
+		log.Fatalf("receiver does not have a method declaration for %s", def.fun.Name)
 	}
+	method := methodField.Type.(*ast.FuncType)
 	lit := &ast.FuncLit{
 		Type: httpHandlerFuncType(imports),
 		Body: &ast.BlockStmt{},
@@ -376,6 +396,13 @@ func formInputTemplate(field *ast.Field, t *template.Template) *template.Templat
 		}
 	}
 	return t
+}
+
+func (def TemplateName) methodField(imports *source.Imports) *ast.Field {
+	return &ast.Field{
+		Names: []*ast.Ident{ast.NewIdent(def.fun.Name)},
+		Type:  def.funcType(imports),
+	}
 }
 
 func (def TemplateName) funcType(imports *source.Imports) *ast.FuncType {
