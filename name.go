@@ -57,8 +57,6 @@ type TemplateName struct {
 	fileSet *token.FileSet
 
 	template *template.Template
-
-	pathValueNames []string
 }
 
 func NewTemplateName(in string) (TemplateName, error, bool) { return newTemplate(in) }
@@ -100,16 +98,15 @@ func newTemplate(in string) (TemplateName, error, bool) {
 	case "", http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 	}
 
-	names, err := p.parsePathValueNames()
+	pathParameterNames, err := p.parsePathValueNames()
 	if err != nil {
 		return TemplateName{}, err, true
 	}
-	p.pathValueNames = names
-	if err := checkPathValueNames(p.pathValueNames); err != nil {
+	if err := checkPathValueNames(pathParameterNames); err != nil {
 		return TemplateName{}, err, true
 	}
 
-	return p, parseHandler(p.fileSet, &p), true
+	return p, parseHandler(p.fileSet, &p, pathParameterNames), true
 }
 
 var (
@@ -164,7 +161,7 @@ func (tn TemplateName) byPathThenMethod(d TemplateName) int {
 	return cmp.Compare(tn.handler, d.handler)
 }
 
-func parseHandler(fileSet *token.FileSet, def *TemplateName) error {
+func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames []string) error {
 	if def.handler == "" {
 		return nil
 	}
@@ -183,8 +180,7 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName) error {
 	if call.Ellipsis != token.NoPos {
 		return fmt.Errorf("unexpected ellipsis")
 	}
-	args := make([]*ast.Ident, len(call.Args))
-	scope := append(patternScope(), def.pathValueNames...)
+	scope := append(patternScope(), pathParameterNames...)
 	slices.Sort(scope)
 	for i, a := range call.Args {
 		arg, ok := a.(*ast.Ident)
@@ -194,7 +190,6 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName) error {
 		if _, ok := slices.BinarySearch(scope, arg.Name); !ok {
 			return fmt.Errorf("unknown argument %s at index %d", arg.Name, i)
 		}
-		args[i] = arg
 	}
 	def.fun = fun
 	def.call = call
