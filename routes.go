@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -161,25 +162,27 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 	if method.Params.NumFields() != len(tn.call.Args) {
 		return nil, errWrongNumberOfArguments(tn, method)
 	}
-	var formStruct *ast.StructType
-	for pi, pt := range fieldListTypes(method.Params) {
-		if err := checkArgument(imports, method, pi, tn.call.Args[pi], pt, files); err != nil {
-			return nil, err
-		}
-		if s, ok := findFormStruct(pt, files); ok {
-			formStruct = s
-		}
-	}
+	argTypes := slices.Collect(fieldListTypes(method.Params))
 	for i, a := range tn.call.Args {
+		argType := argTypes[i]
 		arg := a.(*ast.Ident)
 		switch arg.Name {
 		case TemplateNameScopeIdentifierHTTPResponse:
+			if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpResponseWriterIdent, false) {
+				return nil, fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpResponseWriterIdent)
+			}
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 			imports.AddNetHTTP()
 		case TemplateNameScopeIdentifierHTTPRequest:
+			if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpRequestIdent, true) {
+				return nil, fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpRequestIdent)
+			}
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 			imports.AddNetHTTP()
 		case TemplateNameScopeIdentifierContext:
+			if !matchSelectorIdents(argType, imports.AddContext(), contextContextTypeIdent, false) {
+				return nil, fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddContext(), contextContextTypeIdent)
+			}
 			lit.Body.List = append(lit.Body.List, contextAssignment())
 			call.Args = append(call.Args, ast.NewIdent(TemplateNameScopeIdentifierContext))
 			imports.AddContext()
@@ -194,6 +197,14 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 					Args: []ast.Expr{},
 				}},
 				formDeclaration(imports, arg.Name, tp))
+
+			var formStruct *ast.StructType
+			if s, ok := findFormStruct(argType, files); ok {
+				formStruct = s
+			}
+			if formStruct == nil && !matchSelectorIdents(argType, "url", "Values", false) {
+				return nil, fmt.Errorf("method expects form to have type url.Values or T (where T is some struct type)")
+			}
 			if formStruct != nil {
 				for _, field := range formStruct.Fields.List {
 					for _, name := range field.Names {
@@ -299,6 +310,15 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 			}
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 		default:
+			for paramIndex, paramType := range source.IterateFieldTypes(method.Params.List) {
+				if i != paramIndex {
+					continue
+				}
+				if err := compareTypes(paramType, argType); err != nil {
+					return nil, fmt.Errorf("method argument and param mismatch: %w", err)
+				}
+				break
+			}
 			errCheck := func(msg ast.Expr) ast.Stmt {
 				return &ast.ExprStmt{
 					X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), msg, http.StatusBadRequest),
@@ -427,22 +447,19 @@ func (tn TemplateName) funcType(imports *source.Imports) *ast.FuncType {
 	return method
 }
 
-func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
-	return func(yield func(int, ast.Expr) bool) {
-		paramIndex := 0
+func fieldListTypes(fieldList *ast.FieldList) func(func(ast.Expr) bool) {
+	return func(yield func(ast.Expr) bool) {
 		for _, param := range fieldList.List {
 			if len(param.Names) == 0 {
-				if !yield(paramIndex, param.Type) {
+				if !yield(param.Type) {
 					return
 				}
-				paramIndex++
 				continue
 			}
 			for range param.Names {
-				if !yield(paramIndex, param.Type) {
+				if !yield(param.Type) {
 					return
 				}
-				paramIndex++
 			}
 		}
 	}
@@ -450,48 +467,6 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(int, ast.Expr) bool) {
 
 func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
 	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.handler, len(def.call.Args))
-}
-
-func checkArgument(imports *source.Imports, method *ast.FuncType, argIndex int, exp ast.Expr, argType ast.Expr, files []*ast.File) error {
-	// TODO: rewrite to "cannot use 32 (untyped int constant) as string value in argument to strings.ToUpper"
-	arg := exp.(*ast.Ident)
-	switch arg.Name {
-	case TemplateNameScopeIdentifierHTTPRequest:
-		if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpRequestIdent, true) {
-			return fmt.Errorf("method expects type %s but %s is *%s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpRequestIdent)
-		}
-		return nil
-	case TemplateNameScopeIdentifierHTTPResponse:
-		if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpResponseWriterIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddNetHTTP(), httpResponseWriterIdent)
-		}
-		return nil
-	case TemplateNameScopeIdentifierContext:
-		if !matchSelectorIdents(argType, imports.AddContext(), contextContextTypeIdent, false) {
-			return fmt.Errorf("method expects type %s but %s is %s.%s", source.Format(argType), arg.Name, imports.AddContext(), contextContextTypeIdent)
-		}
-		return nil
-	case TemplateNameScopeIdentifierForm:
-		if matchSelectorIdents(argType, "url", "Values", false) {
-			return nil
-		}
-		_, ok := findFormStruct(argType, files)
-		if !ok {
-			return fmt.Errorf("method expects form to have type url.Values or T (where T is some struct type)")
-		}
-		return nil
-	default:
-		for paramIndex, paramType := range source.IterateFieldTypes(method.Params.List) {
-			if argIndex != paramIndex {
-				continue
-			}
-			if err := compareTypes(paramType, argType); err != nil {
-				return fmt.Errorf("method argument and param mismatch: %w", err)
-			}
-			break
-		}
-		return nil
-	}
 }
 
 func compareTypes(expA, expB ast.Expr) error {
