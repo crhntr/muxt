@@ -205,23 +205,23 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	def.call = call
 	return nil
 }
-
 func (tn TemplateName) callWriteHeader() bool {
 	if tn.call == nil {
 		return true
 	}
-	walk := func(args []ast.Expr) bool {
-		for _, arg := range args {
-			switch exp := arg.(type) {
-			case *ast.Ident:
-				if exp.Name == TemplateNameScopeIdentifierHTTPResponse {
-					return false
-				}
+	return !hasIdentArgument(tn.call.Args, TemplateNameScopeIdentifierHTTPResponse)
+}
+
+func hasIdentArgument(args []ast.Expr, ident string) bool {
+	for _, arg := range args {
+		switch exp := arg.(type) {
+		case *ast.Ident:
+			if exp.Name == ident {
+				return true
 			}
 		}
-		return true
 	}
-	return walk(tn.call.Args)
+	return false
 }
 
 const (
