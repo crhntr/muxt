@@ -63,15 +63,19 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 		return "", err
 	}
 
+	typesDecl := &ast.GenDecl{
+		Tok: token.TYPE,
+		Specs: []ast.Spec{
+			&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface},
+		},
+	}
+
 	imports.SortImports()
 	file := &ast.File{
 		Name: ast.NewIdent(packageName),
 		Decls: []ast.Decl{
 			imports.GenDecl,
-			&ast.GenDecl{
-				Tok:   token.TYPE,
-				Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
-			},
+			typesDecl,
 			routesFunc,
 		},
 	}
