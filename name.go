@@ -112,7 +112,7 @@ func newTemplate(in string) (TemplateName, error, bool) {
 		return p, err, true
 	}
 
-	if httpStatusCode != "" && !p.callWriteHeader() {
+	if httpStatusCode != "" && !p.callWriteHeader(nil) {
 		return p, fmt.Errorf("you can not use %s as an argument and specify an HTTP status code", TemplateNameScopeIdentifierHTTPResponse), true
 	}
 
@@ -190,38 +190,73 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	if call.Ellipsis != token.NoPos {
 		return fmt.Errorf("unexpected ellipsis")
 	}
+
 	scope := append(patternScope(), pathParameterNames...)
 	slices.Sort(scope)
-	for i, a := range call.Args {
-		arg, ok := a.(*ast.Ident)
-		if !ok {
-			return fmt.Errorf("expected only argument expressions as arguments, argument at index %d is: %s", i, source.Format(a))
-		}
-		if _, ok := slices.BinarySearch(scope, arg.Name); !ok {
-			return fmt.Errorf("unknown argument %s at index %d", arg.Name, i)
-		}
+	if err := checkArguments(scope, call); err != nil {
+		return err
 	}
+
 	def.fun = fun
 	def.call = call
 	return nil
 }
-func (tn TemplateName) callWriteHeader() bool {
+func (tn TemplateName) callWriteHeader(receiverInterfaceType *ast.InterfaceType) bool {
 	if tn.call == nil {
 		return true
 	}
-	return !hasIdentArgument(tn.call.Args, TemplateNameScopeIdentifierHTTPResponse)
+	return !hasIdentArgument(tn.call.Args, TemplateNameScopeIdentifierHTTPResponse, receiverInterfaceType, 1, 1)
 }
 
-func hasIdentArgument(args []ast.Expr, ident string) bool {
+func hasIdentArgument(args []ast.Expr, ident string, receiverInterfaceType *ast.InterfaceType, depth, maxDepth int) bool {
+	if depth > maxDepth {
+		return false
+	}
 	for _, arg := range args {
 		switch exp := arg.(type) {
 		case *ast.Ident:
 			if exp.Name == ident {
 				return true
 			}
+		case *ast.CallExpr:
+			methodIdent, ok := exp.Fun.(*ast.Ident)
+			if ok && receiverInterfaceType != nil {
+				field, ok := source.FindFieldWithName(receiverInterfaceType.Methods, methodIdent.Name)
+				if ok {
+					funcType, ok := field.Type.(*ast.FuncType)
+					if ok {
+						if funcType.Results.NumFields() == 1 {
+							if hasIdentArgument(exp.Args, ident, receiverInterfaceType, depth+1, maxDepth+1) {
+								return true
+							}
+						}
+					}
+				}
+			}
+			if hasIdentArgument(exp.Args, ident, receiverInterfaceType, depth+1, maxDepth) {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+func checkArguments(identifiers []string, call *ast.CallExpr) error {
+	for i, a := range call.Args {
+		switch exp := a.(type) {
+		case *ast.Ident:
+			if _, ok := slices.BinarySearch(identifiers, exp.Name); !ok {
+				return fmt.Errorf("unknown argument %s at index %d", exp.Name, i)
+			}
+		case *ast.CallExpr:
+			if err := checkArguments(identifiers, exp); err != nil {
+				return fmt.Errorf("call %s argument error: %w", source.Format(call.Fun), err)
+			}
+		default:
+			return fmt.Errorf("expected only identifier or call expressions as arguments, argument at index %d is: %s", i, source.Format(a))
+		}
+	}
+	return nil
 }
 
 const (

@@ -1659,6 +1659,162 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 `,
 			ExpectedError: "method expects type string but request is *http.Request",
 		},
+		{
+			Name:      "call expression argument with bool last result",
+			Templates: `{{define "GET /{id} F(ctx, Session(response, request), id)"}}{{end}}`,
+			Receiver:  "T",
+			ReceiverPackage: `-- in.go --
+package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type (
+	T struct{}
+	S struct{}
+)
+
+func (T) F(context.Context, S, int) any {return nil}
+
+func (T) Session(http.ResponseWriter, *http.Request) (S, bool) {return Session{}, false}
+
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {}
+`,
+			ExpectedFile: `package main
+
+import (
+	"context"
+	"net/http"
+	"strconv"
+)
+
+type RoutesReceiver interface {
+	Session(http.ResponseWriter, *http.Request) (S, bool)
+	F(context.Context, S, int) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /{id}", func(response http.ResponseWriter, request *http.Request) {
+		ctx := request.Context()
+		result0, ok := receiver.Session(response, request)
+		if !ok {
+			return
+		}
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		id := idParsed
+		data := receiver.F(ctx, result0, id)
+		execute(response, request, true, "GET /{id} F(ctx, Session(response, request), id)", http.StatusOK, data)
+	})
+}
+`,
+		},
+		{
+			Name:      "call expression argument with error last result",
+			Templates: `{{define "GET /{id} F(ctx, Author(id), id)"}}{{end}}`,
+			Receiver:  "T",
+			ReceiverPackage: `-- in.go --
+package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type (
+	T struct{}
+	User struct{}
+)
+
+func (T) F(context.Context, S, int) any {return nil}
+
+func (T) Author(int) (User, error) {return Session{}, nil}
+
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {}
+`,
+			ExpectedFile: `package main
+
+import (
+	"context"
+	"net/http"
+	"strconv"
+)
+
+type RoutesReceiver interface {
+	Author(int) (User, error)
+	F(context.Context, S, int) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /{id}", func(response http.ResponseWriter, request *http.Request) {
+		ctx := request.Context()
+		idParsed, err := strconv.Atoi(request.PathValue("id"))
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		id := idParsed
+		result0, err := receiver.Author(id)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		data := receiver.F(ctx, result0, id)
+		execute(response, request, true, "GET /{id} F(ctx, Author(id), id)", http.StatusOK, data)
+	})
+}
+`,
+		},
+		{
+			Name:      "call expression argument",
+			Templates: `{{define "GET / F(ctx, LoadConfiguration())"}}{{end}}`,
+			Receiver:  "T",
+			ReceiverPackage: `-- in.go --
+package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type (
+	T struct{}
+	Configuration struct{}
+)
+
+func (T) F(context.Context, Configuration) any {return nil}
+
+func (T) LoadConfiguration() (_ Configuration) { return }
+
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {}
+`,
+			ExpectedFile: `package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type RoutesReceiver interface {
+	LoadConfiguration() (_ Configuration)
+	F(context.Context, Configuration) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
+		ctx := request.Context()
+		result0 := receiver.LoadConfiguration()
+		data := receiver.F(ctx, result0)
+		execute(response, request, true, "GET / F(ctx, LoadConfiguration())", http.StatusOK, data)
+	})
+}
+`,
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))

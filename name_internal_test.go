@@ -284,15 +284,32 @@ func TestNewTemplateName(t *testing.T) {
 				assert.ErrorContains(t, err, "failed to parse status code: unknown http.StatusBANANA")
 			},
 		},
+		{
+			Name:     "with call expression parameter",
+			In:       "GET /{id} F(S(response, request), id)",
+			ExpMatch: true,
+		},
+		{
+			Name:     "with call expression parameter and status code",
+			In:       "GET /{id} 200 F(S(response, request), id)",
+			ExpMatch: true,
+		},
+		{
+			Name:     "with call expression parameter",
+			In:       "GET / F(S())",
+			ExpMatch: true,
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)
 			require.Equal(t, tt.ExpMatch, match)
 			if tt.Error != nil {
 				tt.Error(t, err)
-			} else if tt.TemplateName != nil {
+			} else {
 				assert.NoError(t, err)
-				tt.TemplateName(t, pat)
+				if tt.TemplateName != nil {
+					tt.TemplateName(t, pat)
+				}
 			}
 		})
 	}
