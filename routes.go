@@ -57,10 +57,9 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 	file := &ast.File{
 		Name: ast.NewIdent(packageName),
 	}
-	importsDecl := &ast.GenDecl{
+	imports := source.NewImports(&ast.GenDecl{
 		Tok: token.IMPORT,
-	}
-	imports := source.NewImports(importsDecl)
+	})
 
 	receiverMethods := source.StaticTypeMethods(receiverPackage, receiverTypeIdent)
 	receiverInterface := receiverInterfaceType(imports, receiverMethods, templateNames)
@@ -69,13 +68,15 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 		return "", err
 	}
 	imports.SortImports()
-	file.Decls = append(file.Decls, importsDecl)
+
+	file.Decls = append(file.Decls, imports.GenDecl)
 	file.Decls = append(file.Decls, &ast.GenDecl{
 		Tok:   token.TYPE,
 		Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
 	})
 	file.Decls = append(file.Decls, routesFunc)
 	addExecuteFunction(imports, fileSet, receiverPackage, output, file, templatesVariableName)
+
 	return source.Format(file), nil
 }
 
