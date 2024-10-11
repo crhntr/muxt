@@ -20,18 +20,19 @@ func TemplateNames(ts *template.Template) ([]TemplateName, error) {
 	var templateNames []TemplateName
 	routes := make(map[string]struct{})
 	for _, t := range ts.Templates() {
-		pat, err, ok := NewTemplateName(t.Name())
+		templateName, err, ok := NewTemplateName(t.Name())
 		if !ok {
 			continue
 		}
 		if err != nil {
 			return templateNames, err
 		}
-		if _, exists := routes[pat.method+pat.path]; exists {
-			return templateNames, fmt.Errorf("duplicate route pattern: %s", pat.endpoint)
+		if _, exists := routes[templateName.method+templateName.path]; exists {
+			return templateNames, fmt.Errorf("duplicate route pattern: %s", templateName.endpoint)
 		}
-		routes[pat.method+pat.path] = struct{}{}
-		templateNames = append(templateNames, pat)
+		templateName.template = t
+		routes[templateName.method+templateName.path] = struct{}{}
+		templateNames = append(templateNames, templateName)
 	}
 	slices.SortFunc(templateNames, TemplateName.byPathThenMethod)
 	return templateNames, nil
@@ -54,6 +55,8 @@ type TemplateName struct {
 	call *ast.CallExpr
 
 	fileSet *token.FileSet
+
+	template *template.Template
 
 	pathValueNames []string
 }
@@ -114,11 +117,11 @@ var (
 	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(\s+(?P<code>(\d|http\.Status)\S+))?(?P<handler>.*)?$`)
 )
 
-func (def TemplateName) parsePathValueNames() ([]string, error) {
+func (tn TemplateName) parsePathValueNames() ([]string, error) {
 	var result []string
-	for _, match := range pathSegmentPattern.FindAllStringSubmatch(def.path, strings.Count(def.path, "/")) {
+	for _, match := range pathSegmentPattern.FindAllStringSubmatch(tn.path, strings.Count(tn.path, "/")) {
 		n := match[1]
-		if n == "$" && strings.Count(def.path, "$") == 1 && strings.HasSuffix(def.path, "{$}") {
+		if n == "$" && strings.Count(tn.path, "$") == 1 && strings.HasSuffix(tn.path, "{$}") {
 			continue
 		}
 		n = strings.TrimSuffix(n, "...")
@@ -142,19 +145,23 @@ func checkPathValueNames(in []string) error {
 	return nil
 }
 
-func (def TemplateName) String() string  { return def.name }
-func (def TemplateName) Pattern() string { return def.method + " " + def.path }
+func (tn TemplateName) String() string { return tn.name }
+func (tn TemplateName) Pattern() string {
+	return tn.method + " " + tn.path
+}
 
-func (def TemplateName) sameRoute(p TemplateName) bool { return def.endpoint == p.endpoint }
+func (tn TemplateName) sameRoute(p TemplateName) bool {
+	return tn.endpoint == p.endpoint
+}
 
-func (def TemplateName) byPathThenMethod(d TemplateName) int {
-	if n := cmp.Compare(def.path, d.path); n != 0 {
+func (tn TemplateName) byPathThenMethod(d TemplateName) int {
+	if n := cmp.Compare(tn.path, d.path); n != 0 {
 		return n
 	}
-	if m := cmp.Compare(def.method, d.method); m != 0 {
+	if m := cmp.Compare(tn.method, d.method); m != 0 {
 		return m
 	}
-	return cmp.Compare(def.handler, d.handler)
+	return cmp.Compare(tn.handler, d.handler)
 }
 
 func parseHandler(fileSet *token.FileSet, def *TemplateName) error {
