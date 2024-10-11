@@ -54,27 +54,26 @@ func Generate(templateNames []TemplateName, packageName, templatesVariableName, 
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
 	receiverInterfaceIdent = cmp.Or(receiverInterfaceIdent, DefaultReceiverInterfaceName)
 
-	file := &ast.File{
-		Name: ast.NewIdent(packageName),
-	}
-	imports := source.NewImports(&ast.GenDecl{
-		Tok: token.IMPORT,
-	})
+	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
-	receiverMethods := source.StaticTypeMethods(receiverPackage, receiverTypeIdent)
-	receiverInterface := receiverInterfaceType(imports, receiverMethods, templateNames)
+	receiverInterface := receiverInterfaceType(imports, source.StaticTypeMethods(receiverPackage, receiverTypeIdent), templateNames)
 	routesFunc, err := routesFuncDeclaration(imports, routesFunctionName, receiverInterfaceIdent, receiverInterface, receiverPackage, templateNames, log)
 	if err != nil {
 		return "", err
 	}
-	imports.SortImports()
 
-	file.Decls = append(file.Decls, imports.GenDecl)
-	file.Decls = append(file.Decls, &ast.GenDecl{
-		Tok:   token.TYPE,
-		Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
-	})
-	file.Decls = append(file.Decls, routesFunc)
+	imports.SortImports()
+	file := &ast.File{
+		Name: ast.NewIdent(packageName),
+		Decls: []ast.Decl{
+			imports.GenDecl,
+			&ast.GenDecl{
+				Tok:   token.TYPE,
+				Specs: []ast.Spec{&ast.TypeSpec{Name: ast.NewIdent(receiverInterfaceIdent), Type: receiverInterface}},
+			},
+			routesFunc,
+		},
+	}
 	addExecuteFunction(imports, fileSet, receiverPackage, output, file, templatesVariableName)
 
 	return source.Format(file), nil
