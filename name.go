@@ -76,15 +76,16 @@ func newTemplate(in string) (TemplateName, error, bool) {
 		fileSet:    token.NewFileSet(),
 		statusCode: http.StatusOK,
 	}
-	if s := matches[templateNameMux.SubexpIndex("code")]; s != "" {
-		if strings.HasPrefix(s, "http.Status") {
-			code, err := source.HTTPStatusName(s)
+	httpStatusCode := matches[templateNameMux.SubexpIndex("code")]
+	if httpStatusCode != "" {
+		if strings.HasPrefix(httpStatusCode, "http.Status") {
+			code, err := source.HTTPStatusName(httpStatusCode)
 			if err != nil {
 				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
 			}
 			p.statusCode = code
 		} else {
-			code, err := strconv.Atoi(strings.TrimSpace(s))
+			code, err := strconv.Atoi(strings.TrimSpace(httpStatusCode))
 			if err != nil {
 				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
 			}
@@ -106,7 +107,16 @@ func newTemplate(in string) (TemplateName, error, bool) {
 		return TemplateName{}, err, true
 	}
 
-	return p, parseHandler(p.fileSet, &p, pathParameterNames), true
+	err = parseHandler(p.fileSet, &p, pathParameterNames)
+	if err != nil {
+		return p, err, true
+	}
+
+	if httpStatusCode != "" && !p.callWriteHeader() {
+		return p, fmt.Errorf("you can not use %s as an argument and specify an HTTP status code", TemplateNameScopeIdentifierHTTPResponse), true
+	}
+
+	return p, nil, true
 }
 
 var (
@@ -194,6 +204,24 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	def.fun = fun
 	def.call = call
 	return nil
+}
+
+func (tn TemplateName) callWriteHeader() bool {
+	if tn.call == nil {
+		return true
+	}
+	walk := func(args []ast.Expr) bool {
+		for _, arg := range args {
+			switch exp := arg.(type) {
+			case *ast.Ident:
+				if exp.Name == TemplateNameScopeIdentifierHTTPResponse {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return walk(tn.call.Args)
 }
 
 const (

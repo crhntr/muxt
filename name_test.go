@@ -69,6 +69,12 @@ func TestPattern_parseHandler(t *testing.T) {
 			ExpMatch: true,
 			ExpErr:   "unexpected ellipsis",
 		},
+		{
+			Name:     "response arg and status code",
+			In:       "GET /{fileName} 201 F(response)",
+			ExpMatch: true,
+			ExpErr:   "you can not use response as an argument and specify an HTTP status code",
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			_, err, ok := muxt.NewTemplateName(tt.In)

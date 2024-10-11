@@ -170,13 +170,12 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 			formStruct = s
 		}
 	}
-	writeHeader := true
 	for i, a := range tn.call.Args {
 		arg := a.(*ast.Ident)
 		switch arg.Name {
 		case TemplateNameScopeIdentifierHTTPResponse:
-			writeHeader = false
-			fallthrough
+			call.Args = append(call.Args, ast.NewIdent(arg.Name))
+			imports.AddNetHTTP()
 		case TemplateNameScopeIdentifierHTTPRequest:
 			call.Args = append(call.Args, ast.NewIdent(arg.Name))
 			imports.AddNetHTTP()
@@ -370,7 +369,7 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 	} else {
 		lit.Body.List = append(lit.Body.List, &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}})
 	}
-	lit.Body.List = append(lit.Body.List, tn.executeCall(source.HTTPStatusCode(imports, tn.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
+	lit.Body.List = append(lit.Body.List, tn.executeCall(source.HTTPStatusCode(imports, tn.statusCode), ast.NewIdent(dataVarIdent), tn.callWriteHeader()))
 	return lit, nil
 }
 
