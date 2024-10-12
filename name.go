@@ -178,7 +178,7 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	}
 	call, ok := e.(*ast.CallExpr)
 	if !ok {
-		return fmt.Errorf("expected call, got: %s", source.Format(e))
+		return fmt.Errorf("expected call expression, got: %s", source.Format(e))
 	}
 	fun, ok := call.Fun.(*ast.Ident)
 	if !ok {

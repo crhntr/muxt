@@ -300,11 +300,19 @@ func TestNewTemplateName(t *testing.T) {
 			ExpMatch: true,
 		},
 		{
-			Name:     "with call expression parameter and status code",
+			Name:     "when the path parameter is already in scope",
 			In:       "GET /{response} 200 F(response)",
 			ExpMatch: true,
 			Error: func(t *testing.T, err error) {
 				assert.ErrorContains(t, err, "the name response is not allowed as a path parameter it is already in scope")
+			},
+		},
+		{
+			Name:     "when the expression is not a call",
+			In:       "GET / F",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "expected call expression, got: F")
 			},
 		},
 	} {
