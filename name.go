@@ -143,7 +143,7 @@ func checkPathValueNames(in []string) error {
 			return fmt.Errorf("forbidden repeated path parameter names: found at least 2 path parameters with name %q", n)
 		}
 		if slices.Contains(patternScope(), n) {
-			return fmt.Errorf("the name %s is not allowed as a path paramenter it is alredy in scope", n)
+			return fmt.Errorf("the name %s is not allowed as a path parameter it is already in scope", n)
 		}
 	}
 	return nil
