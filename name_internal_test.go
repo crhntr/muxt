@@ -315,6 +315,14 @@ func TestNewTemplateName(t *testing.T) {
 				assert.ErrorContains(t, err, "expected call expression, got: F")
 			},
 		},
+		{
+			Name:     "when an identifier is not defined",
+			In:       "GET / F(unknown)",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "unknown argument unknown")
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)
