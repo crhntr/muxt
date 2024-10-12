@@ -1815,6 +1815,51 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 }
 `,
 		},
+		{
+			Name:      "call expression argument",
+			Templates: `{{define "GET / F(ctx, Headers(response))"}}{{end}}`,
+			Receiver:  "T",
+			ReceiverPackage: `-- in.go --
+package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type (
+	T struct{}
+	Configuration struct{}
+)
+
+func (T) F(context.Context, any) any {return nil}
+
+func (T) Headers(response http.ResponseWriter) any { return }
+
+func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {}
+`,
+			ExpectedFile: `package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type RoutesReceiver interface {
+	Headers(response http.ResponseWriter) any
+	F(context.Context, any) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
+		ctx := request.Context()
+		result0 := receiver.Headers(response)
+		data := receiver.F(ctx, result0)
+		execute(response, request, false, "GET / F(ctx, Headers(response))", http.StatusOK, data)
+	})
+}
+`,
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))
