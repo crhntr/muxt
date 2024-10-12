@@ -299,6 +299,14 @@ func TestNewTemplateName(t *testing.T) {
 			In:       "GET / F(S())",
 			ExpMatch: true,
 		},
+		{
+			Name:     "with call expression parameter and status code",
+			In:       "GET /{response} 200 F(response)",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "the name response is not allowed as a path paramenter it is alredy in scope")
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)
