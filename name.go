@@ -230,9 +230,6 @@ func hasIdentArgument(args []ast.Expr, ident string, receiverInterfaceType *ast.
 					}
 				}
 			}
-			if hasIdentArgument(exp.Args, ident, receiverInterfaceType, depth+1, maxDepth) {
-				return true
-			}
 		}
 	}
 	return false
