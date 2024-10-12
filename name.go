@@ -150,13 +150,6 @@ func checkPathValueNames(in []string) error {
 }
 
 func (tn TemplateName) String() string { return tn.name }
-func (tn TemplateName) Pattern() string {
-	return tn.method + " " + tn.path
-}
-
-func (tn TemplateName) sameRoute(p TemplateName) bool {
-	return tn.endpoint == p.endpoint
-}
 
 func (tn TemplateName) byPathThenMethod(d TemplateName) int {
 	if n := cmp.Compare(tn.path, d.path); n != 0 {

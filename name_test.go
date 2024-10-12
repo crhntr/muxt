@@ -77,11 +77,12 @@ func TestPattern_parseHandler(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			_, err, ok := muxt.NewTemplateName(tt.In)
+			tn, err, ok := muxt.NewTemplateName(tt.In)
 			if assert.Equal(t, tt.ExpMatch, ok) {
 				if tt.ExpErr != "" {
 					assert.ErrorContains(t, err, tt.ExpErr)
 				} else {
+					assert.Equal(t, tt.In, tn.String())
 					assert.NoError(t, err)
 				}
 			}
