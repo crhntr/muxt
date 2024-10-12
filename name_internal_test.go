@@ -331,6 +331,14 @@ func TestNewTemplateName(t *testing.T) {
 				assert.ErrorContains(t, err, "expected only identifier or call expressions as arguments, argument at index 0 is: 1 + 2")
 			},
 		},
+		{
+			Name:     "wrong argument call argument expression type",
+			In:       "GET / F(G(1+2))",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "expected only identifier or call expressions as arguments, argument at index 0 is: 1 + 2")
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)
