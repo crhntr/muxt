@@ -99,15 +99,12 @@ func newTemplate(in string) (TemplateName, error, bool) {
 	case "", http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 	}
 
-	pathParameterNames, err := p.parsePathValueNames()
-	if err != nil {
-		return TemplateName{}, err, true
-	}
+	pathParameterNames := p.parsePathValueNames()
 	if err := checkPathValueNames(pathParameterNames); err != nil {
 		return TemplateName{}, err, true
 	}
 
-	err = parseHandler(p.fileSet, &p, pathParameterNames)
+	err := parseHandler(p.fileSet, &p, pathParameterNames)
 	if err != nil {
 		return p, err, true
 	}
@@ -124,7 +121,7 @@ var (
 	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(\s+(?P<code>(\d|http\.Status)\S+))?(?P<handler>.*)?$`)
 )
 
-func (tn TemplateName) parsePathValueNames() ([]string, error) {
+func (tn TemplateName) parsePathValueNames() []string {
 	var result []string
 	for _, match := range pathSegmentPattern.FindAllStringSubmatch(tn.path, strings.Count(tn.path, "/")) {
 		n := match[1]
@@ -134,7 +131,7 @@ func (tn TemplateName) parsePathValueNames() ([]string, error) {
 		n = strings.TrimSuffix(n, "...")
 		result = append(result, n)
 	}
-	return result, nil
+	return result
 }
 
 func checkPathValueNames(in []string) error {
