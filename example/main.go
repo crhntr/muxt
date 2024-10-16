@@ -33,6 +33,7 @@ func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
 	}
 	row := b.data[fruitID]
 	row.Value = form.Value
+	b.data[fruitID] = row
 	return EditRowPage{Error: nil, Row: row}
 }
 
@@ -44,6 +45,7 @@ func (b *Backend) GetFormEditRow(fruitID int) EditRowPage {
 }
 
 type Row struct {
+	ID    int
 	Name  string
 	Value int
 }
@@ -55,9 +57,9 @@ func (b *Backend) List(_ context.Context) []Row { return b.data }
 func main() {
 	backend := &Backend{
 		data: []Row{
-			{Name: "Peach", Value: 10},
-			{Name: "Plum", Value: 20},
-			{Name: "Pineapple", Value: 2},
+			{ID: 0, Name: "Peach", Value: 10},
+			{ID: 1, Name: "Plum", Value: 20},
+			{ID: 2, Name: "Pineapple", Value: 2},
 		},
 	}
 	mux := http.NewServeMux()

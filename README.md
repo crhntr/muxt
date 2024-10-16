@@ -11,78 +11,86 @@ Given [main.go](#main_go) and [index.gohtml](#index_gohtml), muxt will generate 
 <html lang="en">
 {{block "head" "example"}}
 <head>
-    <meta charset='UTF-8'/>
-    <title>{{.}}</title>
-    <script src='https://unpkg.com/htmx.org@2.0.1' integrity='sha384-QWGpdj554B4ETpJJC9z+ZHJcA/i59TyjxEPXiiUgN2WmTyV5OEZWCD6gQhgkdpB/' crossorigin='anonymous'></script>
-    <script src='https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js'></script>
+	<meta charset='UTF-8'/>
+	<title>{{.}}</title>
+	<script src='https://unpkg.com/htmx.org@2.0.1' integrity='sha384-QWGpdj554B4ETpJJC9z+ZHJcA/i59TyjxEPXiiUgN2WmTyV5OEZWCD6gQhgkdpB/' crossorigin='anonymous'></script>
+	<script src='https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js'></script>
 
-    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'>
+	<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'>
 </head>
 {{end}}
 <body hx-ext='response-targets'>
 <main class='container'>
-    <table>
-        <thead>
-        <tr>
-            <th>Fruit</th>
-            <th>Count</th>
-        </tr>
-        </thead>
-        <tbody hx-target="closest tr" hx-swap="outerHTML">
+	<table>
+		<thead>
+		<tr>
+			<th>Fruit</th>
+			<th>Count</th>
+		</tr>
+		</thead>
+		<tbody hx-target="closest tr" hx-swap="outerHTML">
 
-        {{- define "fruit row" -}}
-        <tr>
-            <td>{{ .Name }}</td>
-            <td id="count" hx-get='/fruits/{{.Name}}/edit'>{{ .Value }}</td>
-        </tr>
-        {{- end -}}
+		{{- define "view-row" -}}
+		<tr>
+			<td>{{ .Name }}</td>
+			<td id="count" hx-get='/fruits/{{.ID}}/edit'>{{ .Value }}</td>
+		</tr>
+		{{- end -}}
 
-        {{range .}}
-        {{template "fruit row" .}}
-        {{end}}
+		{{range .}}
+		{{template "view-row" .}}
+		{{end}}
 
-        {{- define "GET /{$} List(ctx)" -}}
-        {{template "index.gohtml" .}}
-        {{- end -}}
+		{{define "edit-row" -}}
+		<tr>
+			<td>{{ .Row.Name }}</td>
+			<td>
+				<form hx-patch='/fruits/{{.Row.ID}}'>
+					{{block "count" . -}}
+					<input aria-label='Count' type='number' name='count' value='{{ .Row.Value }}' step='1' min='0'>
+					{{- end}}
+					<input type='submit' value='Update'>
 
-        {{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
-        <tr>
-            <td>{{ .Row.Name }}</td>
-            <td>
-                <form hx-patch='/fruits/{{.Row.Name}}'>
-                    <input aria-label='Count' type='number' name='count' value='{{ .Row.Value }}' step='1' min='0'>
-                    <input type='submit' value='Update'>
-                </form>
-                <p id='error'>{{.Error}}</p>
-            </td>
-        </tr>
-        {{- end -}}
+					<pre>{{.}}</pre>
+				</form>
+				<p id='error'>{{.Error}}</p>
+			</td>
+		</tr>
+		{{- end}}
 
-        {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
-        {{- if .Error -}}
-        {{template  "GET /fruits/{id}/edit GetFormEditRow(id)" .}}
-        {{- else -}}
-        {{template "fruit row" .Row}}
-        {{- end -}}
-        {{ end -}}
+		{{- define "GET /{$} List(ctx)" -}}
+		{{template "index.gohtml" .}}
+		{{- end -}}
 
-        </tbody>
-    </table>
+		{{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
+		{{template "edit-row" .}}
+		{{- end -}}
+
+		{{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
+		{{- if .Error -}}
+		{{template "edit-row" .}}
+		{{- else -}}
+		{{template "view-row" .Row}}
+		{{- end -}}
+		{{ end -}}
+
+		</tbody>
+	</table>
 </main>
 </body>
 </html>
 
-{{define "GET /help"}}
+{{- define "GET /help" -}}
 <!DOCTYPE html>
 <html lang='us-en'>
 {{template "head" "Help"}}
 <body>
 <main class='container'>
-    Hello, help!
+	Hello, help!
 </main>
 </body>
 </html>
-{{end}}
+{{- end -}}
 ```
 
 ### <span id='main_go'></span> main.go
@@ -116,7 +124,7 @@ type EditRowPage struct {
 }
 
 type EditRow struct {
-	Value int `name:"count"`
+	Value int `name:"count" template:"count"`
 }
 
 func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
@@ -125,6 +133,7 @@ func (b *Backend) SubmitFormEditRow(fruitID int, form EditRow) EditRowPage {
 	}
 	row := b.data[fruitID]
 	row.Value = form.Value
+	b.data[fruitID] = row
 	return EditRowPage{Error: nil, Row: row}
 }
 
@@ -136,20 +145,21 @@ func (b *Backend) GetFormEditRow(fruitID int) EditRowPage {
 }
 
 type Row struct {
+	ID    int
 	Name  string
 	Value int
 }
 
 func (b *Backend) List(_ context.Context) []Row { return b.data }
 
-//go:generate muxt generate --receiver-static-type Backend
+//go:generate go run ../cmd/muxt generate --receiver-static-type Backend
 
 func main() {
 	backend := &Backend{
 		data: []Row{
-			{Name: "Peach", Value: 10},
-			{Name: "Plum", Value: 20},
-			{Name: "Pineapple", Value: 2},
+			{ID: 0, Name: "Peach", Value: 10},
+			{ID: 1, Name: "Plum", Value: 20},
+			{ID: 2, Name: "Pineapple", Value: 2},
 		},
 	}
 	mux := http.NewServeMux()
@@ -192,6 +202,10 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			value, err := strconv.Atoi(request.FormValue("count"))
 			if err != nil {
 				http.Error(response, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if value < 0 {
+				http.Error(response, "count must not be less than 0", http.StatusBadRequest)
 				return
 			}
 			form.Value = value
