@@ -191,6 +191,7 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	def.call = call
 	return nil
 }
+
 func (tn TemplateName) callWriteHeader(receiverInterfaceType *ast.InterfaceType) bool {
 	if tn.call == nil {
 		return true

@@ -842,7 +842,8 @@ func executeFuncDecl(imports *source.Imports, templatesVariableIdent string) *as
 							Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
 							Args: []ast.Expr{ast.NewIdent("code")},
 						}},
-					}}},
+					}},
+				},
 				&ast.AssignStmt{
 					Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
 					Tok: token.ASSIGN,

@@ -1,18 +1,19 @@
 package source_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"golang.org/x/tools/go/packages"
 	"log"
 	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/txtar"
 
 	"github.com/crhntr/muxt/internal/source"
