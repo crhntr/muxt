@@ -17,7 +17,8 @@ func TestIterateFieldTypes(t *testing.T) {
 		exp, err := parser.ParseExpr(`func (a, b, c int, x, y, z float64) {}`)
 		require.NoError(t, err)
 		expIndex := 0
-		for gotIndex, _ := range source.IterateFieldTypes(exp.(*ast.FuncLit).Type.Params.List) {
+		for gotIndex, tp := range source.IterateFieldTypes(exp.(*ast.FuncLit).Type.Params.List) {
+			assert.NotNil(t, tp)
 			assert.Equal(t, expIndex, gotIndex)
 			expIndex++
 		}
