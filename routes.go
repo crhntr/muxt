@@ -49,7 +49,7 @@ const (
 	errIdent = "err"
 )
 
-func Generate(templateNames []TemplateName, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, receiverInterfaceIdent, output string, fileSet *token.FileSet, receiverPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(templateNames []Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, receiverInterfaceIdent, output string, fileSet *token.FileSet, receiverPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
@@ -97,7 +97,7 @@ func addExecuteFunction(imports *source.Imports, fileSet *token.FileSet, files [
 	file.Decls = append(file.Decls, executeFuncDecl(imports, templatesVariableName))
 }
 
-func routesFuncDeclaration(imports *source.Imports, routesFunctionName, receiverInterfaceIdent string, receiverInterfaceType *ast.InterfaceType, receiverPackage []*ast.File, templateNames []TemplateName, log *log.Logger) (*ast.FuncDecl, error) {
+func routesFuncDeclaration(imports *source.Imports, routesFunctionName, receiverInterfaceIdent string, receiverInterfaceType *ast.InterfaceType, receiverPackage []*ast.File, templateNames []Template, log *log.Logger) (*ast.FuncDecl, error) {
 	routes := &ast.FuncDecl{
 		Name: ast.NewIdent(routesFunctionName),
 		Type: routesFuncType(imports, ast.NewIdent(receiverInterfaceIdent)),
@@ -122,7 +122,7 @@ func routesFuncDeclaration(imports *source.Imports, routesFunctionName, receiver
 	return routes, nil
 }
 
-func receiverInterfaceType(imports *source.Imports, receiverMethods *ast.FieldList, templateNames []TemplateName) *ast.InterfaceType {
+func receiverInterfaceType(imports *source.Imports, receiverMethods *ast.FieldList, templateNames []Template) *ast.InterfaceType {
 	interfaceMethods := new(ast.FieldList)
 
 	for _, tn := range templateNames {
@@ -162,34 +162,34 @@ func receiverInterfaceType(imports *source.Imports, receiverMethods *ast.FieldLi
 	return &ast.InterfaceType{Methods: interfaceMethods}
 }
 
-func (tn TemplateName) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
+func (t Template) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
 			X:   ast.NewIdent(muxVarIdent),
 			Sel: ast.NewIdent(httpHandleFuncIdent),
 		},
-		Args: []ast.Expr{source.String(tn.endpoint), handlerFuncLit},
+		Args: []ast.Expr{source.String(t.endpoint), handlerFuncLit},
 	}}
 }
 
-func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *ast.InterfaceType, files []*ast.File) (*ast.FuncLit, error) {
-	methodField, ok := source.FindFieldWithName(receiverInterfaceType.Methods, tn.fun.Name)
+func (t Template) funcLit(imports *source.Imports, receiverInterfaceType *ast.InterfaceType, files []*ast.File) (*ast.FuncLit, error) {
+	methodField, ok := source.FindFieldWithName(receiverInterfaceType.Methods, t.fun.Name)
 	if !ok {
-		log.Fatalf("receiver does not have a method declaration for %s", tn.fun.Name)
+		log.Fatalf("receiver does not have a method declaration for %s", t.fun.Name)
 	}
 	method := methodField.Type.(*ast.FuncType)
 	lit := &ast.FuncLit{
 		Type: httpHandlerFuncType(imports),
 		Body: &ast.BlockStmt{},
 	}
-	call := &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(receiverIdent), Sel: ast.NewIdent(tn.fun.Name)}}
-	if method.Params.NumFields() != len(tn.call.Args) {
-		return nil, errWrongNumberOfArguments(tn, method)
+	call := &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(receiverIdent), Sel: ast.NewIdent(t.fun.Name)}}
+	if method.Params.NumFields() != len(t.call.Args) {
+		return nil, errWrongNumberOfArguments(t, method)
 	}
 	argTypes := slices.Collect(fieldListTypes(method.Params))
 	resultArgCount := 0
 	var handledIdents []string
-	for i, arg := range tn.call.Args {
+	for i, arg := range t.call.Args {
 		argType := argTypes[i]
 		switch exp := arg.(type) {
 		case *ast.Ident:
@@ -197,7 +197,7 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 			if slices.Contains(handledIdents, exp.Name) {
 				continue
 			}
-			statements, err := tn.identifierArgument(imports, i, exp, argType, method, files)
+			statements, err := t.identifierArgument(imports, i, exp, argType, method, files)
 			if err != nil {
 				return nil, err
 			}
@@ -228,7 +228,7 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 					if slices.Contains(handledIdents, callArgExp.Name) {
 						continue
 					}
-					parseStatements, err := tn.identifierArgument(imports, j, callArgExp, callArgType, callMethod, files)
+					parseStatements, err := t.identifierArgument(imports, j, callArgExp, callArgType, callMethod, files)
 					if err != nil {
 						return nil, err
 					}
@@ -238,7 +238,7 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 			}
 			resultVar := "result" + strconv.Itoa(resultArgCount)
 
-			receiverCallStatements, err := tn.callReceiverMethod(imports, resultVar, callMethod, callCall)
+			receiverCallStatements, err := t.callReceiverMethod(imports, resultVar, callMethod, callCall)
 			if err != nil {
 				return nil, err
 			}
@@ -248,22 +248,22 @@ func (tn TemplateName) funcLit(imports *source.Imports, receiverInterfaceType *a
 		}
 	}
 	const dataVarIdent = "data"
-	receiverCallStatements, err := tn.callReceiverMethod(imports, dataVarIdent, method, call)
+	receiverCallStatements, err := t.callReceiverMethod(imports, dataVarIdent, method, call)
 	if err != nil {
 		return nil, err
 	}
 	lit.Body.List = append(lit.Body.List, receiverCallStatements...)
 
-	lit.Body.List = append(lit.Body.List, tn.executeCall(source.HTTPStatusCode(imports, tn.statusCode), ast.NewIdent(dataVarIdent), tn.callWriteHeader(receiverInterfaceType)))
+	lit.Body.List = append(lit.Body.List, t.executeCall(source.HTTPStatusCode(imports, t.statusCode), ast.NewIdent(dataVarIdent), t.callWriteHeader(receiverInterfaceType)))
 	return lit, nil
 }
 
-func (tn TemplateName) callReceiverMethod(imports *source.Imports, dataVarIdent string, method *ast.FuncType, call *ast.CallExpr) ([]ast.Stmt, error) {
+func (t Template) callReceiverMethod(imports *source.Imports, dataVarIdent string, method *ast.FuncType, call *ast.CallExpr) ([]ast.Stmt, error) {
 	const (
 		okIdent = "ok"
 	)
 	if method.Results == nil || len(method.Results.List) == 0 {
-		return nil, fmt.Errorf("method for endpoint %q has no results it should have one or two", tn)
+		return nil, fmt.Errorf("method for endpoint %q has no results it should have one or two", t)
 	} else if len(method.Results.List) > 1 {
 		_, lastResultType, ok := source.FieldIndex(method.Results.List, method.Results.NumFields()-1)
 		if !ok {
@@ -308,7 +308,7 @@ func (tn TemplateName) callReceiverMethod(imports *source.Imports, dataVarIdent 
 	}
 }
 
-func (tn TemplateName) identifierArgument(imports *source.Imports, i int, arg *ast.Ident, argType ast.Expr, method *ast.FuncType, files []*ast.File) ([]ast.Stmt, error) {
+func (t Template) identifierArgument(imports *source.Imports, i int, arg *ast.Ident, argType ast.Expr, method *ast.FuncType, files []*ast.File) ([]ast.Stmt, error) {
 	switch arg.Name {
 	case TemplateNameScopeIdentifierHTTPResponse:
 		if !matchSelectorIdents(argType, imports.AddNetHTTP(), httpResponseWriterIdent, false) {
@@ -355,7 +355,7 @@ func (tn TemplateName) identifierArgument(imports *source.Imports, i int, arg *a
 						Sel: ast.NewIdent(name.Name),
 					}
 
-					fieldTemplate := formInputTemplate(field, tn.template)
+					fieldTemplate := formInputTemplate(field, t.template)
 
 					errCheck := func(exp ast.Expr) ast.Stmt {
 						return &ast.ExprStmt{
@@ -505,10 +505,10 @@ func formInputTemplate(field *ast.Field, t *template.Template) *template.Templat
 	return t
 }
 
-func (tn TemplateName) methodField(imports *source.Imports) *ast.Field {
+func (t Template) methodField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent(tn.fun.Name)},
-		Type:  generateFuncTypeFromArguments(imports, tn.call),
+		Names: []*ast.Ident{ast.NewIdent(t.fun.Name)},
+		Type:  generateFuncTypeFromArguments(imports, t.call),
 	}
 }
 
@@ -553,7 +553,7 @@ func fieldListTypes(fieldList *ast.FieldList) func(func(ast.Expr) bool) {
 	}
 }
 
-func errWrongNumberOfArguments(def TemplateName, method *ast.FuncType) error {
+func errWrongNumberOfArguments(def Template, method *ast.FuncType) error {
 	return fmt.Errorf("handler %s expects %d arguments but call %s has %d", source.Format(&ast.FuncDecl{Name: ast.NewIdent(def.fun.Name), Type: method}), method.Params.NumFields(), def.handler, len(def.call.Args))
 }
 
@@ -744,29 +744,29 @@ func appendAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func (tn TemplateName) executeCall(status, data ast.Expr, writeHeader bool) *ast.ExprStmt {
+func (t Template) executeCall(status, data ast.Expr, writeHeader bool) *ast.ExprStmt {
 	return &ast.ExprStmt{X: &ast.CallExpr{
 		Fun: ast.NewIdent(executeIdentName),
 		Args: []ast.Expr{
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 			ast.NewIdent(strconv.FormatBool(writeHeader)),
-			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(tn.name)},
+			&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(t.name)},
 			status,
 			data,
 		},
 	}}
 }
 
-func (tn TemplateName) httpRequestReceiverTemplateHandlerFunc(imports *source.Imports, statusCode int) *ast.FuncLit {
+func (t Template) httpRequestReceiverTemplateHandlerFunc(imports *source.Imports, statusCode int) *ast.FuncLit {
 	return &ast.FuncLit{
 		Type: httpHandlerFuncType(imports),
-		Body: &ast.BlockStmt{List: []ast.Stmt{tn.executeCall(source.HTTPStatusCode(imports, statusCode), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
+		Body: &ast.BlockStmt{List: []ast.Stmt{t.executeCall(source.HTTPStatusCode(imports, statusCode), ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), true)}},
 	}
 }
 
-func (tn TemplateName) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent string) bool {
-	if funcDecl == nil || funcDecl.Name == nil || funcDecl.Name.Name != tn.fun.Name ||
+func (t Template) matchReceiver(funcDecl *ast.FuncDecl, receiverTypeIdent string) bool {
+	if funcDecl == nil || funcDecl.Name == nil || funcDecl.Name.Name != t.fun.Name ||
 		funcDecl.Recv == nil || len(funcDecl.Recv.List) < 1 {
 		return false
 	}

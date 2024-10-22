@@ -1863,7 +1863,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))
-			templateNames, err := muxt.TemplateNames(ts)
+			templateNames, err := muxt.Templates(ts)
 			require.NoError(t, err)
 			logs := log.New(io.Discard, "", 0)
 			set := token.NewFileSet()

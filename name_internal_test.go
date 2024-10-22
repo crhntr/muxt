@@ -13,7 +13,7 @@ import (
 func TestTemplateName_ByPathThenMethod(t *testing.T) {
 	for _, tt := range []struct {
 		Name    string
-		In, Exp []TemplateName
+		In, Exp []Template
 	}{
 		{
 			Name: "sort by path then method",
@@ -88,7 +88,7 @@ func TestTemplateName_ByPathThenMethod(t *testing.T) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			slices.SortFunc(tt.In, TemplateName.byPathThenMethod)
+			slices.SortFunc(tt.In, Template.byPathThenMethod)
 			assert.Equal(t, stringList(tt.Exp), stringList(tt.In))
 		})
 	}
@@ -102,8 +102,8 @@ func stringList[T fmt.Stringer](in []T) []string {
 	return out
 }
 
-func mustNewTemplateName(in ...string) []TemplateName {
-	var result []TemplateName
+func mustNewTemplateName(in ...string) []Template {
+	var result []Template
 	for _, n := range in {
 		p, err, _ := NewTemplateName(n)
 		if err != nil {
@@ -119,14 +119,14 @@ func TestNewTemplateName(t *testing.T) {
 		Name         string
 		In           string
 		ExpMatch     bool
-		TemplateName func(t *testing.T, pat TemplateName)
+		TemplateName func(t *testing.T, pat Template)
 		Error        func(t *testing.T, err error)
 	}{
 		{
 			Name:     "get root",
 			In:       "GET /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodGet, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -138,7 +138,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "multiple spaces after method",
 			In:       "GET  /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodGet, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -150,7 +150,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "post root",
 			In:       "POST /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodPost, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -162,7 +162,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "patch root",
 			In:       "PATCH /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodPatch, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -174,7 +174,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "delete root",
 			In:       "DELETE /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodDelete, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -186,7 +186,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "put root",
 			In:       "PUT /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodPut, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
@@ -198,7 +198,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "with end of path wildcard",
 			In:       "PUT /ping/pong/{$}",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.MethodPut, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/ping/pong/{$}", pat.path)
@@ -234,7 +234,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:         "path end sentential in the middle is not permitted",
 			In:           "GET /x/{$} F()",
 			ExpMatch:     true,
-			TemplateName: func(t *testing.T, pat TemplateName) {},
+			TemplateName: func(t *testing.T, pat Template) {},
 		},
 		{
 			Name:     "duplicate path parameter name",
@@ -248,7 +248,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "with status code",
 			In:       "POST / 202",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.StatusAccepted, pat.statusCode)
 			},
 		},
@@ -256,7 +256,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "without status code",
 			In:       "POST /",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.StatusOK, pat.statusCode)
 			},
 		},
@@ -264,7 +264,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "with status code and handler",
 			In:       "POST / 202 F()",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.StatusAccepted, pat.statusCode)
 			},
 		},
@@ -272,7 +272,7 @@ func TestNewTemplateName(t *testing.T) {
 			Name:     "with status code constant",
 			In:       "POST / http.StatusTeapot F()",
 			ExpMatch: true,
-			TemplateName: func(t *testing.T, pat TemplateName) {
+			TemplateName: func(t *testing.T, pat Template) {
 				assert.Equal(t, http.StatusTeapot, pat.statusCode)
 			},
 		},

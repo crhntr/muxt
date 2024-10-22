@@ -102,12 +102,12 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	templateNames, err := muxt.TemplateNames(ts)
+	templates, err := muxt.Templates(ts)
 	if err != nil {
 		return err
 	}
 	out := log.New(stdout, "", 0)
-	s, err := muxt.Generate(templateNames, g.goPackage, g.templatesVariable, g.routesFunction, g.receiverIdent, g.receiverInterfaceIdent, g.outputFilename, g.Package.Fset, g.Package.Syntax, out)
+	s, err := muxt.Generate(templates, g.goPackage, g.templatesVariable, g.routesFunction, g.receiverIdent, g.receiverInterfaceIdent, g.outputFilename, g.Package.Fset, g.Package.Syntax, out)
 	if err != nil {
 		return err
 	}

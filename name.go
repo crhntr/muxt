@@ -16,29 +16,29 @@ import (
 	"github.com/crhntr/muxt/internal/source"
 )
 
-func TemplateNames(ts *template.Template) ([]TemplateName, error) {
-	var templateNames []TemplateName
+func Templates(ts *template.Template) ([]Template, error) {
+	var templateNames []Template
 	routes := make(map[string]struct{})
 	for _, t := range ts.Templates() {
-		templateName, err, ok := NewTemplateName(t.Name())
+		mt, err, ok := NewTemplateName(t.Name())
 		if !ok {
 			continue
 		}
 		if err != nil {
 			return templateNames, err
 		}
-		if _, exists := routes[templateName.method+templateName.path]; exists {
-			return templateNames, fmt.Errorf("duplicate route pattern: %s", templateName.endpoint)
+		if _, exists := routes[mt.method+mt.path]; exists {
+			return templateNames, fmt.Errorf("duplicate route pattern: %s", mt.endpoint)
 		}
-		templateName.template = t
-		routes[templateName.method+templateName.path] = struct{}{}
-		templateNames = append(templateNames, templateName)
+		mt.template = t
+		routes[mt.method+mt.path] = struct{}{}
+		templateNames = append(templateNames, mt)
 	}
-	slices.SortFunc(templateNames, TemplateName.byPathThenMethod)
+	slices.SortFunc(templateNames, Template.byPathThenMethod)
 	return templateNames, nil
 }
 
-type TemplateName struct {
+type Template struct {
 	// name has the full unaltered template name
 	name string
 
@@ -59,14 +59,14 @@ type TemplateName struct {
 	template *template.Template
 }
 
-func NewTemplateName(in string) (TemplateName, error, bool) { return newTemplate(in) }
+func NewTemplateName(in string) (Template, error, bool) { return newTemplate(in) }
 
-func newTemplate(in string) (TemplateName, error, bool) {
+func newTemplate(in string) (Template, error, bool) {
 	if !templateNameMux.MatchString(in) {
-		return TemplateName{}, nil, false
+		return Template{}, nil, false
 	}
 	matches := templateNameMux.FindStringSubmatch(in)
-	p := TemplateName{
+	p := Template{
 		name:       in,
 		method:     matches[templateNameMux.SubexpIndex("method")],
 		host:       matches[templateNameMux.SubexpIndex("host")],
@@ -81,13 +81,13 @@ func newTemplate(in string) (TemplateName, error, bool) {
 		if strings.HasPrefix(httpStatusCode, "http.Status") {
 			code, err := source.HTTPStatusName(httpStatusCode)
 			if err != nil {
-				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+				return Template{}, fmt.Errorf("failed to parse status code: %w", err), true
 			}
 			p.statusCode = code
 		} else {
 			code, err := strconv.Atoi(strings.TrimSpace(httpStatusCode))
 			if err != nil {
-				return TemplateName{}, fmt.Errorf("failed to parse status code: %w", err), true
+				return Template{}, fmt.Errorf("failed to parse status code: %w", err), true
 			}
 			p.statusCode = code
 		}
@@ -101,7 +101,7 @@ func newTemplate(in string) (TemplateName, error, bool) {
 
 	pathParameterNames := p.parsePathValueNames()
 	if err := checkPathValueNames(pathParameterNames); err != nil {
-		return TemplateName{}, err, true
+		return Template{}, err, true
 	}
 
 	err := parseHandler(p.fileSet, &p, pathParameterNames)
@@ -121,11 +121,11 @@ var (
 	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(\s+(?P<code>(\d|http\.Status)\S+))?(?P<handler>.*)?$`)
 )
 
-func (tn TemplateName) parsePathValueNames() []string {
+func (t Template) parsePathValueNames() []string {
 	var result []string
-	for _, match := range pathSegmentPattern.FindAllStringSubmatch(tn.path, strings.Count(tn.path, "/")) {
+	for _, match := range pathSegmentPattern.FindAllStringSubmatch(t.path, strings.Count(t.path, "/")) {
 		n := match[1]
-		if n == "$" && strings.Count(tn.path, "$") == 1 && strings.HasSuffix(tn.path, "{$}") {
+		if n == "$" && strings.Count(t.path, "$") == 1 && strings.HasSuffix(t.path, "{$}") {
 			continue
 		}
 		n = strings.TrimSuffix(n, "...")
@@ -149,19 +149,19 @@ func checkPathValueNames(in []string) error {
 	return nil
 }
 
-func (tn TemplateName) String() string { return tn.name }
+func (t Template) String() string { return t.name }
 
-func (tn TemplateName) byPathThenMethod(d TemplateName) int {
-	if n := cmp.Compare(tn.path, d.path); n != 0 {
+func (t Template) byPathThenMethod(d Template) int {
+	if n := cmp.Compare(t.path, d.path); n != 0 {
 		return n
 	}
-	if m := cmp.Compare(tn.method, d.method); m != 0 {
+	if m := cmp.Compare(t.method, d.method); m != 0 {
 		return m
 	}
-	return cmp.Compare(tn.handler, d.handler)
+	return cmp.Compare(t.handler, d.handler)
 }
 
-func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames []string) error {
+func parseHandler(fileSet *token.FileSet, def *Template, pathParameterNames []string) error {
 	if def.handler == "" {
 		return nil
 	}
@@ -192,11 +192,11 @@ func parseHandler(fileSet *token.FileSet, def *TemplateName, pathParameterNames 
 	return nil
 }
 
-func (tn TemplateName) callWriteHeader(receiverInterfaceType *ast.InterfaceType) bool {
-	if tn.call == nil {
+func (t Template) callWriteHeader(receiverInterfaceType *ast.InterfaceType) bool {
+	if t.call == nil {
 		return true
 	}
-	return !hasIdentArgument(tn.call.Args, TemplateNameScopeIdentifierHTTPResponse, receiverInterfaceType, 1, 1)
+	return !hasIdentArgument(t.call.Args, TemplateNameScopeIdentifierHTTPResponse, receiverInterfaceType, 1, 1)
 }
 
 func hasIdentArgument(args []ast.Expr, ident string, receiverInterfaceType *ast.InterfaceType, depth, maxDepth int) bool {
