@@ -49,6 +49,9 @@ func (imports *Imports) Add(pkgIdent, pkgPath string) string {
 		Path: String(pkgPath),
 		Name: pi,
 	})
+	slices.SortFunc(imports.GenDecl.Specs, func(a, b ast.Spec) int {
+		return strings.Compare(a.(*ast.ImportSpec).Path.Value, b.(*ast.ImportSpec).Path.Value)
+	})
 	return pkgIdent
 }
 

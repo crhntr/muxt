@@ -36,8 +36,8 @@ func TestImports(t *testing.T) {
 		_ = imports.Add("", "net/http")
 		_ = imports.Add("", "html/template")
 		assert.Equal(t, source.Format(imports.GenDecl), `import (
-	"net/http"
 	"html/template"
+	"net/http"
 )`)
 	})
 	t.Run("it respects order", func(t *testing.T) {

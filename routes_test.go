@@ -37,8 +37,8 @@ func TestGenerate(t *testing.T) {
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type RoutesReceiver interface {
@@ -69,8 +69,8 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type RoutesReceiver interface {
@@ -103,9 +103,9 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ExpectedFile: `package main
 
 import (
+	"bytes"
 	"context"
 	"net/http"
-	"bytes"
 )
 
 type RoutesReceiver interface {
@@ -150,8 +150,8 @@ func (T) F(username string) int { return 30 }
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type RoutesReceiver interface {
@@ -187,8 +187,8 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type Server interface {
@@ -230,8 +230,8 @@ func (T) F(username string) (int, bool) { return 30, true }
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type RoutesReceiver interface {
@@ -378,8 +378,8 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 			ExpectedFile: `package main
 
 import (
-	"net/http"
 	"bytes"
+	"net/http"
 )
 
 type RoutesReceiver interface {
