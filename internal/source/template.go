@@ -9,22 +9,24 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+
+	"golang.org/x/tools/go/packages"
 )
 
-func Templates(workingDirectory, templatesVariable string, fileSet *token.FileSet, files []*ast.File, embeddedAbsolutePath []string) (*template.Template, error) {
-	for _, tv := range IterateValueSpecs(files) {
+func Templates(workingDirectory, templatesVariable string, pkg *packages.Package) (*template.Template, error) {
+	for _, tv := range IterateValueSpecs(pkg.Syntax) {
 		i := slices.IndexFunc(tv.Names, func(e *ast.Ident) bool {
 			return e.Name == templatesVariable
 		})
 		if i < 0 || i >= len(tv.Values) {
 			continue
 		}
-		embeddedPaths, err := relFilepaths(workingDirectory, embeddedAbsolutePath...)
+		embeddedPaths, err := relFilepaths(workingDirectory, pkg.EmbedFiles...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate relative path for embedded files: %w", err)
 		}
 		const templatePackageIdent = "template"
-		ts, err := evaluateTemplateSelector(nil, tv.Values[i], workingDirectory, templatesVariable, templatePackageIdent, "", "", fileSet, files, embeddedPaths)
+		ts, err := evaluateTemplateSelector(nil, tv.Values[i], workingDirectory, templatesVariable, templatePackageIdent, "", "", pkg.Fset, pkg.Syntax, embeddedPaths)
 		if err != nil {
 			return nil, fmt.Errorf("run template %s failed at %w", templatesVariable, err)
 		}
