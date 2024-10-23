@@ -49,7 +49,7 @@ const (
 	errIdent = "err"
 )
 
-func Generate(templateNames []Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, receiverInterfaceIdent, output string, fileSet *token.FileSet, receiverPackage []*ast.File, log *log.Logger) (string, error) {
+func Generate(templates []Template, packageName, templatesVariableName, routesFunctionName, receiverTypeIdent, receiverInterfaceIdent, output string, fileSet *token.FileSet, receiverPackage []*ast.File, log *log.Logger) (string, error) {
 	packageName = cmp.Or(packageName, defaultPackageName)
 	templatesVariableName = cmp.Or(templatesVariableName, DefaultTemplatesVariableName)
 	routesFunctionName = cmp.Or(routesFunctionName, DefaultRoutesFunctionName)
@@ -57,8 +57,8 @@ func Generate(templateNames []Template, packageName, templatesVariableName, rout
 
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
-	receiverInterface := receiverInterfaceType(imports, source.StaticTypeMethods(receiverPackage, receiverTypeIdent), templateNames)
-	routesFunc, err := routesFuncDeclaration(imports, routesFunctionName, receiverInterfaceIdent, receiverInterface, receiverPackage, templateNames, log)
+	receiverInterface := receiverInterfaceType(imports, source.StaticTypeMethods(receiverPackage, receiverTypeIdent), templates)
+	routesFunc, err := routesFuncDeclaration(imports, routesFunctionName, receiverInterfaceIdent, receiverInterface, receiverPackage, templates, log)
 	if err != nil {
 		return "", err
 	}
