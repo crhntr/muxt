@@ -80,7 +80,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	list, err := packages.Load(&packages.Config{
+	packageList, err := packages.Load(&packages.Config{
 		Mode:  packages.NeedName | packages.NeedFiles | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:   workingDirectory,
 		Tests: false,
@@ -89,14 +89,14 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		return err
 	}
 	if g.goPackage != "" {
-		i := slices.IndexFunc(list, func(p *packages.Package) bool { return p.Name == g.goPackage })
+		i := slices.IndexFunc(packageList, func(p *packages.Package) bool { return p.Name == g.goPackage })
 		if i < 0 {
 			return fmt.Errorf("package %s not loaded", g.goPackage)
 		}
-		g.Package = list[i]
-	} else if len(list) > 0 {
-		g.Package = list[0]
-		g.goPackage = list[0].ID
+		g.Package = packageList[i]
+	} else if len(packageList) > 0 {
+		g.Package = packageList[0]
+		g.goPackage = packageList[0].ID
 	}
 	ts, err := source.Templates(workingDirectory, g.templatesVariable, g.Package)
 	if err != nil {
