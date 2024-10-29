@@ -18,11 +18,11 @@ func main() {
 
 func command(wd string, args []string, getEnv func(string) string, stdout, stderr io.Writer) error {
 	if len(args) > 0 {
-		switch args[0] {
+		switch cmd, cmdArgs := args[0], args[1:]; cmd {
 		case "generate", "gen", "g":
-			return generateCommand(args[1:], wd, getEnv, stdout, stderr)
+			return generateCommand(cmdArgs, wd, getEnv, stdout, stderr)
 		case "new", "n":
-			return newCommand(args[1:], wd, getEnv, stdout, stderr)
+			return newCommand(cmdArgs, wd, getEnv, stdout, stderr)
 		}
 	}
 	return fmt.Errorf("unknown command")
