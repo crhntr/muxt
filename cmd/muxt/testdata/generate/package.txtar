@@ -25,6 +25,5 @@ var (
 )
 
 func main() {}
-
 -- package/index.gohtml --
 <h1>hello</h1>
