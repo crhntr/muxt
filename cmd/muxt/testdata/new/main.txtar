@@ -1,7 +1,0 @@
-exec go mod init example.com/my-project
-
-muxt new
-
-stdout 'new project generated'
-stdout 'now run:'
-stdout 'go generate'

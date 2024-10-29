@@ -24,8 +24,6 @@ func command(wd string, args []string, getEnv func(string) string, stdout, stder
 		switch cmd, cmdArgs := args[0], args[1:]; cmd {
 		case "generate", "gen", "g":
 			return generateCommand(cmdArgs, wd, getEnv, stdout, stderr)
-		case "new", "n":
-			return newCommand(cmdArgs, wd, getEnv, stdout, stderr)
 		}
 	}
 	return fmt.Errorf("unknown command")
