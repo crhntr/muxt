@@ -96,7 +96,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		g.Package = packageList[i]
 	} else if len(packageList) > 0 {
 		g.Package = packageList[0]
-		g.goPackage = packageList[0].ID
+		g.goPackage = packageList[0].Name
 	}
 	ts, err := source.Templates(workingDirectory, g.templatesVariable, g.Package)
 	if err != nil {
