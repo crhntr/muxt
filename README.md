@@ -5,6 +5,6 @@ This tool helps you do that and generates helpful test seams.
 
 ## Examples
 
-The directory ./example in this repository has a worked example.
+The [example directory](example) has a worked example.
 
 For a more complete example, see: https://github.com/crhntr/muxt-template-module-htmx
