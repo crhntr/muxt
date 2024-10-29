@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"path/filepath"
 	"strings"
@@ -15,22 +14,7 @@ func commandTest(t *testing.T, pattern string) {
 	e := script.NewEngine()
 	e.Quiet = true
 	e.Cmds = scripttest.DefaultCmds()
-	e.Cmds["muxt"] = script.Command(script.CmdUsage{
-		Summary: "muxt",
-		Args:    "",
-	}, func(state *script.State, args ...string) (script.WaitFunc, error) {
-		return func(state *script.State) (string, string, error) {
-			var stdout, stderr bytes.Buffer
-			err := command(state.Getwd(), args, func(s string) string {
-				e, _ := state.LookupEnv(s)
-				return e
-			}, &stdout, &stderr)
-			if err != nil {
-				stderr.WriteString(err.Error())
-			}
-			return stdout.String(), stderr.String(), err
-		}, nil
-	})
+	e.Cmds["muxt"] = scriptCommand()
 	testFiles, err := filepath.Glob(filepath.FromSlash(pattern))
 	if err != nil {
 		t.Fatal(err)

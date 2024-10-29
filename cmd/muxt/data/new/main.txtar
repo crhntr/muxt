@@ -1,3 +1,9 @@
+exec go mod tidy
+exec go mod download
+muxt generate --receiver-static-type=Server
+exec go generate -run counterfeiter
+exec go test .
+
 -- main.go --
 package server
 
@@ -14,7 +20,10 @@ var templateFiles embed.FS
 
 var templates = template.Must(template.ParseFS(templateFiles, "*"))
 
-//go:generate muxt generate --receiver-static-type=Server
+//go:generate go run github.com/crhntr/muxt generate --receiver-static-type=Server
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate .
 
 func main() {
 	srv := Server{}
@@ -25,11 +34,26 @@ func main() {
 
 type Server struct{}
 
-type IndexData struct{}
+type IndexData struct {
+	Name string
+}
 
 func (srv *Server) Index(ctx context.Context) IndexData {
-	return IndexData{}
+	return IndexData{
+		Name: "friend",
+	}
 }
+
+-- tools/tools.go --
+//go:build tools
+
+package tools
+
+import (
+	_ "github.com/crhntr/muxt"
+	_ "github.com/maxbrunsfeld/counterfeiter/v6"
+)
+
 -- index.gohtml --
 <!DOCTYPE html>
 <html lang="en">
@@ -49,7 +73,7 @@ func (srv *Server) Index(ctx context.Context) IndexData {
 <body>
 <main class='container'>
 
-<h1>Hello, friend!</h1>
+<h1 data-test-id='greeting'>Hello, {{.Name}}!</h1>
 
 {{- define "GET /{$} Index(ctx)" -}}
   {{template "index.gohtml" .}}
