@@ -42,13 +42,14 @@ type Generate struct {
 	receiverInterfaceIdent string
 }
 
-func newGenerate(args []string, getEnv func(string) string) (Generate, error) {
+func newGenerate(args []string, getEnv func(string) string, stderr io.Writer) (Generate, error) {
 	g := Generate{
 		goPackage: getEnv("GOPACKAGE"),
 		goFile:    getEnv("GOFILE"),
 		goLine:    getEnv("GOLINE"),
 	}
 	flagSet := flag.NewFlagSet("generate", flag.ContinueOnError)
+	flagSet.SetOutput(stderr)
 	flagSet.StringVar(&g.outputFilename, outputFlagFlagName, muxt.DefaultOutputFileName, "file name of generated output")
 	flagSet.StringVar(&g.templatesVariable, templatesVariable, muxt.DefaultTemplatesVariableName, "templates variable name")
 	flagSet.StringVar(&g.routesFunction, routesFunc, muxt.DefaultRoutesFunctionName, "file name of generated output")
@@ -75,8 +76,8 @@ func newGenerate(args []string, getEnv func(string) string) (Generate, error) {
 	return g, nil
 }
 
-func generateCommand(args []string, workingDirectory string, getEnv func(string) string, stdout io.Writer) error {
-	g, err := newGenerate(args, getEnv)
+func generateCommand(args []string, workingDirectory string, getEnv func(string) string, stdout, stderr io.Writer) error {
+	g, err := newGenerate(args, getEnv, stderr)
 	if err != nil {
 		return err
 	}

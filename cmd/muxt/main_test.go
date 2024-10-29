@@ -24,7 +24,7 @@ func commandTest(t *testing.T, pattern string) {
 			err := command(state.Getwd(), args, func(s string) string {
 				e, _ := state.LookupEnv(s)
 				return e
-			}, &stdout)
+			}, &stdout, &stderr)
 			if err != nil {
 				stderr.WriteString(err.Error())
 			}

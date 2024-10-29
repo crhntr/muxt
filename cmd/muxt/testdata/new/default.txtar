@@ -1,0 +1,12 @@
+exec go mod init example.com/my-project
+
+muxt new
+
+stdout 'new project generated'
+stdout 'now run:'
+stdout 'go generate'
+
+exec go generate -x
+stderr 'muxt generate --receiver-static-type=Server'
+
+muxt generate --receiver-static-type=Server
