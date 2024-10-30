@@ -690,7 +690,7 @@ func formDeclaration(imports *source.Imports, ident string, typeExp ast.Expr) *a
 						Names: []*ast.Ident{ast.NewIdent(ident)},
 						Type:  typeExp,
 						Values: []ast.Expr{
-							&ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("Form")},
+							&ast.SelectorExpr{X: ast.NewIdent(httpRequestField(imports).Names[0].Name), Sel: ast.NewIdent("Form")},
 						},
 					},
 				},

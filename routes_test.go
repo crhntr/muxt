@@ -740,7 +740,7 @@ type RoutesReceiver interface {
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
 		request.ParseForm()
-		var form url.Values = response.Form
+		var form url.Values = request.Form
 		data := receiver.F(form)
 		execute(response, request, true, "GET / F(form)", http.StatusOK, data)
 	})
