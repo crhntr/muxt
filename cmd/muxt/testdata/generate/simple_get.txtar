@@ -1,5 +1,8 @@
 muxt generate
 
+cat template_routes.go
+stdout '// muxt version: \(devel\)'
+
 exec go test -cover
 
 -- template.gohtml --

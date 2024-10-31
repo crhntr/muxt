@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"go/token"
@@ -112,5 +113,13 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(workingDirectory, g.outputFilename), []byte(CodeGenerationComment+"\n\n"+s), 0o644)
+	var sb bytes.Buffer
+	sb.WriteString(CodeGenerationComment)
+	if v, ok := cliVersion(); ok {
+		sb.WriteString("\n// muxt version: ")
+		sb.WriteString(v)
+		sb.WriteString("\n\n")
+	}
+	sb.WriteString(s)
+	return os.WriteFile(filepath.Join(workingDirectory, g.outputFilename), sb.Bytes(), 0o644)
 }
