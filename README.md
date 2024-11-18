@@ -51,7 +51,7 @@ A template name that muxt understands looks like this:
 
 In this template name
 - Passed through to `http.ServeMux`
-  - we define the HTTP Method `GET`0,
+  - we define the HTTP Method `GET`,
   - the path prefix `/greet/`
   - the path parameter called `language` (available in the call scope as `language`)
 - Used by muxt to generate a `http.HandlerFunc`
