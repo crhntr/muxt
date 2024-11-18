@@ -138,7 +138,7 @@ func TemplateRoutesFile(wd string, templates []Template, logger *log.Logger, con
 	}
 
 	for _, t := range templates {
-		logger.Printf("routes has route for %s", t.endpoint)
+		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
 			hf := t.httpRequestReceiverTemplateHandlerFunc(imports, t.statusCode)
 			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(hf))
@@ -158,7 +158,7 @@ func TemplateRoutesFile(wd string, templates []Template, logger *log.Logger, con
 		}
 		sig := methodObj.Type().(*types.Signature)
 		if sig.Results().Len() == 0 {
-			return "", fmt.Errorf("method for endpoint %q has no results it should have one or two", t.name)
+			return "", fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
 		}
 		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, imports, nil, receiver, t.call); err != nil {
 			return "", err

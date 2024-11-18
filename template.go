@@ -28,7 +28,7 @@ func Templates(ts *template.Template) ([]Template, error) {
 			return templateNames, err
 		}
 		if _, exists := routes[mt.method+mt.path]; exists {
-			return templateNames, fmt.Errorf("duplicate route pattern: %s", mt.endpoint)
+			return templateNames, fmt.Errorf("duplicate route pattern: %s", mt.pattern)
 		}
 		mt.template = t
 		routes[mt.method+mt.path] = struct{}{}
@@ -42,8 +42,8 @@ type Template struct {
 	// name has the full unaltered template name
 	name string
 
-	// method, host, path, and endpoint are parsed sub-parts of the string passed to mux.Handle
-	method, host, path, endpoint string
+	// method, host, path, and pattern are parsed sub-parts of the string passed to mux.Handle
+	method, host, path, pattern string
 
 	// handler is used to generate the method interface
 	handler string
@@ -68,15 +68,15 @@ func newTemplate(in string) (Template, error, bool) {
 	matches := templateNameMux.FindStringSubmatch(in)
 	p := Template{
 		name:       in,
-		method:     matches[templateNameMux.SubexpIndex("method")],
-		host:       matches[templateNameMux.SubexpIndex("host")],
-		path:       matches[templateNameMux.SubexpIndex("path")],
-		handler:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("handler")]),
-		endpoint:   matches[templateNameMux.SubexpIndex("endpoint")],
+		method:     matches[templateNameMux.SubexpIndex("METHOD")],
+		host:       matches[templateNameMux.SubexpIndex("HOST")],
+		path:       matches[templateNameMux.SubexpIndex("PATH")],
+		handler:    strings.TrimSpace(matches[templateNameMux.SubexpIndex("CALL")]),
+		pattern:    matches[templateNameMux.SubexpIndex("pattern")],
 		fileSet:    token.NewFileSet(),
 		statusCode: http.StatusOK,
 	}
-	httpStatusCode := matches[templateNameMux.SubexpIndex("code")]
+	httpStatusCode := matches[templateNameMux.SubexpIndex("HTTP_STATUS")]
 	if httpStatusCode != "" {
 		if strings.HasPrefix(httpStatusCode, "http.Status") {
 			code, err := source.HTTPStatusName(httpStatusCode)
@@ -118,7 +118,7 @@ func newTemplate(in string) (Template, error, bool) {
 
 var (
 	pathSegmentPattern = regexp.MustCompile(`/\{([^}]*)}`)
-	templateNameMux    = regexp.MustCompile(`^(?P<endpoint>(((?P<method>[A-Z]+)\s+)?)(?P<host>([^/])*)(?P<path>(/(\S)*)))(\s+(?P<code>(\d|http\.Status)\S+))?(?P<handler>.*)?$`)
+	templateNameMux    = regexp.MustCompile(`^(?P<pattern>(((?P<METHOD>[A-Z]+)\s+)?)(?P<HOST>([^/])*)(?P<PATH>(/(\S)*)))(\s+(?P<HTTP_STATUS>(\d|http\.Status)\S+))?(?P<CALL>.*)?$`)
 )
 
 func (t Template) parsePathValueNames() []string {
@@ -303,7 +303,7 @@ func (t Template) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
 			X:   ast.NewIdent(muxVarIdent),
 			Sel: ast.NewIdent(httpHandleFuncIdent),
 		},
-		Args: []ast.Expr{source.String(t.endpoint), handlerFuncLit},
+		Args: []ast.Expr{source.String(t.pattern), handlerFuncLit},
 	}}
 }
 
@@ -312,7 +312,7 @@ func (t Template) callReceiverMethod(imports *source.Imports, dataVarIdent strin
 		okIdent = "ok"
 	)
 	if method.Results == nil || len(method.Results.List) == 0 {
-		return nil, fmt.Errorf("method for endpoint %q has no results it should have one or two", t)
+		return nil, fmt.Errorf("method for pattern %q has no results it should have one or two", t)
 	} else if len(method.Results.List) > 1 {
 		_, lastResultType, ok := source.FieldIndex(method.Results.List, method.Results.NumFields()-1)
 		if !ok {

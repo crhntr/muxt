@@ -1595,7 +1595,7 @@ type T struct{}
 func (T) F() {}
 
 ` + executeGo,
-			ExpectedError: `method for endpoint "GET / F()" has no results it should have one or two`,
+			ExpectedError: `method for pattern "GET / F()" has no results it should have one or two`,
 		},
 		{
 			Name:      "wrong argument type path value",

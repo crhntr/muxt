@@ -130,7 +130,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodGet, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "GET /", pat.endpoint)
+				assert.Equal(t, "GET /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -142,7 +142,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodGet, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "GET  /", pat.endpoint)
+				assert.Equal(t, "GET  /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -154,7 +154,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodPost, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "POST /", pat.endpoint)
+				assert.Equal(t, "POST /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -166,7 +166,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodPatch, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "PATCH /", pat.endpoint)
+				assert.Equal(t, "PATCH /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -178,7 +178,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodDelete, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "DELETE /", pat.endpoint)
+				assert.Equal(t, "DELETE /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -190,7 +190,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodPut, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/", pat.path)
-				assert.Equal(t, "PUT /", pat.endpoint)
+				assert.Equal(t, "PUT /", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
@@ -202,7 +202,7 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, http.MethodPut, pat.method)
 				assert.Equal(t, "", pat.host)
 				assert.Equal(t, "/ping/pong/{$}", pat.path)
-				assert.Equal(t, "PUT /ping/pong/{$}", pat.endpoint)
+				assert.Equal(t, "PUT /ping/pong/{$}", pat.pattern)
 				assert.Equal(t, "", pat.handler)
 			},
 		},
