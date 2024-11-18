@@ -45,7 +45,7 @@ A template name that muxt understands looks like this:
 
 ```gotemplate
 {{define "GET /greet/{language} 200 Greeting(ctx, language)" }}
-<h1>{{.Hello}}</h1>
+    <h1>{{.Hello}}</h1>
 {{end}}
 ```
 
@@ -84,12 +84,27 @@ Given `{{define "GET / F(ctx, response, request)"}}Hello{{end}}`,
 
 You will get a handler generated like this:
 
-```
-mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
-  ctx := request.Context()
-  data := receiver.F(ctx, resposne, request)
-  execute(response, request, false, "GET / F(ctx, response, request)", http.StatusOK, data)
-})
+```go
+package main
+
+import (
+    "context"
+    "net/http"
+)
+
+type RoutesReceiver interface {
+  F(ctx context.Context, response http.ResponseWriter, request *http.Request) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+  mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
+    ctx := request.Context()
+    data := receiver.F(ctx, response, request)
+    execute(response, request, false, "GET / F(ctx, response, request)", http.StatusOK, data)
+  })
+}
+
+func execute(http.ResponseWriter, *http.Request, bool, string, int, any) {}
 ```
 
 You can also map path values from the path pattern to identifiers and pass them to your handler.
@@ -99,13 +114,28 @@ Given `{{define "GET /articles/:id ReadArticle(ctx, id)"}}{{end}}`,
 
 You will get a handler generated like this:
 
-```
-mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
-  ctx := request.Context()
-  id := request.PathValue("id")
-  data := receiver.ReadArticle(ctx, id)
-  execute(response, request, true, "GET /articles/:id ReadArticle(ctx, id)", http.StatusOK, data)
-})
+```go
+package main
+
+import (
+  "context"
+  "net/http"
+)
+
+type RoutesReceiver interface {
+  ReadArticle(ctx context.Context, id string) any
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+  mux.HandleFunc("GET /articles/:id", func(response http.ResponseWriter, request *http.Request) {
+    ctx := request.Context()
+    id := request.PathValue("id")
+    data := receiver.ReadArticle(ctx, id)
+    execute(response, request, true, "GET /articles/:id ReadArticle(ctx, id)", http.StatusOK, data)
+  })
+}
+
+func execute(http.ResponseWriter, *http.Request, bool, string, int, any) {}
 ```
 
 _TODO add more documentation on form and typed arguments_
