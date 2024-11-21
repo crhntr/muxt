@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"flag"
 	"fmt"
 	"go/token"
@@ -9,7 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"golang.org/x/tools/go/packages"
 
@@ -82,17 +82,14 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-	packageList, err := source.Load(workingDirectory, "./...")
+
+	g.goPackage = cmp.Or(g.goPackage, filepath.Base(workingDirectory))
+
+	packageList, err := source.Load(workingDirectory, ".")
 	if err != nil {
 		return err
 	}
-	if g.goPackage != "" {
-		i := slices.IndexFunc(packageList, func(p *packages.Package) bool { return p.Name == g.goPackage })
-		if i < 0 {
-			return fmt.Errorf("package %s not loaded", g.goPackage)
-		}
-		g.Package = packageList[i]
-	} else if len(packageList) > 0 {
+	if len(packageList) > 0 {
 		g.Package = packageList[0]
 		g.goPackage = packageList[0].Name
 	}

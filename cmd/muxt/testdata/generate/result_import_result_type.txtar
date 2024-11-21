@@ -1,0 +1,126 @@
+
+cd internal/hypertext
+
+env GOPACKAGE=hypertext
+
+muxt generate --receiver-static-type=Endpoints --routes-func=Routes
+
+cd ../../
+
+exec go test
+
+-- go.mod --
+module crhntr.com/muxt-test
+
+go 1.23
+
+-- main_test.go --
+package main_test
+
+import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+
+	"crhntr.com/muxt-test/internal/hypertext"
+)
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+	var endpoints hypertext.Endpoints
+
+	hypertext.Routes(mux, endpoints)
+
+	t.Run("GET", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/article/new", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fail()
+		}
+		body, _ := io.ReadAll(res.Body)
+
+		if !strings.Contains(string(body), `<textarea name="Title" value=""></textarea>`) {
+			t.Error(string(body))
+		}
+	})
+
+	t.Run("POST", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/article", strings.NewReader(url.Values{
+			"Title": []string{"hello"},
+		}.Encode()))
+		req.Header.Add("content-type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fail()
+		}
+		body, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(body), `<textarea name="Title" value="HELLO"></textarea>`) {
+			t.Error(string(body))
+		}
+	})
+}
+-- internal/database/article.go --
+package database
+
+type Article struct {
+	Title string
+}
+-- internal/hypertext/server.go --
+package hypertext
+
+import (
+	"context"
+	"strings"
+
+	"crhntr.com/muxt-test/internal/database"
+)
+
+type Endpoints struct{}
+
+type Form struct {
+	Title string
+}
+
+func (Endpoints) CreatArticle(ctx context.Context, form Form) database.Article {
+	return database.Article{Title: strings.ToUpper(form.Title)}
+}
+-- internal/hypertext/generate.go --
+package hypertext
+
+import (
+	"embed"
+	"html/template"
+)
+
+var (
+	//go:embed *.gohtml
+	templateFiles embed.FS
+
+	templates = template.Must(template.ParseFS(templateFiles, "*"))
+)
+-- internal/hypertext/form.gohtml --
+<form method="POST" action="/article">
+	<textarea name="Title" value="{{if .}}{{.Title}}{{end}}"></textarea>
+</form>
+<details><summary>data</summary><pre>{{printf "%#v" .}}</pre></details>
+
+{{- define "POST /article CreatArticle(ctx, form)" -}}
+	{{- template "form.gohtml" . -}}
+{{- end -}}
+
+{{- define "GET /article/new" -}}
+	{{- template "form.gohtml" -}}
+{{- end -}}
