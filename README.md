@@ -110,7 +110,7 @@ func execute(http.ResponseWriter, *http.Request, bool, string, int, any) {}
 You can also map path values from the path pattern to identifiers and pass them to your handler.
 
 
-Given `{{define "GET /articles/:id ReadArticle(ctx, id)"}}{{end}}`,
+Given `{{define "GET /articles/{id} ReadArticle(ctx, id)"}}{{end}}`,
 
 You will get a handler generated like this:
 
