@@ -90,11 +90,14 @@ func TemplateRoutesFile(wd string, templates []Template, logger *log.Logger, con
 	for _, p := range pl {
 		imports.AddPackages(p.Types)
 	}
-	if len(pl) > 0 && pl[0].PkgPath != "net/http" {
-		imports.SetOutputPackage(pl[0].PkgPath)
+	if len(pl) == 2 && pl[0].PkgPath == "net/http" {
+		imports.SetOutputPackage(pl[1].Types)
+	} else if len(pl) == 2 && pl[1].PkgPath == "net/http" {
+		imports.SetOutputPackage(pl[0].Types)
 	} else {
-		imports.SetOutputPackage(filepath.Base(wd))
+		log.Fatal("expected the current directory to have a non-test package", pl)
 	}
+
 	for _, p := range pl {
 		if p.Types.Path() == config.PackagePath {
 			if executeObj := p.Types.Scope().Lookup("execute"); executeObj != nil {
@@ -653,14 +656,15 @@ func astTypeExpression(imports *source.Imports, tp types.Type) (ast.Expr, error)
 
 		return node, nil
 	case *types.Named:
+		name := t.Obj().Name()
 		pkg := t.Obj().Pkg()
-		if pkg != nil && pkg.Name() != "main" && pkg.Path() != imports.OutputPackage() {
+		if pkg != nil && pkg.Path() != imports.OutputPackage() {
 			return &ast.SelectorExpr{
 				X:   ast.NewIdent(imports.Add(pkg.Name(), pkg.Path())),
-				Sel: ast.NewIdent(t.Obj().Name()),
+				Sel: ast.NewIdent(name),
 			}, nil
 		}
-		return ast.NewIdent(t.Obj().Name()), nil
+		return ast.NewIdent(name), nil
 	case *types.Slice:
 		elt, err := astTypeExpression(imports, t.Elem())
 		if err != nil {
@@ -676,14 +680,15 @@ func astTypeExpression(imports *source.Imports, tp types.Type) (ast.Expr, error)
 		}
 		return &ast.StarExpr{X: x}, nil
 	case *types.Alias:
+		name := t.Obj().Name()
 		pkg := t.Obj().Pkg()
-		if pkg != nil && pkg.Name() != "main" {
+		if pkg != nil && pkg.Path() != imports.OutputPackage() {
 			return &ast.SelectorExpr{
 				X:   ast.NewIdent(imports.Add(pkg.Name(), pkg.Path())),
-				Sel: ast.NewIdent(t.Obj().Name()),
+				Sel: ast.NewIdent(name),
 			}, nil
 		}
-		return ast.NewIdent(t.Obj().Name()), nil
+		return ast.NewIdent(name), nil
 	case *types.Basic:
 		return ast.NewIdent(t.Name()), nil
 	default:

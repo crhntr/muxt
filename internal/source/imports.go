@@ -1,6 +1,7 @@
 package source
 
 import (
+	"cmp"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -41,12 +42,12 @@ func (imports *Imports) FileSet() *token.FileSet {
 	return imports.fileSet
 }
 
-func (imports *Imports) SetOutputPackage(pkgPath string) {
-	imports.outputPackage = pkgPath
+func (imports *Imports) SetOutputPackage(pkg *types.Package) {
+	imports.outputPackage = pkg.Path()
 }
 
 func (imports *Imports) OutputPackage() string {
-	return imports.outputPackage
+	return cmp.Or(imports.outputPackage, "main")
 }
 
 func (imports *Imports) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
