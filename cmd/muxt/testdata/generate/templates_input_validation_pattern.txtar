@@ -1,4 +1,4 @@
-muxt generate --receiver-static-type=T
+muxt generate --receiver-type=T
 
 cat template_routes.go
 

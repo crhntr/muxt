@@ -23,8 +23,8 @@ const (
 	outputFlagFlagName    = "output-file"
 	templatesVariable     = "templates-variable"
 	routesFunc            = "routes-func"
-	receiverStaticType    = "receiver-static-type"
-	receiverInterfaceName = "receiver-interface-name"
+	receiverStaticType    = "receiver-type"
+	receiverInterfaceName = "receiver-interface"
 
 	errIdentSuffix = " value must be a well-formed Go identifier"
 )

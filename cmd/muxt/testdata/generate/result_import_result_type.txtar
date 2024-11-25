@@ -3,7 +3,7 @@ cd internal/hypertext
 
 env GOPACKAGE=hypertext
 
-muxt generate --receiver-static-type=Endpoints --routes-func=Routes
+muxt generate --receiver-type=Endpoints --routes-func=Routes
 
 cd ../../
 
