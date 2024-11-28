@@ -39,21 +39,7 @@ If you invoke it from the shell, it expects to find a Go source package in the c
 <details>
 <summary>Flags</summary>
 <pre>
-Usage of generate:
-  -output-file string
-    	The generated file name containing the routes function and receiver interface (default "template_routes.go")
-  -receiver-interface string
-    	The interface name in the generated output-file listing the methods used by the handler routes in routes-func (default "RoutesReceiver")
-  -receiver-type string
-    	The type name for a named type to use for looking up method signatures
-  -receiver-type-package string
-    	The package path to use when looking for receiver-type
-  -routes-func string
-    	The function name for the package registering handler functions on an *"net/http".ServeMux.
-    	This function also receives an argument with a type matching the name given by receiver-interface. (default "routes")
-  -templates-variable string
-    	the name of the global variable with type *"html/template".Template in the working directory package (default "templates")
-
+{{{.GenerateUsage}}}
 </pre>
 </details>
 
@@ -187,11 +173,11 @@ type RoutesReceiver interface {
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
-  mux.HandleFunc("GET /articles/{id}", func(response http.ResponseWriter, request *http.Request) {
+  mux.HandleFunc("GET /articles/:id", func(response http.ResponseWriter, request *http.Request) {
     ctx := request.Context()
     id := request.PathValue("id")
     data := receiver.ReadArticle(ctx, id)
-    execute(response, request, true, "GET /articles/{id} ReadArticle(ctx, id)", http.StatusOK, data)
+    execute(response, request, true, "GET /articles/:id ReadArticle(ctx, id)", http.StatusOK, data)
   })
 }
 
