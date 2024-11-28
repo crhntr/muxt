@@ -127,11 +127,11 @@ type RoutesReceiver interface {
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
-  mux.HandleFunc("GET /articles/:id", func(response http.ResponseWriter, request *http.Request) {
+  mux.HandleFunc("GET /articles/{id}", func(response http.ResponseWriter, request *http.Request) {
     ctx := request.Context()
     id := request.PathValue("id")
     data := receiver.ReadArticle(ctx, id)
-    execute(response, request, true, "GET /articles/:id ReadArticle(ctx, id)", http.StatusOK, data)
+    execute(response, request, true, "GET /articles/{id} ReadArticle(ctx, id)", http.StatusOK, data)
   })
 }
 
