@@ -105,11 +105,13 @@ or methods:
 - [`Template.Option`](https://pkg.go.dev/html/template#Template.Option)
 - [`Template.Funcs`](https://pkg.go.dev/html/template#Template.Option)
 
-then iterate over the resulting parsed templates to discover templates matching the template name pattern documented in the Writing Templates section below. 
+Muxt iterates over the resulting parsed templates to discover templates matching the template name pattern documented in the "Naming Templates" section below. 
 
-### Writing Template Names
+### Naming Templates
 
 `muxt generate` will read your embedded HTML templates and generate/register an [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected patten.
+
+If the template name does not match the pattern, it is ignored by muxt.
 
 Since Go 1.22, the standard library route **mu**ltiple**x**er can parse path parameters.
 
