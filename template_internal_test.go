@@ -339,6 +339,58 @@ func TestNewTemplateName(t *testing.T) {
 				assert.ErrorContains(t, err, "expected only identifier or call expressions as arguments, argument at index 0 is: 1 + 2")
 			},
 		},
+		{
+			Name:     "status identifier",
+			In:       "/ http.StatusTeapot",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat Template) {
+				assert.Equal(t, "", pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "/", pat.pattern)
+				assert.Equal(t, 418, pat.statusCode)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "path and status",
+			In:       "/ 418",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat Template) {
+				assert.Equal(t, "", pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "/", pat.pattern)
+				assert.Equal(t, 418, pat.statusCode)
+				assert.Equal(t, "", pat.handler)
+			},
+		},
+		{
+			Name:     "path status and call",
+			In:       "/ 418 f()",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat Template) {
+				assert.Equal(t, "", pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "/", pat.pattern)
+				assert.Equal(t, 418, pat.statusCode)
+				assert.Equal(t, "f()", pat.handler)
+			},
+		},
+		{
+			Name:     "path and call",
+			In:       "/ f()",
+			ExpMatch: true,
+			TemplateName: func(t *testing.T, pat Template) {
+				assert.Equal(t, "", pat.method)
+				assert.Equal(t, "", pat.host)
+				assert.Equal(t, "/", pat.path)
+				assert.Equal(t, "/", pat.pattern)
+				assert.Equal(t, http.StatusOK, pat.statusCode)
+				assert.Equal(t, "f()", pat.handler)
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			pat, err, match := NewTemplateName(tt.In)
