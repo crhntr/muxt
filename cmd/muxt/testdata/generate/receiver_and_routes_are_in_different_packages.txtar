@@ -1,0 +1,83 @@
+
+cd internal/hypertext
+
+muxt generate --receiver-type=Handler --receiver-type-package=crhntr.com/muxt-test/internal/endpoints --routes-func=Routes
+
+cd ../../
+
+exec go test
+
+-- go.mod --
+module crhntr.com/muxt-test
+
+go 1.23
+
+-- main_test.go --
+package main_test
+
+import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"crhntr.com/muxt-test/internal/endpoints"
+	"crhntr.com/muxt-test/internal/hypertext"
+)
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+	var h endpoints.Handler
+
+	hypertext.Routes(mux, h)
+
+	t.Run("GET", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fail()
+		}
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !strings.Contains(string(body), `<h1>result</h1>`) {
+			t.Error("expected output text to contain result", string(body))
+			t.Log("got", string(body))
+		}
+	})
+}
+-- internal/endpoints/server.go --
+package endpoints
+
+type Handler struct{}
+
+func (Handler) F() string {
+	return "result"
+}
+-- internal/hypertext/generate.go --
+package hypertext
+
+import (
+	"embed"
+	"html/template"
+)
+
+var (
+	//go:embed *.gohtml
+	templateFiles embed.FS
+
+	templates = template.Must(template.ParseFS(templateFiles, "*"))
+)
+-- internal/hypertext/form.gohtml --
+{{- define "GET /{$} F()" -}}
+<h1>{{.}}</h1>
+{{- end -}}

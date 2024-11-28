@@ -60,6 +60,7 @@ type RoutesFileConfiguration struct {
 	TemplatesVar,
 	RoutesFunc,
 	ReceiverType,
+	ReceiverPackage,
 	ReceiverInterface,
 	Output string
 }
@@ -80,33 +81,51 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
-	var pkg *types.Package
+	patterns := []string{
+		wd, "net/http",
+	}
+
+	if config.ReceiverPackage != "" {
+		patterns = append(patterns, config.ReceiverPackage)
+	}
+
 	pl, err := packages.Load(&packages.Config{
 		Fset: imports.FileSet(),
 		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
-	}, ".", "net/http")
+	}, patterns...)
 	if err != nil {
 		return "", err
 	}
+	imports.AddPackages(pl...)
+	routesPkg, ok := imports.PackageAtFilepath(wd)
+	if !ok {
+		return "", fmt.Errorf("could not find package in working directory %q", wd)
+	}
+	imports.SetOutputPackage(routesPkg.Types)
+	config.PackagePath = routesPkg.PkgPath
+	config.Package = routesPkg.Name
 	var receiver *types.Named
-	for _, p := range pl {
-		imports.AddPackages(p.Types)
-	}
-	var currentPkg *packages.Package
-	if len(pl) == 2 && pl[0].PkgPath == "net/http" {
-		imports.SetOutputPackage(pl[1].Types)
-		currentPkg = pl[1]
-	} else if len(pl) == 2 && pl[1].PkgPath == "net/http" {
-		imports.SetOutputPackage(pl[0].Types)
-		currentPkg = pl[0]
+	if config.ReceiverType != "" {
+		receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
+		receiverPkg, ok := imports.Package(receiverPkgPath)
+		if !ok {
+			return "", fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
+		}
+		obj := receiverPkg.Types.Scope().Lookup(config.ReceiverType)
+		if config.ReceiverType != "" && obj == nil {
+			return "", fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkg.PkgPath)
+		}
+		named, ok := obj.Type().(*types.Named)
+		if !ok {
+			return "", fmt.Errorf("expected receiver %s to be a named type", config.ReceiverType)
+		}
+		receiver = named
 	} else {
-		log.Fatal("expected the current directory to have a non-test package", pl)
+		receiver = types.NewNamed(types.NewTypeName(0, routesPkg.Types, "Receiver", nil), types.NewStruct(nil, nil), nil)
 	}
-	config.PackagePath = currentPkg.PkgPath
-	config.Package = currentPkg.Name
 
-	ts, err := source.Templates(wd, config.TemplatesVar, currentPkg)
+	ts, err := source.Templates(wd, config.TemplatesVar, routesPkg)
 	if err != nil {
 		return "", err
 	}
@@ -122,19 +141,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 					config.executeFunc = filepath.Base(p.Fset.Position(executeObj.Pos()).Filename) == config.Output
 				}
 			}
-			obj := p.Types.Scope().Lookup(config.ReceiverType)
-			if obj != nil {
-				named, ok := obj.Type().(*types.Named)
-				if !ok {
-					return "", fmt.Errorf("expected receiver to be a named type")
-				}
-				receiver = named
-			}
 			break
 		}
-	}
-	if receiver == nil {
-		receiver = types.NewNamed(types.NewTypeName(0, pkg, "Receiver", nil), types.NewStruct(nil, nil), nil)
 	}
 
 	receiverInterface := &ast.InterfaceType{

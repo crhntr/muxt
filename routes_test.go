@@ -181,7 +181,6 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 		{
 			Name:      "when the default interface name is overwritten",
 			Templates: `{{define "GET / F()"}}Hello{{end}}`,
-			Receiver:  "T",
 			Interface: "Server",
 			ExpectedFile: `package main
 

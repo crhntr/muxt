@@ -7,8 +7,10 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"golang.org/x/tools/go/packages"
 	"log"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,6 +21,7 @@ type Imports struct {
 	fileSet       *token.FileSet
 	types         map[string]*types.Package
 	files         map[string]*ast.File
+	packages      []*packages.Package
 	outputPackage string
 }
 
@@ -31,8 +34,33 @@ func NewImports(decl *ast.GenDecl) *Imports {
 	return &Imports{GenDecl: decl, types: make(map[string]*types.Package), files: make(map[string]*ast.File)}
 }
 
-func (imports *Imports) AddPackages(p *types.Package) {
-	recursivelyRegisterPackages(imports.types, p)
+func (imports *Imports) Package(path string) (*packages.Package, bool) {
+	for _, pkg := range imports.packages {
+		if pkg.PkgPath == path {
+			return pkg, true
+		}
+	}
+	return nil, false
+}
+
+func (imports *Imports) AddPackages(packages ...*packages.Package) {
+	imports.packages = slices.Grow(imports.packages, len(packages))
+	for _, pkg := range packages {
+		if pkg == nil {
+			continue
+		}
+		recursivelyRegisterPackages(imports.types, pkg.Types)
+		imports.packages = append(imports.packages, pkg)
+	}
+}
+
+func (imports *Imports) PackageAtFilepath(p string) (*packages.Package, bool) {
+	for _, pkg := range imports.packages {
+		if len(pkg.GoFiles) > 0 && filepath.Dir(pkg.GoFiles[0]) == p {
+			return pkg, true
+		}
+	}
+	return nil, false
 }
 
 func (imports *Imports) FileSet() *token.FileSet {

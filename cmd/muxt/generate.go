@@ -23,6 +23,7 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 		TemplatesVar:      g.TemplatesVariable,
 		RoutesFunc:        g.RoutesFunction,
 		ReceiverType:      g.ReceiverIdent,
+		ReceiverPackage:   g.ReceiverStaticTypePackage,
 		ReceiverInterface: g.ReceiverInterfaceIdent,
 		Output:            g.OutputFilename,
 	})
