@@ -21,7 +21,7 @@ func Templates(workingDirectory, templatesVariable string, pkg *packages.Package
 		if i < 0 || i >= len(tv.Values) {
 			continue
 		}
-		embeddedPaths, err := relFilepaths(workingDirectory, pkg.EmbedFiles...)
+		embeddedPaths, err := relativeFilePaths(workingDirectory, pkg.EmbedFiles...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate relative path for embedded files: %w", err)
 		}
@@ -179,7 +179,7 @@ func evaluateCallParseFilesArgs(workingDirectory string, fileSet *token.FileSet,
 	if len(call.Args) < 1 {
 		return nil, contextError(workingDirectory, fileSet, call.Lparen, fmt.Errorf("missing required arguments"))
 	}
-	matches, err := embedFSFilepaths(workingDirectory, fileSet, files, call.Args[0], embeddedPaths)
+	matches, err := embedFSFilePaths(workingDirectory, fileSet, files, call.Args[0], embeddedPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -201,10 +201,10 @@ func evaluateCallParseFilesArgs(workingDirectory string, fileSet *token.FileSet,
 			break
 		}
 	}
-	return joinFilepaths(workingDirectory, filtered...), nil
+	return joinFilePaths(workingDirectory, filtered...), nil
 }
 
-func embedFSFilepaths(dir string, fileSet *token.FileSet, files []*ast.File, exp ast.Expr, embeddedFiles []string) ([]string, error) {
+func embedFSFilePaths(dir string, fileSet *token.FileSet, files []*ast.File, exp ast.Expr, embeddedFiles []string) ([]string, error) {
 	varIdent, ok := exp.(*ast.Ident)
 	if !ok {
 		return nil, contextError(dir, fileSet, exp.Pos(), fmt.Errorf("first argument to ParseFS must be an identifier"))
@@ -323,7 +323,7 @@ func contextError(workingDirectory string, set *token.FileSet, pos token.Pos, er
 	return fmt.Errorf("%s: %w", p, err)
 }
 
-func joinFilepaths(wd string, rel ...string) []string {
+func joinFilePaths(wd string, rel ...string) []string {
 	result := slices.Clone(rel)
 	for i := range result {
 		result[i] = filepath.Join(wd, result[i])
@@ -331,7 +331,7 @@ func joinFilepaths(wd string, rel ...string) []string {
 	return result
 }
 
-func relFilepaths(wd string, abs ...string) ([]string, error) {
+func relativeFilePaths(wd string, abs ...string) ([]string, error) {
 	result := slices.Clone(abs)
 	for i, p := range result {
 		r, err := filepath.Rel(wd, p)

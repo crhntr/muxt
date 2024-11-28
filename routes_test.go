@@ -1,7 +1,8 @@
 package muxt_test
 
 import (
-	"html/template"
+	"cmp"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -1923,19 +1924,28 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			ts := template.Must(template.New(tt.Name).Parse(tt.Templates))
-			templates, err := muxt.Templates(ts)
-			require.NoError(t, err)
-			logger := log.New(io.Discard, "", 0)
-
 			archive := txtar.Parse([]byte(tt.ReceiverPackage))
 			archiveDir, err := txtar.FS(archive)
 			require.NoError(t, err)
 
 			dir := t.TempDir()
 			require.NoError(t, os.CopyFS(dir, archiveDir))
-			require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com\n\ngo 1.20\n"), 0644))
-			out, err := muxt.TemplateRoutesFile(dir, templates, logger, muxt.RoutesFileConfiguration{
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com\n\ngo 1.20\n"), 0o644))
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "template.gohtml"), []byte(tt.Templates), 0o644))
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "templates.go"), []byte(fmt.Sprintf(`package %s
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var templatesDir embed.FS
+
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
+`, cmp.Or(tt.PackageName, "main"))), 0o644))
+			logger := log.New(io.Discard, "", 0)
+			out, err := muxt.TemplateRoutesFile(dir, logger, muxt.RoutesFileConfiguration{
 				ReceiverInterface: tt.Interface,
 				Package:           tt.PackageName,
 				TemplatesVar:      tt.TemplatesVar,

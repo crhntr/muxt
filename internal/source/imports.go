@@ -86,7 +86,6 @@ func (imports *Imports) FieldTag(pos token.Pos) (*ast.Field, error) {
 				}
 			}
 		}
-
 	}
 	return nil, fmt.Errorf("failed to find field")
 }

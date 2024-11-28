@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"cmp"
 	"flag"
 	"fmt"
 	"go/token"
@@ -14,7 +13,6 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/crhntr/muxt"
-	"github.com/crhntr/muxt/internal/source"
 )
 
 const (
@@ -30,10 +28,9 @@ const (
 )
 
 type Generate struct {
-	Package   *packages.Package
-	goPackage string
-	goFile    string
-	goLine    string
+	Package *packages.Package
+	goFile  string
+	goLine  string
 
 	templatesVariable string
 	outputFilename    string
@@ -45,9 +42,8 @@ type Generate struct {
 
 func newGenerate(args []string, getEnv func(string) string, stderr io.Writer) (Generate, error) {
 	g := Generate{
-		goPackage: getEnv("GOPACKAGE"),
-		goFile:    getEnv("GOFILE"),
-		goLine:    getEnv("GOLINE"),
+		goFile: getEnv("GOFILE"),
+		goLine: getEnv("GOLINE"),
 	}
 	flagSet := flag.NewFlagSet("generate", flag.ContinueOnError)
 	flagSet.SetOutput(stderr)
@@ -82,41 +78,28 @@ func generateCommand(args []string, workingDirectory string, getEnv func(string)
 	if err != nil {
 		return err
 	}
-
-	g.goPackage = cmp.Or(g.goPackage, filepath.Base(workingDirectory))
-
-	packageList, err := source.Load(workingDirectory, ".")
-	if err != nil {
-		return err
-	}
-	if len(packageList) > 0 {
-		g.Package = packageList[0]
-		g.goPackage = packageList[0].Name
-	}
-	ts, err := source.Templates(workingDirectory, g.templatesVariable, g.Package)
-	if err != nil {
-		return err
-	}
-	templates, err := muxt.Templates(ts)
-	if err != nil {
-		return err
-	}
-	s, err := muxt.TemplateRoutesFile(workingDirectory, templates, log.New(stdout, "", 0), muxt.RoutesFileConfiguration{
-		Package:           g.goPackage,
-		PackagePath:       g.Package.PkgPath,
+	s, err := muxt.TemplateRoutesFile(workingDirectory, log.New(stdout, "", 0), muxt.RoutesFileConfiguration{
+		Package:           getEnv("GOPACKAGE"),
 		TemplatesVar:      g.templatesVariable,
 		RoutesFunc:        g.routesFunction,
 		ReceiverType:      g.receiverIdent,
 		ReceiverInterface: g.receiverInterfaceIdent,
 		Output:            g.outputFilename,
 	})
-	var sb bytes.Buffer
-	sb.WriteString(CodeGenerationComment)
-	if v, ok := cliVersion(); ok {
-		sb.WriteString("\n// muxt version: ")
-		sb.WriteString(v)
-		sb.WriteString("\n\n")
+	if err != nil {
+		return err
 	}
+	var sb bytes.Buffer
+	writeCodeGenerationComment(&sb)
 	sb.WriteString(s)
 	return os.WriteFile(filepath.Join(workingDirectory, g.outputFilename), sb.Bytes(), 0o644)
+}
+
+func writeCodeGenerationComment(w io.StringWriter) {
+	_, _ = w.WriteString(CodeGenerationComment)
+	if v, ok := cliVersion(); ok {
+		_, _ = w.WriteString("\n// muxt version: ")
+		_, _ = w.WriteString(v)
+		_, _ = w.WriteString("\n\n")
+	}
 }

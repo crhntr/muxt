@@ -73,8 +73,11 @@ func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
 	return config
 }
 
-func TemplateRoutesFile(wd string, templates []Template, logger *log.Logger, config RoutesFileConfiguration) (string, error) {
+func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfiguration) (string, error) {
 	config = config.applyDefaults()
+	if !token.IsIdentifier(config.Package) {
+		return "", fmt.Errorf("package name %q is not an identifier", config.Package)
+	}
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
 	var pkg *types.Package
@@ -90,12 +93,26 @@ func TemplateRoutesFile(wd string, templates []Template, logger *log.Logger, con
 	for _, p := range pl {
 		imports.AddPackages(p.Types)
 	}
+	var currentPkg *packages.Package
 	if len(pl) == 2 && pl[0].PkgPath == "net/http" {
 		imports.SetOutputPackage(pl[1].Types)
+		currentPkg = pl[1]
 	} else if len(pl) == 2 && pl[1].PkgPath == "net/http" {
 		imports.SetOutputPackage(pl[0].Types)
+		currentPkg = pl[0]
 	} else {
 		log.Fatal("expected the current directory to have a non-test package", pl)
+	}
+	config.PackagePath = currentPkg.PkgPath
+	config.Package = currentPkg.Name
+
+	ts, err := source.Templates(wd, config.TemplatesVar, currentPkg)
+	if err != nil {
+		return "", err
+	}
+	templates, err := Templates(ts)
+	if err != nil {
+		return "", err
 	}
 
 	for _, p := range pl {
@@ -222,7 +239,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t Template, imports *s
 	if !ok {
 		return nil, fmt.Errorf("expected method")
 	}
-	//const parsedVariableName = "parsed"
+	// const parsedVariableName = "parsed"
 	if exp := signature.Params().Len(); exp != len(call.Args) { // TODO: (signature.Variadic() && exp > len(call.Args))
 		sigStr := fun.Name + strings.TrimPrefix(signature.String(), "func")
 		return nil, fmt.Errorf("handler func %s expects %d arguments but call %s has %d", sigStr, signature.Params().Len(), source.Format(call), len(call.Args))
