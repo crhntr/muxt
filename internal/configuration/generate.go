@@ -11,23 +11,23 @@ import (
 )
 
 const (
-	outputFlagNameHelp = `The generated file name containing the routes function and receiver interface`
+	outputFlagNameHelp = `The generated file name containing the routes function and receiver interface.`
 	outputFlagName     = "output-file"
 
-	templatesVariableHelp = `the name of the global variable with type *"html/template".Template in the working directory package`
+	templatesVariableHelp = `the name of the global variable with type *"html/template".Template in the working directory package.`
 	templatesVariable     = "templates-variable"
 
 	routesFuncHelp = `The function name for the package registering handler functions on an *"net/http".ServeMux.
 This function also receives an argument with a type matching the name given by receiver-interface.`
 	routesFunc = "routes-func"
 
-	receiverStaticTypeHelp = `The type name for a named type to use for looking up method signatures`
+	receiverStaticTypeHelp = `The type name for a named type to use for looking up method signatures. If not set, all methods added to the receiver interface will have inferred signatures with argument types based on the argument identifier names. The inferred method signatures always return a single result of type any.`
 	receiverStaticType     = "receiver-type"
 
-	receiverStaticTypePackageHelp = `The package path to use when looking for receiver-type`
+	receiverStaticTypePackageHelp = `The package path to use when looking for receiver-type. If not set, the package in the current directory is used.`
 	receiverStaticTypePackage     = "receiver-type-package"
 
-	receiverInterfaceNameHelp = `The interface name in the generated output-file listing the methods used by the handler routes in routes-func`
+	receiverInterfaceNameHelp = `The interface name in the generated output-file listing the methods used by the handler routes in routes-func.`
 	receiverInterfaceName     = "receiver-interface"
 
 	errIdentSuffix = " value must be a well-formed Go identifier"

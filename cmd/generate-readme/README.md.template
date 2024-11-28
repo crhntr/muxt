@@ -31,17 +31,16 @@ This command is how you use muxt.
 
 You can call it either by invoking it from your terminal or by adding a generate comment to a Go source file.
 
-#### Shell Example
-
-If you invoke it from the shell, it expects to find a Go source package in the current directory where it can find a templates variable.
-
-
 <details>
 <summary>Flags</summary>
 <pre>
 {{{.GenerateUsage}}}
 </pre>
 </details>
+
+#### Shell Example
+
+If you invoke it from the shell, it expects to find a Go source package in the current directory where it can find a templates variable.
 
 ```shell
 muxt generate
@@ -70,12 +69,35 @@ var (
 
 ```
 
-#### 
+### Making Template Source Files Discoverable
 
-### Writing Templates
+Muxt needs your template source files to be embedded in the package in the current directory for it to discover and parse them (see the "Go Generate Comment Example" above).
 
-`muxt generate` will read your HTML templates and generate and register [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc)
-on a for templates with names that an expected patten.
+You need to add a globally scoped variable with type `embed.FS` (like `templatesSource` in the example).
+It should be passed into a call either the function `"html/template".ParseFS` or method `"html/template".Template.ParseFS`.
+Before it does so, it can call any of the following functions or methods in the right hand side of the `templates` variable declaration.
+
+Muxt will call any of the functions:
+- [`Must`](https://pkg.go.dev/html/template#Must)
+- [`Parse`](https://pkg.go.dev/html/template#Parse)
+- [`New`](https://pkg.go.dev/html/template#New)
+- [`ParseFS`](https://pkg.go.dev/html/template#ParseFS)
+
+or methods:
+- [`Template.Parse`](https://pkg.go.dev/html/template#Template.Parse)
+- [`Template.New`](https://pkg.go.dev/html/template#Template.New)
+- [`Template.ParseFS`](https://pkg.go.dev/html/template#Template.ParseFS)
+- [`Template.Delims`](https://pkg.go.dev/html/template#Template.Delims)
+- [`Template.Option`](https://pkg.go.dev/html/template#Template.Option)
+- [`Template.Funcs`](https://pkg.go.dev/html/template#Template.Option)
+
+Muxt iterates over the resulting parsed templates to discover templates matching the template name pattern documented in the "Naming Templates" section below. 
+
+### Naming Templates
+
+`muxt generate` will read your embedded HTML templates and generate/register an [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected patten.
+
+If the template name does not match the pattern, it is ignored by muxt.
 
 Since Go 1.22, the standard library route **mu**ltiple**x**er can parse path parameters.
 

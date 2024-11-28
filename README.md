@@ -31,31 +31,30 @@ This command is how you use muxt.
 
 You can call it either by invoking it from your terminal or by adding a generate comment to a Go source file.
 
-#### Shell Example
-
-If you invoke it from the shell, it expects to find a Go source package in the current directory where it can find a templates variable.
-
-
 <details>
 <summary>Flags</summary>
 <pre>
 Usage of generate:
   -output-file string
-    	The generated file name containing the routes function and receiver interface (default "template_routes.go")
+    	The generated file name containing the routes function and receiver interface. (default "template_routes.go")
   -receiver-interface string
-    	The interface name in the generated output-file listing the methods used by the handler routes in routes-func (default "RoutesReceiver")
+    	The interface name in the generated output-file listing the methods used by the handler routes in routes-func. (default "RoutesReceiver")
   -receiver-type string
-    	The type name for a named type to use for looking up method signatures
+    	The type name for a named type to use for looking up method signatures. If not set, all methods added to the receiver interface will have inferred signatures with argument types based on the argument identifier names. The inferred method signatures always return a single result of type any.
   -receiver-type-package string
-    	The package path to use when looking for receiver-type
+    	The package path to use when looking for receiver-type. If not set, the package in the current directory is used.
   -routes-func string
     	The function name for the package registering handler functions on an *"net/http".ServeMux.
     	This function also receives an argument with a type matching the name given by receiver-interface. (default "routes")
   -templates-variable string
-    	the name of the global variable with type *"html/template".Template in the working directory package (default "templates")
+    	the name of the global variable with type *"html/template".Template in the working directory package. (default "templates")
 
 </pre>
 </details>
+
+#### Shell Example
+
+If you invoke it from the shell, it expects to find a Go source package in the current directory where it can find a templates variable.
 
 ```shell
 muxt generate
@@ -84,12 +83,33 @@ var (
 
 ```
 
-#### 
+### Making Template Source Files Discoverable
 
-### Writing Templates
+Muxt needs your template source files to be embedded in the package in the current directory for it to discover and parse them (see the "Go Generate Comment Example" above).
 
-`muxt generate` will read your HTML templates and generate and register [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc)
-on a for templates with names that an expected patten.
+You need to add a globally scoped variable with type `embed.FS` (like `templatesSource` in the example).
+It should be passed into a call either the function `"html/template".ParseFS` or method `"html/template".Template.ParseFS`.
+Before it does so, it can call any of the following functions or methods in the right hand side of the `templates` variable declaration.
+
+Muxt will call any of the functions:
+- [`Must`](https://pkg.go.dev/html/template#Must)
+- [`Parse`](https://pkg.go.dev/html/template#Parse)
+- [`New`](https://pkg.go.dev/html/template#New)
+- [`ParseFS`](https://pkg.go.dev/html/template#ParseFS)
+
+or methods:
+- [`Template.Parse`](https://pkg.go.dev/html/template#Template.Parse)
+- [`Template.New`](https://pkg.go.dev/html/template#Template.New)
+- [`Template.ParseFS`](https://pkg.go.dev/html/template#Template.ParseFS)
+- [`Template.Delims`](https://pkg.go.dev/html/template#Template.Delims)
+- [`Template.Option`](https://pkg.go.dev/html/template#Template.Option)
+- [`Template.Funcs`](https://pkg.go.dev/html/template#Template.Option)
+
+then iterate over the resulting parsed templates to discover templates matching the template name pattern documented in the Writing Templates section below. 
+
+### Writing Template Names
+
+`muxt generate` will read your embedded HTML templates and generate/register an [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected patten.
 
 Since Go 1.22, the standard library route **mu**ltiple**x**er can parse path parameters.
 
