@@ -7,70 +7,10 @@ import (
 	"go/types"
 	"net/http"
 	"regexp"
-	"slices"
 	"strconv"
-	"time"
 
 	"github.com/crhntr/dom/spec"
 )
-
-func GenerateParseValueFromStringStatements(imports *Imports, tmp string, str, typeExp ast.Expr, errCheck func(expr ast.Expr) ast.Stmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
-	switch tp := typeExp.(type) {
-	case *ast.Ident:
-		convert := func(exp ast.Expr) ast.Stmt {
-			return assignment(&ast.CallExpr{
-				Fun:  ast.NewIdent(tp.Name),
-				Args: []ast.Expr{exp},
-			})
-		}
-		switch tp.Name {
-		default:
-			return nil, fmt.Errorf("method param type %s not supported", Format(typeExp))
-		case "bool":
-			return parseBlock(tmp, imports.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
-		case "int":
-			return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
-		case "int8":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, convert), nil
-		case "int16":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, convert), nil
-		case "int32":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, convert), nil
-		case "int64":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
-		case "uint":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, convert), nil
-		case "uint8":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, convert), nil
-		case "uint16":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, convert), nil
-		case "uint32":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, convert), nil
-		case "uint64":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
-		case "string":
-			if len(validations) == 0 {
-				assign := assignment(str)
-				statements := slices.Concat(validations, []ast.Stmt{assign})
-				return statements, nil
-			}
-			statements := slices.Concat([]ast.Stmt{&ast.AssignStmt{
-				Lhs: []ast.Expr{ast.NewIdent(tmp)},
-				Tok: token.DEFINE,
-				Rhs: []ast.Expr{str},
-			}}, validations, []ast.Stmt{assignment(ast.NewIdent(tmp))})
-			return statements, nil
-		}
-	case *ast.SelectorExpr:
-		if pkg, ok := tp.X.(*ast.Ident); ok {
-			switch pkg.Name {
-			case imports.Ident("time"):
-				return parseBlock(tmp, imports.TimeParseCall(time.DateOnly, str), validations, errCheck, assignment), nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("unsupported type: %s", Format(typeExp))
-}
 
 func GenerateValidations(imports *Imports, variable ast.Expr, variableType types.Type, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment) ([]ast.Stmt, error, bool) {
 	input := fragment.QuerySelector(inputQuery)
