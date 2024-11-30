@@ -7,13 +7,14 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"golang.org/x/tools/go/packages"
 	"log"
 	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type Imports struct {

@@ -102,23 +102,3 @@ func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.E
 		},
 	}
 }
-
-func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, handleErr, handleResult func(out ast.Expr) ast.Stmt) []ast.Stmt {
-	const errIdent = "err"
-	parse := &ast.AssignStmt{
-		Lhs: []ast.Expr{ast.NewIdent(tmpIdent), ast.NewIdent(errIdent)},
-		Tok: token.DEFINE,
-		Rhs: []ast.Expr{parseCall},
-	}
-	errCheck := ErrorCheckReturn(errIdent, handleErr(&ast.CallExpr{
-		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(errIdent),
-			Sel: ast.NewIdent("Error"),
-		},
-		Args: []ast.Expr{},
-	}))
-	block := &ast.BlockStmt{List: []ast.Stmt{parse, errCheck}}
-	block.List = append(block.List, validations...)
-	block.List = append(block.List, handleResult(ast.NewIdent(tmpIdent)))
-	return block.List
-}
