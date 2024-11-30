@@ -33,54 +33,38 @@ This function also receives an argument with a type matching the name given by r
 	errIdentSuffix = " value must be a well-formed Go identifier"
 )
 
-type Generate struct {
-	GoFile string
-	GoLine string
-
-	TemplatesVariable         string
-	OutputFilename            string
-	RoutesFunction            string
-	ReceiverIdent             string
-	ReceiverStaticTypePackage string
-
-	ReceiverInterfaceIdent string
-}
-
-func NewGenerate(args []string, getEnv func(string) string, stderr io.Writer) (Generate, error) {
-	g := Generate{
-		GoFile: getEnv("GOFILE"),
-		GoLine: getEnv("GOLINE"),
-	}
-	flagSet := g.FlagSet()
+func NewRoutesFileConfiguration(args []string, stderr io.Writer) (muxt.RoutesFileConfiguration, error) {
+	var g muxt.RoutesFileConfiguration
+	flagSet := RoutesFileConfigurationFlagSet(&g)
 	flagSet.SetOutput(stderr)
 	if err := flagSet.Parse(args); err != nil {
 		return g, err
 	}
 	if g.TemplatesVariable != "" && !token.IsIdentifier(g.TemplatesVariable) {
-		return Generate{}, fmt.Errorf(templatesVariable + errIdentSuffix)
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(templatesVariable + errIdentSuffix)
 	}
 	if g.RoutesFunction != "" && !token.IsIdentifier(g.RoutesFunction) {
-		return Generate{}, fmt.Errorf(routesFunc + errIdentSuffix)
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(routesFunc + errIdentSuffix)
 	}
-	if g.ReceiverIdent != "" && !token.IsIdentifier(g.ReceiverIdent) {
-		return Generate{}, fmt.Errorf(receiverStaticType + errIdentSuffix)
+	if g.ReceiverType != "" && !token.IsIdentifier(g.ReceiverType) {
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(receiverStaticType + errIdentSuffix)
 	}
-	if g.ReceiverInterfaceIdent != "" && !token.IsIdentifier(g.ReceiverInterfaceIdent) {
-		return Generate{}, fmt.Errorf(receiverInterfaceName + errIdentSuffix)
+	if g.ReceiverInterface != "" && !token.IsIdentifier(g.ReceiverInterface) {
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(receiverInterfaceName + errIdentSuffix)
 	}
-	if g.OutputFilename != "" && filepath.Ext(g.OutputFilename) != ".go" {
-		return Generate{}, fmt.Errorf("output filename must use .go extension")
+	if g.OutputFileName != "" && filepath.Ext(g.OutputFileName) != ".go" {
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf("output filename must use .go extension")
 	}
 	return g, nil
 }
 
-func (g *Generate) FlagSet() *flag.FlagSet {
+func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagSet {
 	flagSet := flag.NewFlagSet("generate", flag.ContinueOnError)
-	flagSet.StringVar(&g.OutputFilename, outputFlagName, muxt.DefaultOutputFileName, outputFlagNameHelp)
+	flagSet.StringVar(&g.OutputFileName, outputFlagName, muxt.DefaultOutputFileName, outputFlagNameHelp)
 	flagSet.StringVar(&g.TemplatesVariable, templatesVariable, muxt.DefaultTemplatesVariableName, templatesVariableHelp)
 	flagSet.StringVar(&g.RoutesFunction, routesFunc, muxt.DefaultRoutesFunctionName, routesFuncHelp)
-	flagSet.StringVar(&g.ReceiverIdent, receiverStaticType, "", receiverStaticTypeHelp)
-	flagSet.StringVar(&g.ReceiverStaticTypePackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
-	flagSet.StringVar(&g.ReceiverInterfaceIdent, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
+	flagSet.StringVar(&g.ReceiverType, receiverStaticType, "", receiverStaticTypeHelp)
+	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
+	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
 	return flagSet
 }

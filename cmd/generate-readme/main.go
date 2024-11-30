@@ -7,6 +7,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/crhntr/muxt"
 	"github.com/crhntr/muxt/internal/configuration"
 )
 
@@ -17,11 +18,8 @@ var (
 )
 
 func main() {
-	var (
-		out bytes.Buffer
-		g   configuration.Generate
-	)
-	gf := g.FlagSet()
+	var out bytes.Buffer
+	gf := configuration.RoutesFileConfigurationFlagSet(new(muxt.RoutesFileConfiguration))
 	gf.SetOutput(&out)
 	gf.Usage()
 	generateUsage := out.Bytes()

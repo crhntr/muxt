@@ -55,20 +55,20 @@ const (
 
 type RoutesFileConfiguration struct {
 	executeFunc bool
-	Package,
+	PackageName,
 	PackagePath,
-	TemplatesVar,
-	RoutesFunc,
+	TemplatesVariable,
+	RoutesFunction,
 	ReceiverType,
 	ReceiverPackage,
 	ReceiverInterface,
-	Output string
+	OutputFileName string
 }
 
 func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
-	config.Package = cmp.Or(config.Package, defaultPackageName)
-	config.TemplatesVar = cmp.Or(config.TemplatesVar, DefaultTemplatesVariableName)
-	config.RoutesFunc = cmp.Or(config.RoutesFunc, DefaultRoutesFunctionName)
+	config.PackageName = cmp.Or(config.PackageName, defaultPackageName)
+	config.TemplatesVariable = cmp.Or(config.TemplatesVariable, DefaultTemplatesVariableName)
+	config.RoutesFunction = cmp.Or(config.RoutesFunction, DefaultRoutesFunctionName)
 	config.ReceiverInterface = cmp.Or(config.ReceiverInterface, DefaultReceiverInterfaceName)
 	config.executeFunc = true
 	return config
@@ -76,8 +76,8 @@ func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
 
 func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfiguration) (string, error) {
 	config = config.applyDefaults()
-	if !token.IsIdentifier(config.Package) {
-		return "", fmt.Errorf("package name %q is not an identifier", config.Package)
+	if !token.IsIdentifier(config.PackageName) {
+		return "", fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
@@ -104,7 +104,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 	imports.SetOutputPackage(routesPkg.Types)
 	config.PackagePath = routesPkg.PkgPath
-	config.Package = routesPkg.Name
+	config.PackageName = routesPkg.Name
 	var receiver *types.Named
 	if config.ReceiverType != "" {
 		receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
@@ -125,7 +125,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		receiver = types.NewNamed(types.NewTypeName(0, routesPkg.Types, "Receiver", nil), types.NewStruct(nil, nil), nil)
 	}
 
-	ts, err := source.Templates(wd, config.TemplatesVar, routesPkg)
+	ts, err := source.Templates(wd, config.TemplatesVariable, routesPkg)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +138,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		if p.Types.Path() == config.PackagePath {
 			if executeObj := p.Types.Scope().Lookup("execute"); executeObj != nil {
 				if _, ok := executeObj.(*types.Func); ok {
-					config.executeFunc = filepath.Base(p.Fset.Position(executeObj.Pos()).Filename) == config.Output
+					config.executeFunc = filepath.Base(p.Fset.Position(executeObj.Pos()).Filename) == config.OutputFileName
 				}
 			}
 			break
@@ -150,7 +150,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	routesFunc := &ast.FuncDecl{
-		Name: ast.NewIdent(config.RoutesFunc),
+		Name: ast.NewIdent(config.RoutesFunction),
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{
@@ -209,7 +209,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 	imports.SortImports()
 	file := &ast.File{
-		Name: ast.NewIdent(config.Package),
+		Name: ast.NewIdent(config.PackageName),
 		Decls: []ast.Decl{
 			// import
 			imports.GenDecl,
@@ -228,7 +228,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	if config.executeFunc {
-		file.Decls = append(file.Decls, executeFuncDecl(imports, config.TemplatesVar))
+		file.Decls = append(file.Decls, executeFuncDecl(imports, config.TemplatesVariable))
 	}
 
 	return source.Format(file), nil

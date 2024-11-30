@@ -1946,12 +1946,12 @@ var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 			logger := log.New(io.Discard, "", 0)
 			out, err := muxt.TemplateRoutesFile(dir, logger, muxt.RoutesFileConfiguration{
 				ReceiverInterface: tt.Interface,
-				Package:           tt.PackageName,
-				TemplatesVar:      tt.TemplatesVar,
-				RoutesFunc:        tt.RoutesFunc,
+				PackageName:       tt.PackageName,
+				TemplatesVariable: tt.TemplatesVar,
+				RoutesFunction:    tt.RoutesFunc,
 				PackagePath:       "example.com",
 				ReceiverType:      tt.Receiver,
-				Output:            "template_routes.go",
+				OutputFileName:    "template_routes.go",
 			})
 			if tt.ExpectedError == "" {
 				require.NoError(t, err)
@@ -1962,22 +1962,6 @@ var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 		})
 	}
 }
-
-//func loadPackage(t *testing.T, in string) []*packages.Package {
-//	t.Helper()
-//	archive := txtar.Parse([]byte(in))
-//	archiveDir, err := txtar.FS(archive)
-//	require.NoError(t, err)
-//
-//	dir := t.TempDir()
-//	require.NoError(t, os.CopyFS(dir, archiveDir))
-//	require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com\n"), 0644))
-//
-//	packageList, err := source.Load(dir, "./...")
-//	require.NoError(t, err)
-//
-//	return packageList
-//}
 
 const executeGo = `-- execute.go --
 package main
