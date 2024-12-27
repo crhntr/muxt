@@ -1,8 +1,10 @@
 package source
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/printer"
 	"go/token"
 	"net/http"
@@ -39,11 +41,15 @@ func IterateValueSpecs(files []*ast.File) func(func(*ast.File, *ast.ValueSpec) b
 }
 
 func Format(node ast.Node) string {
-	var buf strings.Builder
+	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, token.NewFileSet(), node); err != nil {
 		return fmt.Sprintf("formatting error: %v", err)
 	}
-	return buf.String()
+	out, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Sprintf("formatting error: %v", err)
+	}
+	return string(bytes.ReplaceAll(out, []byte("\n}\nfunc "), []byte("\n}\n\nfunc ")))
 }
 
 func evaluateStringLiteralExpressionList(wd string, set *token.FileSet, list []ast.Expr) ([]string, error) {

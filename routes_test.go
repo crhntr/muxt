@@ -48,6 +48,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET /", http.StatusOK, request)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -82,6 +83,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET / F()", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -120,6 +122,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, false, "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -164,6 +167,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET /age/{username} F(username)", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -199,6 +203,7 @@ func routes(mux *http.ServeMux, receiver Server) {
 		execute(response, request, true, "GET / F()", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -246,6 +251,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET /age/{username} F(username)", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
@@ -368,6 +374,7 @@ import(
 )
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {}
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	response.WriteHeader(code)
 	_ = templates.ExecuteTemplate(response, name, data)
@@ -385,6 +392,7 @@ type RoutesReceiver interface {
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
