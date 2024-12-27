@@ -1929,6 +1929,50 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 }
 `,
 		},
+		{
+			Name:      "use text encoding",
+			Templates: `{{define "GET /{id} F(id)"}}{{.}}{{end}}`,
+			Receiver:  "Server",
+			ReceiverPackage: `-- f.go --
+package main
+
+type ID int
+
+func (id *ID) UnmarshalText(text []byte) error {
+	n, err := strconv.ParseUint(string(text), 2, 64)
+	if err != nil {
+		return err
+	}
+	*id = n
+	return nil
+}
+
+type Server struct{}
+
+func (Server) F(id ID) int { return int(id) }
+` + executeGo,
+			ExpectedFile: `package main
+
+import "net/http"
+
+type RoutesReceiver interface {
+	F(id ID) int
+}
+
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+	mux.HandleFunc("GET /{id}", func(response http.ResponseWriter, request *http.Request) {
+		var idParsed ID
+		if err := idParsed.UnmarshalText([]byte(request.PathValue("id"))); err != nil {
+			http.Error(response, err.Error(), http.StatusBadRequest)
+			return
+		}
+		id := idParsed
+		data := receiver.F(id)
+		execute(response, request, true, "GET /{id} F(id)", http.StatusOK, data)
+	})
+}
+`,
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			archive := txtar.Parse([]byte(tt.ReceiverPackage))

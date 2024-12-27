@@ -82,7 +82,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
 
 	patterns := []string{
-		wd, "net/http",
+		wd, "net/http", "encoding",
 	}
 
 	if config.ReceiverPackage != "" {
@@ -570,6 +570,60 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 	case *types.Named:
 		if tp.Obj().Pkg().Path() == "time" && tp.Obj().Name() == "Time" {
 			return parseBlock(tmp, imports.TimeParseCall(time.DateOnly, str), validations, errCheck, assignment), nil
+		}
+		if encPkg, ok := imports.Types("encoding"); ok {
+			if textUnmarshaler := encPkg.Scope().Lookup("TextUnmarshaler").Type().Underlying().(*types.Interface); types.Implements(types.NewPointer(tp), textUnmarshaler) {
+				tp, _ := astTypeExpression(imports, valueType)
+				return []ast.Stmt{
+					&ast.DeclStmt{
+						Decl: &ast.GenDecl{
+							Tok: token.VAR,
+							Specs: []ast.Spec{
+								&ast.ValueSpec{
+									Names: []*ast.Ident{ast.NewIdent(tmp)},
+									Type:  tp,
+								},
+							},
+						},
+					},
+					&ast.IfStmt{
+						Init: &ast.AssignStmt{
+							Lhs: []ast.Expr{ast.NewIdent(errIdent)},
+							Tok: token.DEFINE,
+							Rhs: []ast.Expr{&ast.CallExpr{
+								Fun: &ast.SelectorExpr{
+									X:   ast.NewIdent(tmp),
+									Sel: ast.NewIdent("UnmarshalText"),
+								},
+								Args: []ast.Expr{&ast.CallExpr{
+									Fun: &ast.ArrayType{
+										Elt: ast.NewIdent("byte"),
+									},
+									Args: []ast.Expr{str},
+								}},
+							}},
+						},
+						Cond: &ast.BinaryExpr{
+							X:  ast.NewIdent(errIdent),
+							Op: token.NEQ,
+							Y:  ast.NewIdent("nil"),
+						},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{
+								errCheck(&ast.CallExpr{
+									Fun: &ast.SelectorExpr{
+										X:   ast.NewIdent(errIdent),
+										Sel: ast.NewIdent("Error"),
+									},
+									Args: []ast.Expr{},
+								}),
+								new(ast.ReturnStmt),
+							},
+						},
+					},
+					assignment(ast.NewIdent(tmp)),
+				}, nil
+			}
 		}
 	}
 	tp, _ := astTypeExpression(imports, valueType)
