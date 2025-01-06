@@ -1,0 +1,38 @@
+! muxt generate --receiver-type=T
+stderr 'argument 0 has type int32 expected int64'
+
+-- template.gohtml --
+{{define "GET / Endpoint()" }}Number {{.Number | .Square}}{{end}}
+
+-- go.mod --
+module server
+
+go 1.22
+
+-- template.go --
+package server
+
+import (
+	_ "embed"
+	"testing"
+
+	"net/http"
+	"net/http/httptest"
+)
+
+//go:embed *.gohtml
+var formHTML embed.FS
+
+var templates = template.Must(template.ParseFS(formHTML, "*"))
+
+type T struct{}
+
+func (T) Endpoint() Data {
+	return Data{}
+}
+
+type Data struct{}
+
+func (Data) Number() int32 { return 7 }
+
+func (Data) Square(n int64) int64 { return int64(n * n)}
