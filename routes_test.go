@@ -2005,7 +2005,7 @@ var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 				ReceiverType:      tt.Receiver,
 				OutputFileName:    "template_routes.go",
 
-				ExperimentalCheckTypes: true,
+				CheckTypes: true,
 			})
 			if tt.ExpectedError == "" {
 				require.NoError(t, err)

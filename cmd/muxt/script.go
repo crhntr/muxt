@@ -14,9 +14,6 @@ func scriptCommand() script.Cmd {
 		return func(state *script.State) (string, string, error) {
 			var stdout, stderr bytes.Buffer
 			err := command(state.Getwd(), args, func(s string) string {
-				if s == experimentCheckTypesEnvVar {
-					return "true"
-				}
 				e, _ := state.LookupEnv(s)
 				return e
 			}, &stdout, &stderr)

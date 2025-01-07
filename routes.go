@@ -56,7 +56,7 @@ const (
 )
 
 type RoutesFileConfiguration struct {
-	ExperimentalCheckTypes,
+	CheckTypes,
 	executeFunc bool
 	PackageName,
 	PackagePath,
@@ -209,7 +209,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		handlerFunc.Body.List = append(handlerFunc.Body.List, t.executeCall(source.HTTPStatusCode(imports, t.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
 		routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
 
-		if config.ExperimentalCheckTypes {
+		if config.CheckTypes {
 			dataVar := sig.Results().At(0)
 			if types.Identical(dataVar.Type(), types.Universe.Lookup("any").Type()) {
 				continue

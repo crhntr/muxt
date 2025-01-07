@@ -30,6 +30,9 @@ This function also receives an argument with a type matching the name given by r
 	receiverInterfaceNameHelp = `The interface name in the generated output-file listing the methods used by the handler routes in routes-func.`
 	receiverInterfaceName     = "receiver-interface"
 
+	checkTypes     = "x-check-types"
+	checkTypesHelp = "EXPERIMENTAL: Run a static type check on your template actions. The flag name may change."
+
 	errIdentSuffix = " value must be a well-formed Go identifier"
 )
 
@@ -66,5 +69,6 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.ReceiverType, receiverStaticType, "", receiverStaticTypeHelp)
 	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
+	flagSet.BoolVar(&g.CheckTypes, checkTypes, false, checkTypesHelp)
 	return flagSet
 }

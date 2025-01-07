@@ -1,4 +1,4 @@
-! muxt generate --receiver-type=T
+! muxt generate --receiver-type=T --x-check-types
 stderr 'argument 0 has type int32 expected int64'
 
 -- template.gohtml --
