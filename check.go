@@ -19,6 +19,9 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
+	if config.ReceiverType == "" {
+		return fmt.Errorf("receiver-type is required")
+	}
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",
@@ -58,7 +61,7 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		return fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
 	}
 	obj := receiverPkg.Types.Scope().Lookup(config.ReceiverType)
-	if config.ReceiverType != "" && obj == nil {
+	if obj == nil {
 		return fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkg.PkgPath)
 	}
 	receiver, ok := obj.Type().(*types.Named)
