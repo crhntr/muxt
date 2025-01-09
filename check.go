@@ -73,7 +73,7 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		return fmt.Errorf("could not find receiver %s in %s", config.ReceiverType, receiverPkgPath)
 	}
 
-	var errs error
+	var errs []error
 
 	for _, t := range templates {
 		var (
@@ -120,9 +120,21 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		if err := templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns); err != nil {
 			fmt.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
 			fmt.Println()
-			errs = errors.Join(errs, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return errs
+	if len(errs) == 1 {
+		fmt.Printf("1 error")
+		return errs[0]
+	} else if len(errs) > 0 {
+		fmt.Printf("%d errors\n", len(errs))
+		for i, err := range errs {
+			fmt.Printf("- %d: %s\n", i+1, err.Error())
+		}
+		return errors.Join(errs...)
+	}
+
+	fmt.Println("OK")
+	return nil
 }

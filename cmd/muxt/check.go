@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/crhntr/muxt"
@@ -12,5 +13,8 @@ func checkCommand(workingDirectory string, args []string, stderr io.Writer) erro
 	if err != nil {
 		return err
 	}
-	return muxt.CheckTemplates(workingDirectory, config)
+	if err := muxt.CheckTemplates(workingDirectory, config); err != nil {
+		return fmt.Errorf("fail")
+	}
+	return nil
 }
