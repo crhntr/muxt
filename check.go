@@ -7,6 +7,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"log"
 
 	"golang.org/x/tools/go/packages"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/crhntr/muxt/internal/templatetype"
 )
 
-func CheckTemplates(wd string, config RoutesFileConfiguration) error {
+func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	config = config.applyDefaults()
 	if !token.IsIdentifier(config.PackageName) {
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)
@@ -81,7 +82,7 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 			dataVarPkg *types.Package
 		)
 
-		fmt.Println("checking", t.template.Name())
+		log.Println("checking endpoint", t.template.Name())
 
 		if t.fun != nil {
 			name := t.fun.Name
@@ -96,7 +97,7 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 			}
 			dataVar = sig.Results().At(0).Type()
 			if types.Identical(dataVar, types.Universe.Lookup("any").Type()) {
-				fmt.Println("skipping unknown type", "any")
+				log.Println("route method returns type any\n\n\t%s\n", sig)
 				continue
 			}
 		} else {
@@ -111,30 +112,30 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 			return fmt.Errorf("failed to find data var type for template %q", t.template.Name())
 		}
 
-		fmt.Println("\tfor data type", dataVar.String())
-		fmt.Println()
+		log.Println("\tfor data type", dataVar.String())
+		log.Println()
 
 		fns := templatetype.DefaultFunctions(routesPkg.Types)
 		fns.Add(templatetype.Functions(fm))
 
 		if err := templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns); err != nil {
-			fmt.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
-			fmt.Println()
+			log.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
+			log.Println()
 			errs = append(errs, err)
 		}
 	}
 
 	if len(errs) == 1 {
-		fmt.Printf("1 error")
+		log.Printf("1 error")
 		return errs[0]
 	} else if len(errs) > 0 {
-		fmt.Printf("%d errors\n", len(errs))
+		log.Printf("%d errors\n", len(errs))
 		for i, err := range errs {
 			fmt.Printf("- %d: %s\n", i+1, err.Error())
 		}
 		return errors.Join(errs...)
 	}
 
-	fmt.Println("OK")
+	log.Println("OK")
 	return nil
 }
