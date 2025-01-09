@@ -2,6 +2,7 @@ package muxt
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -72,6 +73,8 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		return fmt.Errorf("could not find receiver %s in %s", config.ReceiverType, receiverPkgPath)
 	}
 
+	var errs error
+
 	for _, t := range templates {
 		var (
 			dataVar    types.Type
@@ -117,8 +120,9 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 		if err := templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns); err != nil {
 			fmt.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
 			fmt.Println()
+			errs = errors.Join(errs, err)
 		}
 	}
 
-	return nil
+	return errs
 }
