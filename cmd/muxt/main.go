@@ -23,6 +23,8 @@ func command(wd string, args []string, getEnv func(string) string, stdout, stder
 			return generateCommand(wd, cmdArgs, getEnv, stdout, stderr)
 		case "version", "v":
 			return versionCommand(stdout)
+		case "check":
+			return checkCommand(wd, cmdArgs, stderr)
 		}
 	}
 	return fmt.Errorf("unknown command")
