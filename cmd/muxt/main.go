@@ -23,7 +23,7 @@ func command(wd string, args []string, getEnv func(string) string, stdout, stder
 			return generateCommand(wd, cmdArgs, getEnv, stdout, stderr)
 		case "version", "v":
 			return versionCommand(stdout)
-		case "check":
+		case "check", "c":
 			return checkCommand(wd, cmdArgs, stderr)
 		}
 	}
