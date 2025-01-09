@@ -62,30 +62,61 @@ func CheckTemplates(wd string, config RoutesFileConfiguration) error {
 	}
 	obj := receiverPkg.Types.Scope().Lookup(config.ReceiverType)
 	if obj == nil {
-		return fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkg.PkgPath)
+		return fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkgPath)
 	}
 	receiver, ok := obj.Type().(*types.Named)
 	if !ok {
 		return fmt.Errorf("expected receiver %s to be a named type", config.ReceiverType)
 	}
+	if receiver == nil {
+		return fmt.Errorf("could not find receiver %s in %s", config.ReceiverType, receiverPkgPath)
+	}
 
 	for _, t := range templates {
-		methodObj, _, _ := types.LookupFieldOrMethod(receiver, true, receiver.Obj().Pkg(), t.fun.Name)
-		if methodObj == nil {
-			return fmt.Errorf("failed to generate method %s", t.fun.Name)
+		var (
+			dataVar    types.Type
+			dataVarPkg *types.Package
+		)
+
+		fmt.Println("checking", t.template.Name())
+
+		if t.fun != nil {
+			name := t.fun.Name
+			dataVarPkg = receiver.Obj().Pkg()
+			methodObj, _, _ := types.LookupFieldOrMethod(receiver, true, dataVarPkg, name)
+			if methodObj == nil {
+				return fmt.Errorf("failed to generate method %s", t.fun.Name)
+			}
+			sig := methodObj.Type().(*types.Signature)
+			if sig.Results().Len() == 0 {
+				return fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
+			}
+			dataVar = sig.Results().At(0).Type()
+			if types.Identical(dataVar, types.Universe.Lookup("any").Type()) {
+				fmt.Println("skipping unknown type", "any")
+				continue
+			}
+		} else {
+			netHTTP, ok := imports.Types("net/http")
+			if !ok {
+				return fmt.Errorf("net/http package not loaded")
+			}
+			dataVar = types.NewPointer(netHTTP.Scope().Lookup("Request").Type())
+			dataVarPkg = netHTTP
 		}
-		sig := methodObj.Type().(*types.Signature)
-		if sig.Results().Len() == 0 {
-			return fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
+		if dataVar == nil {
+			return fmt.Errorf("failed to find data var type for template %q", t.template.Name())
 		}
-		dataVar := sig.Results().At(0)
-		if types.Identical(dataVar.Type(), types.Universe.Lookup("any").Type()) {
-			continue
-		}
+
+		fmt.Println("\tfor data type", dataVar.String())
+		fmt.Println()
+
 		fns := templatetype.DefaultFunctions(routesPkg.Types)
 		fns.Add(templatetype.Functions(fm))
-		if err := templatetype.Check(t.template.Tree, dataVar.Type(), dataVar.Pkg(), routesPkg.Fset, newForrest(ts), fns); err != nil {
-			return err
+
+		if err := templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns); err != nil {
+			fmt.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
+			fmt.Println()
 		}
 	}
 
