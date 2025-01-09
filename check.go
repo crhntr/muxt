@@ -97,7 +97,7 @@ func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) 
 			}
 			dataVar = sig.Results().At(0).Type()
 			if types.Identical(dataVar, types.Universe.Lookup("any").Type()) {
-				log.Printf("route method returns type any\n\n\t%s\n", sig)
+				log.Printf("\troute method returns type any\n\n\t%s\n", sig)
 				continue
 			}
 		} else {
