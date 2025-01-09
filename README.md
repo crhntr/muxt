@@ -2,7 +2,7 @@
 
 **Early WIP (not yet tested in prod)**
 
-Sometimes as a web developer it is nice to stay in an HTML headspace. This Go code generator helps you do that.
+Sometimes as a developer it is nice to stay in an HTML headspace. This Go code generator helps you do that.
 It also provides a nice test seam between your http and endpoint handlers.
 
 Muxt generates Go code. It does not require you to add any dependencies outside the Go standard library. 

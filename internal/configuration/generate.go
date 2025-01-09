@@ -69,6 +69,5 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.ReceiverType, receiverStaticType, "", receiverStaticTypeHelp)
 	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
-	flagSet.BoolVar(&g.CheckTypes, checkTypes, false, checkTypesHelp)
 	return flagSet
 }

@@ -24,7 +24,6 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/crhntr/muxt/internal/source"
-	"github.com/crhntr/muxt/internal/templatetype"
 )
 
 const (
@@ -56,7 +55,6 @@ const (
 )
 
 type RoutesFileConfiguration struct {
-	CheckTypes,
 	executeFunc bool
 	PackageName,
 	PackagePath,
@@ -128,7 +126,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		receiver = types.NewNamed(types.NewTypeName(0, routesPkg.Types, "Receiver", nil), types.NewStruct(nil, nil), nil)
 	}
 
-	ts, fm, err := source.Templates(wd, config.TemplatesVariable, routesPkg)
+	ts, _, err := source.Templates(wd, config.TemplatesVariable, routesPkg)
 	if err != nil {
 		return "", err
 	}
@@ -208,18 +206,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
 		handlerFunc.Body.List = append(handlerFunc.Body.List, t.executeCall(source.HTTPStatusCode(imports, t.statusCode), ast.NewIdent(dataVarIdent), writeHeader))
 		routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
-
-		if config.CheckTypes {
-			dataVar := sig.Results().At(0)
-			if types.Identical(dataVar.Type(), types.Universe.Lookup("any").Type()) {
-				continue
-			}
-			fns := templatetype.DefaultFunctions(routesPkg.Types)
-			fns.Add(templatetype.Functions(fm))
-			if err := templatetype.Check(t.template.Tree, dataVar.Type(), dataVar.Pkg(), routesPkg.Fset, newForrest(ts), fns); err != nil {
-				return "", err
-			}
-		}
 	}
 
 	imports.SortImports()

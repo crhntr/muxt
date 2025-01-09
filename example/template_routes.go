@@ -60,6 +60,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		execute(response, request, true, "GET /{$} List(ctx)", http.StatusOK, data)
 	})
 }
+
 func execute(response http.ResponseWriter, request *http.Request, writeHeader bool, name string, code int, data any) {
 	buf := bytes.NewBuffer(nil)
 	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
