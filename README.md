@@ -12,6 +12,7 @@ Muxt generates Go code. It does not require you to add any dependencies outside 
 - It generates code in handler functions to parse path parameters and form fields
 - It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
   - Use this to mock out your server and test the view layer of your application
+- *[new]* It can do static type checking of your template actions
 
 ## Installation
 
