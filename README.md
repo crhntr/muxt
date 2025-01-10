@@ -1,8 +1,6 @@
 # Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
-**Early WIP (not yet tested in prod)**
-
-Sometimes as a developer it is nice to stay in an HTML headspace. This Go code generator helps you do that.
+As a hypertext developer it is nice to stay in an HTML headspace. This Go code generator helps you do that.
 It also provides a nice test seam between your http and endpoint handlers.
 
 Muxt generates Go code. It does not require you to add any dependencies outside the Go standard library. 
