@@ -1,0 +1,28 @@
+
+muxt -C a/b/c generate
+
+exec go -C a/b/c build
+
+-- a/b/c/go.mod --
+module pack
+
+go 1.18
+
+-- a/b/c/main.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+var (
+	//go:embed *.gohtml
+	templateFiles embed.FS
+
+	templates = template.Must(template.ParseFS(templateFiles, "*"))
+)
+
+func main() {}
+-- a/b/c/index.gohtml --
+<h1>hello</h1>

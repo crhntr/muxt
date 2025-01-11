@@ -1,22 +1,27 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/crhntr/muxt/internal/configuration"
 )
 
 func main() {
-	flag.Parse()
 	wd, err := os.Getwd()
 	if err != nil {
 		os.Exit(handleError(err))
 	}
-	os.Exit(handleError(command(wd, flag.Args(), os.Getenv, os.Stdout, os.Stderr)))
+	os.Exit(handleError(command(wd, os.Args, os.Getenv, os.Stdout, os.Stderr)))
 }
 
 func command(wd string, args []string, getEnv func(string) string, stdout, stderr io.Writer) error {
+	var err error
+	wd, args, err = configuration.Global(wd, args, stderr)
+	if err != nil {
+		return err
+	}
 	if len(args) > 0 {
 		switch cmd, cmdArgs := args[0], args[1:]; cmd {
 		case "generate", "gen", "g":
