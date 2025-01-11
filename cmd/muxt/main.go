@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		os.Exit(handleError(err))
 	}
-	os.Exit(handleError(command(wd, os.Args, os.Getenv, os.Stdout, os.Stderr)))
+	os.Exit(handleError(command(wd, os.Args[1:], os.Getenv, os.Stdout, os.Stderr)))
 }
 
 func command(wd string, args []string, getEnv func(string) string, stdout, stderr io.Writer) error {
