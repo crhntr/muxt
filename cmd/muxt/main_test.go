@@ -32,7 +32,7 @@ func commandTest(t *testing.T, pattern string) {
 	}
 }
 
-func TestGoGenerate(t *testing.T) {
+func Test_example(t *testing.T) {
 	require.NoError(t, os.Remove(filepath.FromSlash("../../example/template_routes.go")))
 
 	ctx := context.TODO()
