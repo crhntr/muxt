@@ -5,8 +5,8 @@ go 1.23
 require (
 	github.com/crhntr/dom v0.1.0-dev.7
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/net v0.33.0
-	golang.org/x/tools v0.28.0
+	golang.org/x/net v0.34.0
+	golang.org/x/tools v0.29.0
 	rsc.io/script v0.0.2
 )
 
