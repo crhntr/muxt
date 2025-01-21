@@ -377,13 +377,11 @@ func appendFormParseStatements(statements []ast.Stmt, t Template, imports *sourc
 			}
 			var templateNodes []*html.Node
 			if fieldTemplate != nil {
-				if fieldTemplate != nil {
-					templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
-						Type:     html.ElementNode,
-						DataAtom: atom.Body,
-						Data:     atom.Body.String(),
-					})
-				}
+				templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
+					Type:     html.ElementNode,
+					DataAtom: atom.Body,
+					Data:     atom.Body.String(),
+				})
 			}
 
 			var (
