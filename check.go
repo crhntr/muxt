@@ -116,7 +116,7 @@ func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) 
 		log.Println()
 
 		fns := templatetype.DefaultFunctions(routesPkg.Types)
-		fns.Add(templatetype.Functions(fm))
+		fns = fns.Add(templatetype.Functions(fm))
 
 		if err := templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns); err != nil {
 			log.Println("ERROR", templatetype.Check(t.template.Tree, dataVar, dataVarPkg, routesPkg.Fset, newForrest(ts), fns))
