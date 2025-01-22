@@ -30,6 +30,8 @@ func command(wd string, args []string, getEnv func(string) string, stdout, stder
 			return versionCommand(stdout)
 		case "check", "c":
 			return checkCommand(wd, cmdArgs, stderr)
+		case "documentation", "docs", "d":
+			return documentationCommand(wd, cmdArgs, stdout, stderr)
 		}
 	}
 	return fmt.Errorf("unknown command")
