@@ -74,6 +74,12 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 		return err
 	}
 
+	writeOutput(w, functions, templates, receiver)
+
+	return nil
+}
+
+func writeOutput(w io.Writer, functions source.Functions, templates []Template, receiver *types.Named) {
 	_, _ = fmt.Fprintf(w, "functions:\n")
 	names := slices.Collect(maps.Keys(functions))
 	for _, name := range names {
@@ -94,6 +100,4 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 		m := receiver.Method(i)
 		_, _ = fmt.Fprintf(w, "  - func %s%s\n", m.Name(), strings.TrimPrefix(m.Signature().String(), "func"))
 	}
-
-	return nil
 }
