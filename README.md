@@ -2,7 +2,7 @@
 
 Since Go 1.22, the standard library route **mu**ltiple**x**er [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux) uses http methods, hosts, and path parameters. Muxt extends this syntax to add method signatures and type static analysis based template type safety tp make it faster to write and test server side rendered hypermedia web applications.
 
-Muxt generates Go code. It does not require you to add any dependencies outside the Go standard library. 
+Muxt generates Go code. It does not require you to add any dependencies outside the Go standard library.
 
 - It allows you to register HTTP routes from [HTML templates](https://pkg.go.dev/html/template)
 - It generates handler functions and registers them on an [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux)
