@@ -29,7 +29,7 @@ You do not need to add this tool to your module ([unless you want to use the too
 Commands:
 - `muxt generate` generate a routes function and receiver interface
 - `muxt version` writes muxt version to standard out
-- `muxt check` static type check your templates
+- `muxt check` reduce risk when making changes to your templates using static analysis
 - `muxt documentation` (wip) template documentation
 
 ### Generate Command
