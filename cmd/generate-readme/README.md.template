@@ -134,7 +134,7 @@ In this template name
   - the method name on the configured receiver to call is `Greeting`
   - the parameters to pass to `Greeting` are `ctx` and `language`
 
-#### [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux) Patterns¶
+#### [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux) Patterns
 
 Here is an excerpt from [the standard libary documentation.](https://pkg.go.dev/net/http#hdr-Patterns-ServeMux)
 
