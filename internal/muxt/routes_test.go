@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/txtar"
 
-	"github.com/crhntr/muxt"
+	"github.com/crhntr/muxt/internal/muxt"
 )
 
 func TestGenerate(t *testing.T) {

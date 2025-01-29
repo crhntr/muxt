@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/crhntr/muxt"
+	"github.com/crhntr/muxt/internal/muxt"
 )
 
 func TestTemplateNames(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/crhntr/muxt"
 	"github.com/crhntr/muxt/internal/configuration"
+	"github.com/crhntr/muxt/internal/muxt"
 )
 
 var (
