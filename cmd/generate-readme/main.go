@@ -5,11 +5,14 @@ import (
 	_ "embed"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 
 	"github.com/crhntr/muxt/internal/configuration"
 	"github.com/crhntr/muxt/internal/muxt"
 )
+
+//go:generate go run .
 
 var (
 	//go:embed README.md.template
@@ -33,7 +36,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := os.WriteFile("README.md", out.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(filepath.FromSlash("../../README.md"), out.Bytes(), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }
