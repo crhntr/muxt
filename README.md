@@ -1,10 +1,15 @@
 # Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
-Muxt is a code-generation tool for Go that extends the standard library's recently enhanced (in Go 1.22) [http.ServeMux](https://pkg.go.dev/net/http#ServeMux) (**mu**ltiple**x**er).
-It adds a layer of type-safe convenience for writing hypermedia server side rendered (ssr) websites.
-It lets you extend HTML templates, close to your user's experience, as your "source of truth" for HTTP routes.
-It generates handler functions that renders HTML and parses and map path parameters, form fields, and more.
-All this happens with no additional dependencies--just the Go standard library.
+Since Go 1.22, the standard library route **mu**ltiple**x**er [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux) uses http methods, hosts, and path parameters.
+Muxt extends this syntax to add method signatures and type static analysis based template type safety tp make it faster to write and test server side rendered hypermedia web applications.
+
+Muxt generates Go code. It does not require you to add any dependencies outside the Go standard library.
+
+- It allows you to register HTTP routes from [HTML templates](https://pkg.go.dev/html/template)
+- It generates handler functions and registers them on an [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux)
+- It generates code in handler functions to parse path parameters and form fields
+- It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
+  - Use this to mock out your server and test the view layer of your application
 
 ### Used By
 - [portfoliotree.com](https://portfoliotree.com)
@@ -24,7 +29,7 @@ You do not need to add this tool to your module ([unless you want to use the too
 Commands:
 - `muxt generate` generate a routes function and receiver interface
 - `muxt version` writes muxt version to standard out
-- `muxt check` reduce risk when making changes to your templates using static analysis
+- `muxt check` static type check your templates
 - `muxt documentation` (wip) template documentation
 
 ### Generate Command
