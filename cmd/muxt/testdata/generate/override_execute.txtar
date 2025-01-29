@@ -13,7 +13,6 @@ stdout '^execute input type \*http.Request$'
 module server
 
 go 1.22
-
 -- template.go --
 package server
 

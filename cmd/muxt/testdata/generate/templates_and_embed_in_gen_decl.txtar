@@ -10,7 +10,6 @@ stdout 'routes has route for GET /'
 module server
 
 go 1.22
-
 -- template.go --
 package server
 

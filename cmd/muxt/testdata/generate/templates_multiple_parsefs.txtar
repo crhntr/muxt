@@ -21,7 +21,6 @@ stdout 'routes has route for POST /form'
 module server
 
 go 1.22
-
 -- template.go --
 package server
 
