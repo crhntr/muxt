@@ -653,7 +653,6 @@ func TestTree(t *testing.T) {
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
 		require.NoError(t, templatetype.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
-
 	})
 	t.Run("field on parenthesized interface", func(t *testing.T) {
 		tp := testPkg.Types.Scope().Lookup("Fooer").Type()

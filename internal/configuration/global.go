@@ -7,9 +7,7 @@ import (
 )
 
 func Global(wd string, args []string, stdout io.Writer) (string, []string, error) {
-	var (
-		changeDir string
-	)
+	var changeDir string
 	global := flag.NewFlagSet("muxt global", flag.ExitOnError)
 	global.SetOutput(stdout)
 	global.StringVar(&changeDir, "C", "", "change root directory")
