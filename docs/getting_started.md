@@ -5,15 +5,19 @@ This guide walks you through installing Muxt and generating your first routes fr
 ## 1. Quick Overview
 
 - **Code Generator, Not a Framework**  
-  Muxt scans your `.gohtml` files for route definitions (like `GET /`, `POST /signup`, etc.) and **generates** Go code to register handlers on `*http.ServeMux`.
+  Muxt scans your `.gohtml` files for route definitions (like `GET /`, `POST /signup`, etc.) and **generates** Go code
+  to register handlers on `*http.ServeMux`.
 - **Minimal & Testable**  
-  Muxt avoids large, complex dependencies. Your final program is just Go code. That means you can test each handler easily.
+  Muxt avoids large, complex dependencies. Your final program is just Go code. That means you can test each handler
+  easily.
 - **(Optional) Template Type Checking**  
-  Muxt can also **statically analyze** template call signatures—helping you catch mistakes early (e.g., passing the wrong argument types to your route methods).
+  Muxt can also **statically analyze** template call signatures—helping you catch mistakes early (e.g., passing the
+  wrong argument types to your route methods).
 
 ## 2. Installation
 
-You do not need to import Muxt into your module unless you want it as a [dev tool dependency (when Go 1.24 comes out)](https://tip.golang.org/doc/modules/managing-dependencies#tools).
+You do not need to import Muxt into your module unless you want it as
+a [dev tool dependency (when Go 1.24 comes out)](https://tip.golang.org/doc/modules/managing-dependencies#tools).
 For a global-install run:
 
 ```bash
@@ -51,8 +55,8 @@ var templates = template.Must(template.ParseFS(templateFS, "*.gohtml"))
 
 func main() {
 	mux := http.NewServeMux()
-    // routes(mux, nil) // we will un-comment this later
-	log.Fatal(http.ListenAndServe(":" + cmp.Or(os.Getenv("PORT"), "8080"), mux))
+	// routes(mux, nil) // we will un-comment this later
+	log.Fatal(http.ListenAndServe(":"+cmp.Or(os.Getenv("PORT"), "8080"), mux))
 }
 
 type Server struct{}
@@ -72,11 +76,11 @@ Create a file with the extention ".gohtml".
 <!DOCTYPE html>
 <html lang='en'>
 <head>
-  <meta charset='UTF-8'/>
-  <title>Hello!</title>
+    <meta charset='UTF-8'/>
+    <title>Hello!</title>
 </head>
 <body>
-  <h1>{{.}}</h1>
+<h1>{{.}}</h1>
 </body>
 </html>
 {{- end}}
@@ -131,7 +135,8 @@ func execute(response http.ResponseWriter, request *http.Request, writeHeader bo
 }
 ```
 
-Starting with the `package main`, muxt will generate the template_routes file in the current directory in the non-test package.
+Starting with the `package main`, muxt will generate the template_routes file in the current directory in the non-test
+package.
 
 The 2 standard library `import`s here are minimal.
 The generated routes function uses net/http.
@@ -148,7 +153,8 @@ Inside the http handler func, the named method is called.
 The result is then passed to execute.
 
 `func execute` is a simplistic template renderer.
-You will likely want to replace it with your own implementation to get better buffer utilization or global custom headers.
+You will likely want to replace it with your own implementation to get better buffer utilization or global custom
+headers.
 For simple low traffic sites, this function is a reasonable starting point.
 
 ## Next Steps

@@ -39,7 +39,7 @@ If you find something you think is wrong, [please open an issue](https://github.
 - gotype comments used in the GoLand IDE from JetBrains products are not consulted
 - ...
 
-
 ## Next Steps
 
-If you are coming across a hard blocker when using Muxt, consider using the more sophisticated templating language [templ](https://templ.guide).
+If you are coming across a hard blocker when using Muxt, consider using the more sophisticated templating
+language [templ](https://templ.guide).

@@ -8,7 +8,9 @@ Template execution does a bunch of runtime evaluation that makes complete type c
 Avoid using the empty interface and you'll probably be fine.
 
 If you wanna check out the code, it is in ./internal/templatetype.
-At some point I'd like to open source that as a subcomponent. 
-I also want to support explicitly setting a template type via `gotype: ` comments that GoLand (by JetBrains) uses for tab completion.
+At some point I'd like to open source that as a subcomponent.
+I also want to support explicitly setting a template type via `gotype: ` comments that GoLand (by JetBrains) uses for
+tab completion.
 
-I also would like to extend this code to create better template documentation and maybe a storybook kind thing... someday. 
+I also would like to extend this code to create better template documentation and maybe a storybook kind thing...
+someday. 

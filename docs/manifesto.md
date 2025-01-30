@@ -5,12 +5,12 @@
   The standard library should be the only **required** library in generated code.
 
 - **Generate simple readable code.**
-  
-  Code should use useful identifiers where possible and inline aggressively. 
 
-- **Reduce package pollution by generated code** 
+  Code should use useful identifiers where possible and inline aggressively.
 
-  Users should feel good about adding code to the same packages as generated code. 
+- **Reduce package pollution by generated code**
+
+  Users should feel good about adding code to the same packages as generated code.
 
 - **Collaboration, Not Isolation**
 
@@ -27,6 +27,5 @@
   Finding product market fit is hard.
   Fast feedback loops are essential.
   Muxt is built for continuous discovery—quickly scaffold your routes, test them, and adapt.
-
 
 *This manifesto is subject to change.*

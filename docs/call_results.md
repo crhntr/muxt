@@ -13,13 +13,14 @@ The following would be acceptable result sets.
 ```go
 package domain
 
-type T struct{
+type T struct {
 	MissingDataReason error
 }
 
 type Server struct{}
 
-func (Server) F1() T { return T{}}
-func (Server) F2() (T, bool) { return T{}, false}
-func (Server) F3() (T, error) { return T{}, nil}
+func (Server) F1() T          { return T{} }
+func (Server) F2() (T, bool)  { return T{}, false }
+func (Server) F3() (T, error) { return T{}, nil }
+
 ```

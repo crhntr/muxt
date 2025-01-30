@@ -1,6 +1,8 @@
 # Naming Templates
 
-`muxt generate` will read your embedded HTML templates and generate/register an [`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected patten.
+`muxt generate` will read your embedded HTML templates and generate/register an [
+`http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected
+patten.
 
 If the template name does not match the pattern, it is ignored by muxt.
 
@@ -18,11 +20,12 @@ A template name that muxt understands looks like this:
 
 ```gotemplate
 {{define "GET /greet/{language} 200 Greeting(ctx, language)" }}
-    <h1>{{.Hello}}</h1>
+<h1>{{.Hello}}</h1>
 {{end}}
 ```
 
 In this template name
+
 - Passed through to `http.ServeMux`
     - we define the HTTP Method `GET`,
     - the path prefix `/greet/`
@@ -41,6 +44,7 @@ Here is an excerpt from [the standard libary documentation.](https://pkg.go.dev/
 > - "GET /static/" matches a GET request whose path begins with "/static/".
 > - "example.com/" matches any request to the host "example.com".
 > - "example.com/{$}" matches requests with host "example.com" and path "/".
-> - "/b/{bucket}/o/{objectname...}" matches paths whose first segment is "b" and whose third segment is "o". The name "bucket" denotes the second segment and "objectname" denotes the remainder of the path.
+> - "/b/{bucket}/o/{objectname...}" matches paths whose first segment is "b" and whose third segment is "o". The name "
+    bucket" denotes the second segment and "objectname" denotes the remainder of the path.
 
 _TODO add more documentation on form and typed arguments_
