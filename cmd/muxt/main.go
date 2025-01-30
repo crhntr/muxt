@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		os.Exit(handleError(err))
 	}
-	if len(os.Args) == 0 {
+	if len(os.Args) == 1 {
 		writeHelp(os.Stderr)
 		return
 	}
