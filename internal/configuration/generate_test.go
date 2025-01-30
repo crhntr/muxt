@@ -14,9 +14,9 @@ func TestNewGenerate(t *testing.T) {
 		}, io.Discard)
 		assert.ErrorContains(t, err, "flag provided but not defined")
 	})
-	t.Run(receiverStaticType+" flag value is an invalid identifier", func(t *testing.T) {
+	t.Run(ReceiverStaticType+" flag value is an invalid identifier", func(t *testing.T) {
 		_, err := NewRoutesFileConfiguration([]string{
-			"--" + receiverStaticType, "123",
+			"--" + ReceiverStaticType, "123",
 		}, io.Discard)
 		assert.ErrorContains(t, err, errIdentSuffix)
 	})

@@ -32,9 +32,37 @@ func command(wd string, args []string, getEnv func(string) string, stdout, stder
 			return checkCommand(wd, cmdArgs, stderr)
 		case "documentation", "docs", "d":
 			return documentationCommand(wd, cmdArgs, stdout, stderr)
+		default:
+			return fmt.Errorf("unknown command")
 		}
 	}
-	return fmt.Errorf("unknown command")
+
+	_, _ = fmt.Fprintf(stdout, `muxt - Generate HTTP Endpoints from HTML Templates
+
+muxt check
+
+	Do some static analysis on the templates. 
+
+muxt documentation
+
+	This work in progress command will 
+
+muxt generate
+
+	Use this command to generate template_routes.go
+	
+	Consider using a Go generate comment where your templates variable is declared.
+
+	  //go:generate muxt generate %s=Server
+      var templates = templates = template.Must(template.ParseFS(templatesSource, "*.gohtml"))
+
+muxt version
+
+	Print the version of muxt to standard out.
+
+`, configuration.ReceiverStaticType)
+
+	return fmt.Errorf("no arguments provided")
 }
 
 func handleError(err error) int {

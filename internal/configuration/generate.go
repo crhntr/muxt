@@ -22,7 +22,7 @@ This function also receives an argument with a type matching the name given by r
 	routesFunc = "routes-func"
 
 	receiverStaticTypeHelp = `The type name for a named type to use for looking up method signatures. If not set, all methods added to the receiver interface will have inferred signatures with argument types based on the argument identifier names. The inferred method signatures always return a single result of type any.`
-	receiverStaticType     = "receiver-type"
+	ReceiverStaticType     = "receiver-type"
 
 	receiverStaticTypePackageHelp = `The package path to use when looking for receiver-type. If not set, the package in the current directory is used.`
 	receiverStaticTypePackage     = "receiver-type-package"
@@ -47,7 +47,7 @@ func NewRoutesFileConfiguration(args []string, stderr io.Writer) (muxt.RoutesFil
 		return muxt.RoutesFileConfiguration{}, fmt.Errorf(routesFunc + errIdentSuffix)
 	}
 	if g.ReceiverType != "" && !token.IsIdentifier(g.ReceiverType) {
-		return muxt.RoutesFileConfiguration{}, fmt.Errorf(receiverStaticType + errIdentSuffix)
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(ReceiverStaticType + errIdentSuffix)
 	}
 	if g.ReceiverInterface != "" && !token.IsIdentifier(g.ReceiverInterface) {
 		return muxt.RoutesFileConfiguration{}, fmt.Errorf(receiverInterfaceName + errIdentSuffix)
@@ -63,7 +63,7 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.OutputFileName, outputFlagName, muxt.DefaultOutputFileName, outputFlagNameHelp)
 	flagSet.StringVar(&g.TemplatesVariable, templatesVariable, muxt.DefaultTemplatesVariableName, templatesVariableHelp)
 	flagSet.StringVar(&g.RoutesFunction, routesFunc, muxt.DefaultRoutesFunctionName, routesFuncHelp)
-	flagSet.StringVar(&g.ReceiverType, receiverStaticType, "", receiverStaticTypeHelp)
+	flagSet.StringVar(&g.ReceiverType, ReceiverStaticType, "", receiverStaticTypeHelp)
 	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
 	return flagSet
