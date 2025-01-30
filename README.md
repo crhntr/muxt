@@ -30,7 +30,7 @@ For a more complete example, see: https://github.com/crhntr/muxt-template-module
 - [Call Results](./docs/call_results.md)
 - [Custom Execute Function](./docs/custom_execute_func.md)
 - [Templates Variable](./docs/templates_variable.md)
-- [Cction Type-Checking](./docs/action_type_checking.md)
+- [Template Action Type-Checking](./docs/action_type_checking.md)
 - [Known Issues](./docs/known_issues.md)
 
 ### Testing
