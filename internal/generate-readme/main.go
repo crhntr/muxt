@@ -36,6 +36,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	docsIndex, err := os.ReadFile(filepath.FromSlash("../../docs/README.md"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	out.WriteString("#")
+	out.Write(docsIndex)
+
 	if err := os.WriteFile(filepath.FromSlash("../../README.md"), out.Bytes(), 0o644); err != nil {
 		log.Fatal(err)
 	}
