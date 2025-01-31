@@ -10,9 +10,6 @@ No extra runtime dependencies are required—just plain Go code.
 - It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
 	- Use this to mock out your server and test the view layer of your application
 
-### Used By
-- [portfoliotree.com](https://portfoliotree.com)
-
 ## Examples
 
 The [example directory](example) has a worked example.
@@ -44,3 +41,5 @@ For a more complete example, see: https://github.com/crhntr/muxt-template-module
 - Goals:
   [see enhancement issues](https://github.com/crhntr/muxt/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement)
 
+## Used By
+- [portfoliotree.com](https://portfoliotree.com)
