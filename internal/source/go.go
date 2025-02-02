@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"golang.org/x/tools/imports"
 )
 
 func IterateGenDecl(files []*ast.File, tok token.Token) func(func(*ast.File, *ast.GenDecl) bool) {
@@ -38,6 +40,22 @@ func IterateValueSpecs(files []*ast.File) func(func(*ast.File, *ast.ValueSpec) b
 			}
 		}
 	}
+}
+
+func FormatFile(filePath string, node ast.Node) (string, error) {
+	var buf bytes.Buffer
+	if err := printer.Fprint(&buf, token.NewFileSet(), node); err != nil {
+		return "", fmt.Errorf("formatting error: %v", err)
+	}
+	out, err := imports.Process(filePath, buf.Bytes(), &imports.Options{
+		Fragment:  true,
+		AllErrors: true,
+		Comments:  true,
+	})
+	if err != nil {
+		return "", fmt.Errorf("formatting error: %v", err)
+	}
+	return string(bytes.ReplaceAll(out, []byte("\n}\nfunc "), []byte("\n}\n\nfunc "))), nil
 }
 
 func Format(node ast.Node) string {

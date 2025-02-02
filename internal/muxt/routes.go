@@ -242,7 +242,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		file.Decls = append(file.Decls, executeFuncDecl(imports, config.TemplatesVariable))
 	}
 
-	return source.Format(file), nil
+	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), file)
 }
 
 func appendParseArgumentStatements(statements []ast.Stmt, t Template, imports *source.Imports, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, call *ast.CallExpr) ([]ast.Stmt, error) {
