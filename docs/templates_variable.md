@@ -1,7 +1,7 @@
 # Making Template Source Files Discoverable
 
 Muxt needs your template source files to be embedded in the package in the current directory for it to discover and
-parse them (see the "Go Generate Comment Example" above).
+parse them.
 
 ```go
 package server
