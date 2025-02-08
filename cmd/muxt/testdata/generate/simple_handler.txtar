@@ -2,6 +2,8 @@ muxt generate
 
 exec go test -cover
 
+cat template_routes.go
+
 -- template.gohtml --
 {{define "GET / F()" -}}
 <!DOCTYPE html>

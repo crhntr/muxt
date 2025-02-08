@@ -103,26 +103,32 @@ Access the server at `http://localhost:8080`.
 *Note, this may change in patch releases of muxt. I will do my best to keep this updated.*
 
 ```go
-package main
+package server
 
 import (
   "bytes"
   "net/http"
 )
 
-type Server interface {
-  F() string
+type (
+  RoutesReceiver interface {
+    F() any
+  }
+  responseData[T any] struct {
+    Request *http.Request
+    Data    T
+  }
+)
+
+func newResponseData[T any](data T, request *http.Request) responseData[T] {
+  return responseData[T]{Data: data, Request: request}
 }
 
-func routes(mux *http.ServeMux, receiver Server) {
+func routes(mux *http.ServeMux, receiver RoutesReceiver) {
   mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
-    type ResponseData struct {
-      Data    string
-      Request *http.Request
-    }
     data := receiver.F()
     buf := bytes.NewBuffer(nil)
-    rd := ResponseData{Data: data, Request: request}
+    rd := newResponseData(data, request)
     if err := templates.ExecuteTemplate(buf, "GET / F()", rd); err != nil {
       http.Error(response, err.Error(), http.StatusInternalServerError)
       return
