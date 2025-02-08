@@ -3,6 +3,20 @@
 Muxt needs your template source files to be embedded in the package in the current directory for it to discover and
 parse them (see the "Go Generate Comment Example" above).
 
+```go
+package server
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed *.gohtml
+var templatesSource embed.FS
+
+var templates = template.Must(template.ParseFS(templatesSource, "*"))
+```
+
 You need to add a globally scoped variable with type `embed.FS` (like `templatesSource` in the example).
 It should be passed into a call either the function `"html/template".ParseFS` or method
 `"html/template".Template.ParseFS`.
