@@ -58,7 +58,7 @@ func Test(t *testing.T) {
 		t.Error("expected OK")
 	}
 
-	if got, exp:=strings.TrimSpace(rec.Body.String()), "ORANGE@"; got != exp {
+	if got, exp := strings.TrimSpace(rec.Body.String()), "ORANGE@"; got != exp {
 		t.Errorf("%q != %q", got, exp)
 	}
 }

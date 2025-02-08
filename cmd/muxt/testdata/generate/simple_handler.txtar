@@ -3,7 +3,18 @@ muxt generate
 exec go test -cover
 
 -- template.gohtml --
-{{define "GET / Number()" }}Number {{.Data}}{{end}}
+{{define "GET / F()" -}}
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'/>
+    <title>Hello!</title>
+</head>
+<body>
+<h1>Number {{.Data}}</h1>
+</body>
+</html>
+{{- end}}
 
 -- go.mod --
 module server
@@ -25,15 +36,15 @@ var templates = template.Must(template.ParseFS(formHTML, "*"))
 package server
 
 import (
-	"testing"
-
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"testing"
 )
 
 type T struct{}
 
-func (T) Number() any { return 32 }
+func (T) F() any { return 32 }
 
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
@@ -52,7 +63,11 @@ func Test(t *testing.T) {
 		t.Error("expected OK")
 	}
 
-	if rec.Body.String() != "Number 32" {
-		t.Fail()
+	body := rec.Body.String()
+	if !strings.Contains(body, "Number 32") {
+		t.Errorf("missing %q", "Number 32")
+	}
+	if t.Failed() {
+		t.Log(body)
 	}
 }
