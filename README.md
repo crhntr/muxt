@@ -16,8 +16,6 @@ For more complete examples see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
 - [muxt-template-module-htmx](https://github.com/crhntr/muxt-template-module-htmx)
 
-For a more complete example, see: https://github.com/crhntr/muxt-template-module-htmx
-
 ## Documentation
 
 ### Introduction
