@@ -26,7 +26,6 @@ For a more complete example, see: https://github.com/crhntr/muxt-template-module
 ### Reference
 - [Call Parameters](./docs/call_parameters.md)
 - [Call Results](./docs/call_results.md)
-- [Custom Execute Function](./docs/custom_execute_func.md)
 - [Templates Variable](./docs/templates_variable.md)
 - [Template Action Type-Checking](./docs/action_type_checking.md)
 - [Known Issues](./docs/known_issues.md)

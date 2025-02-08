@@ -27,22 +27,28 @@ import (
   "net/http"
 )
 
-type RoutesReceiver interface {
-  F(ctx context.Context, response http.ResponseWriter, request *http.Request, projectID string, taskID string) any
+type (
+  RoutesReceiver interface {
+    F(ctx context.Context, response http.ResponseWriter, request *http.Request, projectID string, taskID string) any
+  }
+  responseData[T any] struct {
+    Request *http.Request
+    Data    T
+  }
+)
+
+func newResponseData[T any](data T, request *http.Request) responseData[T] {
+  return responseData[T]{Data: data, Request: request}
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
   mux.HandleFunc("GET /project/{projectID}/task/{taskID}", func(response http.ResponseWriter, request *http.Request) {
-    type ResponseData struct {
-      Data    any
-      Request *http.Request
-    }
     ctx := request.Context()
     projectID := request.PathValue("projectID")
     taskID := request.PathValue("taskID")
     data := receiver.F(ctx, response, request, projectID, taskID)
     buf := bytes.NewBuffer(nil)
-    rd := ResponseData{Data: data, Request: request}
+    rd := newResponseData(data, request)
     if err := templates.ExecuteTemplate(buf, "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)", rd); err != nil {
       http.Error(response, err.Error(), http.StatusInternalServerError)
       return

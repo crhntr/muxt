@@ -51,7 +51,7 @@ const (
 
 	errIdent = "err"
 
-	resultTypeName = "ResponseData"
+	resultTypeName = "responseData"
 )
 
 type RoutesFileConfiguration struct {
@@ -166,37 +166,28 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Body: new(ast.BlockStmt),
 	}
 
+	const newResponseDataFuncIdent = "newResponseData"
+
 	for _, t := range templates {
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
 			handlerFunc := &ast.FuncLit{
 				Type: httpHandlerFuncType(imports),
-				Body: &ast.BlockStmt{},
-			}
-			handlerFunc.Body.List = append(handlerFunc.Body.List, &ast.DeclStmt{
-				Decl: &ast.GenDecl{
-					Tok: token.TYPE,
-					Specs: []ast.Spec{
-						&ast.TypeSpec{
-							Name: ast.NewIdent(resultTypeName),
-							Type: &ast.StructType{
-								Fields: &ast.FieldList{
-									List: []*ast.Field{
-										{Names: []*ast.Ident{ast.NewIdent(httpRequestIdent)}, Type: imports.HTTPRequestPtr()},
-									},
-								},
-							},
+				Body: &ast.BlockStmt{
+					List: []ast.Stmt{
+						&ast.AssignStmt{
+							Lhs: []ast.Expr{ast.NewIdent("data")},
+							Tok: token.DEFINE,
+							Rhs: []ast.Expr{&ast.CompositeLit{Type: &ast.StructType{Fields: &ast.FieldList{}}}},
 						},
 					},
 				},
-			})
-			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t.name, config.TemplatesVariable, true, t.statusCode, &ast.CompositeLit{
-				Type: ast.NewIdent(resultTypeName),
-				Elts: []ast.Expr{
-					&ast.KeyValueExpr{
-						Key:   ast.NewIdent("Request"),
-						Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-					},
+			}
+			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t.name, config.TemplatesVariable, true, t.statusCode, &ast.CallExpr{
+				Fun: ast.NewIdent(newResponseDataFuncIdent),
+				Args: []ast.Expr{
+					ast.NewIdent("data"),
+					ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 				},
 			})...)
 			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
@@ -214,10 +205,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		if sig.Results().Len() == 0 {
 			return "", fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
 		}
-		var (
-			callFun  ast.Expr
-			dataType ast.Expr
-		)
+		var callFun ast.Expr
 		obj, _, _ := types.LookupFieldOrMethod(receiver, true, receiver.Obj().Pkg(), t.fun.Name)
 		isMethodCall := obj != nil
 		if isMethodCall {
@@ -225,15 +213,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				X:   ast.NewIdent(receiverIdent),
 				Sel: t.fun,
 			}
-			results := obj.Type().(*types.Signature).Results()
-			dt := results.At(results.Len() - 1)
-			dataType, err = astTypeExpression(imports, dt.Type())
-			if err != nil {
-				return "", err
-			}
 		} else {
 			callFun = ast.NewIdent(t.fun.Name)
-			dataType = ast.NewIdent("any")
 		}
 
 		writeHeader := !hasHTTPResponseWriterArgument(t.call)
@@ -242,22 +223,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			Type: httpHandlerFuncType(imports),
 			Body: &ast.BlockStmt{},
 		}
-		handlerFunc.Body.List = append(handlerFunc.Body.List, &ast.DeclStmt{
-			Decl: &ast.GenDecl{
-				Tok: token.TYPE,
-				Specs: []ast.Spec{&ast.TypeSpec{
-					Name: ast.NewIdent(resultTypeName),
-					Type: &ast.StructType{
-						Fields: &ast.FieldList{
-							List: []*ast.Field{
-								{Names: []*ast.Ident{ast.NewIdent("Data")}, Type: dataType},
-								{Names: []*ast.Ident{ast.NewIdent(httpRequestIdent)}, Type: imports.HTTPRequestPtr()},
-							},
-						},
-					},
-				}},
-			},
-		})
 
 		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, imports, sigs, nil, receiver, t.call); err != nil {
 			return "", err
@@ -272,20 +237,63 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			return "", err
 		}
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t.name, config.TemplatesVariable, writeHeader, t.statusCode, &ast.CompositeLit{
-			Type: ast.NewIdent(resultTypeName),
-			Elts: []ast.Expr{
-				&ast.KeyValueExpr{
-					Key:   ast.NewIdent("Data"),
-					Value: ast.NewIdent(dataVarIdent),
-				},
-				&ast.KeyValueExpr{
-					Key:   ast.NewIdent(httpRequestIdent),
-					Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-				},
+		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t.name, config.TemplatesVariable, writeHeader, t.statusCode, &ast.CallExpr{
+			Fun: ast.NewIdent(newResponseDataFuncIdent),
+			Args: []ast.Expr{
+				ast.NewIdent(dataVarIdent),
+				ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 			},
 		})...)
 		routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
+	}
+
+	newResponseDataFunc := &ast.FuncDecl{
+		Name: ast.NewIdent(newResponseDataFuncIdent),
+		Type: &ast.FuncType{
+			TypeParams: &ast.FieldList{
+				List: []*ast.Field{
+					{Names: []*ast.Ident{ast.NewIdent("T")}, Type: ast.NewIdent("any")},
+				},
+			},
+			Params: &ast.FieldList{
+				List: []*ast.Field{
+					{Names: []*ast.Ident{ast.NewIdent("data")}, Type: ast.NewIdent("T")},
+					{Names: []*ast.Ident{ast.NewIdent("request")}, Type: imports.HTTPRequestPtr()},
+				},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{
+					{Type: &ast.IndexExpr{
+						X:     ast.NewIdent(resultTypeName),
+						Index: ast.NewIdent("T"),
+					}},
+				},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{
+						&ast.CompositeLit{
+							Type: &ast.IndexExpr{
+								X:     ast.NewIdent(resultTypeName),
+								Index: ast.NewIdent("T"),
+							},
+							Elts: []ast.Expr{
+								&ast.KeyValueExpr{
+									Key:   ast.NewIdent("Data"),
+									Value: ast.NewIdent("data"),
+								},
+								&ast.KeyValueExpr{
+									Key:   ast.NewIdent(httpRequestIdent),
+									Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	imports.SortImports()
@@ -300,8 +308,25 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				Tok: token.TYPE,
 				Specs: []ast.Spec{
 					&ast.TypeSpec{Name: ast.NewIdent(config.ReceiverInterface), Type: receiverInterface},
+					&ast.TypeSpec{
+						Name: ast.NewIdent(resultTypeName),
+						TypeParams: &ast.FieldList{
+							List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("T")}, Type: ast.NewIdent("any")}},
+						},
+						Type: &ast.StructType{
+							Fields: &ast.FieldList{
+								List: []*ast.Field{
+									{Names: []*ast.Ident{ast.NewIdent(httpRequestIdent)}, Type: imports.HTTPRequestPtr()},
+									{Names: []*ast.Ident{ast.NewIdent("Data")}, Type: ast.NewIdent("T")},
+								},
+							},
+						},
+					},
 				},
 			},
+
+			// func newResultData
+			newResponseDataFunc,
 
 			// func routes
 			routesFunc,
