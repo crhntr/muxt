@@ -3,6 +3,10 @@ github.com/andybalholm/cascadia v1.3.3/go.mod h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmg
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crhntr/dom v0.1.0 h1:OiLwcXgTBsGegcsnYh7PIqhuJply0qe6QUnowBBA3yI=
 github.com/crhntr/dom v0.1.0/go.mod h1:Guas5qb6R+Jkx00cZcqOLl2LKJ2TErveWGJmGrO1Hd8=
+github.com/crhntr/dom v0.1.1 h1:CaZ2+6Wl2Q14M0YU8ubzCJdXK8tu2iphTxgGxFHVrG8=
+github.com/crhntr/dom v0.1.1/go.mod h1:TR5TfkNoybGfvsY+Dxfvu9PfFxw+7/OqR5aab4iREdU=
+github.com/crhntr/dom v0.1.2 h1:MyCJtV39pgr6oxxVDxJU7IvdL4PaoiXZ1YmL5HUv1qU=
+github.com/crhntr/dom v0.1.2/go.mod h1:GETgV5XM7ugjm/viAqsf9lX2lyYRwB2kvDILcEfJDQk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=

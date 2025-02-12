@@ -3,7 +3,7 @@ module github.com/crhntr/muxt
 go 1.23
 
 require (
-	github.com/crhntr/dom v0.1.0
+	github.com/crhntr/dom v0.1.2
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.35.0
 	golang.org/x/tools v0.30.0
