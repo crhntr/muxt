@@ -10,11 +10,6 @@ No extra runtime dependencies are required—just plain Go code.
 - It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
 	- Use this to mock out your server and test the view layer of your application
 
-## News
-
-- ✨ [Go 1.24 "range over func" and "range over int" for templates](https://go.dev/doc/go1.24#texttemplatepkgtexttemplate) is now supported by `muxt check`
-  This functionality landed within 1 day of Go 1.24 being released.
-
 ## Examples
 
 For more complete examples see:
