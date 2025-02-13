@@ -1,0 +1,77 @@
+muxt generate --receiver-interface=Endpoints
+
+exec go test -cover
+
+cat template_routes.go
+
+-- template.gohtml --
+{{define "GET / F()" -}}
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'/>
+    <title>Hello!</title>
+</head>
+<body>
+<h1>Number {{.Data}}</h1>
+</body>
+</html>
+{{- end}}
+
+-- go.mod --
+module server
+
+go 1.22
+-- template.go --
+package server
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed *.gohtml
+var formHTML embed.FS
+
+var templates = template.Must(template.ParseFS(formHTML, "*"))
+-- template_test.go --
+package server
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+type T struct{}
+
+var _ Endpoints = (*T)(nil)
+
+func (T) F() any { return 32 }
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+
+	var service T
+	routes(mux, service)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	res := rec.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Error("expected OK")
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "Number 32") {
+		t.Errorf("missing %q", "Number 32")
+	}
+	if t.Failed() {
+		t.Log(body)
+	}
+}
