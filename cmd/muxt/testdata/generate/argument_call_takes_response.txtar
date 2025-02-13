@@ -1,0 +1,88 @@
+muxt generate --receiver-type=T
+
+cat template_routes.go
+
+exec go test -cover
+
+-- template.gohtml --
+{{define "GET / F(ctx, Headers(response))"}}{{end}}
+
+-- go.mod --
+module example.com
+
+go 1.22
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var source embed.FS
+
+var templates = template.Must(template.ParseFS(source, "*"))
+-- in.go --
+package main
+
+import (
+	"context"
+	"net/http"
+)
+
+type T struct{}
+
+func (T) F(context.Context, any) any { return nil }
+
+func (T) Headers(response http.ResponseWriter) any { return nil }
+-- template_test.go --
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+type FakeResponse struct {
+	wrapped              http.ResponseWriter
+	WriteHeaderCallCount int
+	HeaderCallCount      int
+	WriteCallCount       int
+}
+
+func (fake *FakeResponse) Header() http.Header {
+	fake.HeaderCallCount++
+	return fake.wrapped.Header()
+}
+
+func (fake *FakeResponse) Write(in []byte) (int, error) {
+	fake.WriteCallCount++
+	return fake.wrapped.Write(in)
+}
+func (fake *FakeResponse) WriteHeader(statusCode int) {
+	fake.WriteHeaderCallCount++
+	fake.wrapped.WriteHeader(statusCode)
+}
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+
+	var service T
+	routes(mux, service)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := new(FakeResponse)
+	rec := httptest.NewRecorder()
+	res.wrapped = rec
+
+	mux.ServeHTTP(res, req)
+
+	if res.WriteHeaderCallCount != 0 {
+		t.Error("unexpected WriteHeader call")
+	}
+	if res.HeaderCallCount != 0 {
+		t.Error("unexpected HeaderCall call")
+	}
+}

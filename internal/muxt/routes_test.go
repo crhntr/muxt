@@ -1352,66 +1352,6 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 }
 `,
 		},
-		{
-			Name:      "call expression argument with response argument",
-			Templates: `{{define "GET / F(ctx, Headers(response))"}}{{end}}`,
-			Receiver:  "T",
-			ReceiverPackage: `-- in.go --
-package main
-
-import (
-	"context"
-	"net/http"
-)
-
-type (
-	T struct{}
-	Configuration struct{}
-)
-
-func (T) F(context.Context, any) any {return nil}
-
-func (T) Headers(response http.ResponseWriter) any { return }
-`,
-			ExpectedFile: `package main
-
-import (
-	"bytes"
-	"context"
-	"net/http"
-)
-
-type (
-	RoutesReceiver interface {
-		Headers(response http.ResponseWriter) any
-		F(context.Context, any) any
-	}
-	responseData[T any] struct {
-		Request *http.Request
-		Data    T
-	}
-)
-
-func newResponseData[T any](data T, request *http.Request) responseData[T] {
-	return responseData[T]{Data: data, Request: request}
-}
-
-func routes(mux *http.ServeMux, receiver RoutesReceiver) {
-	mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
-		ctx := request.Context()
-		result0 := receiver.Headers(response)
-		data := receiver.F(ctx, result0)
-		buf := bytes.NewBuffer(nil)
-		rd := newResponseData(data, request)
-		if err := templates.ExecuteTemplate(buf, "GET / F(ctx, Headers(response))", rd); err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_, _ = buf.WriteTo(response)
-	})
-}
-`,
-		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
