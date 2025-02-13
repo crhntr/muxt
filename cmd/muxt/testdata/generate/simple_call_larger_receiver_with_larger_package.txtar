@@ -1,0 +1,44 @@
+# simple call larger receiver with larger package
+
+muxt generate --receiver-type=T
+
+-- receiver.go --
+package main
+
+type (
+	T0 struct{}
+
+	T struct{}
+)
+
+-- f.go --
+package main
+
+import "context"
+
+func F(string) int { return 20 }
+
+func (T0) F(ctx context.Context) int { return 30 }
+
+func (T) F1(ctx context.Context, username string) int { return 30 }
+
+func (T) F(ctx context.Context, username string) int { return 30 }
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var templatesDir embed.FS
+
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+-- go.mod --
+module example.com
+
+go 1.20
+-- template.gohtml --
+{{define "GET /age/{username} F(ctx, username)"}}Hello, {{.}}!{{end}}
+

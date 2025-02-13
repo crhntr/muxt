@@ -1,0 +1,30 @@
+# F returns a value and a boolean
+
+muxt generate --receiver-type=T
+
+-- receiver.go --
+package main
+
+type T struct{}
+
+func (T) F(username string) (int, bool) { return 30, true }
+
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var templatesDir embed.FS
+
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+-- go.mod --
+module example.com
+
+go 1.20
+-- template.gohtml --
+{{define "GET /age/{username} F(username)"}}Hello, {{.}}!{{end}}
+

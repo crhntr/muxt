@@ -1,0 +1,35 @@
+# F is defined and form type is a struct
+
+muxt generate --receiver-type=T
+
+-- in.go --
+package main
+
+type (
+	T struct{}
+	In struct{
+		field string
+	}
+)
+
+func (T) F(form In) int { return 0 }
+
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var templatesDir embed.FS
+
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+-- go.mod --
+module example.com
+
+go 1.20
+-- template.gohtml --
+{{define "GET / F(form)"}}Hello, {{.}}!{{end}}
+

@@ -1,0 +1,34 @@
+# form html has a cromulent min attribute
+
+muxt generate --receiver-type=T
+
+-- in.go --
+package main
+
+type (
+	T struct{}
+	In struct{
+		field int
+	}
+)
+
+func (T) F(form In) int { return 0 }
+-- template.go --
+package main
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed template.gohtml
+var templatesDir embed.FS
+
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+-- go.mod --
+module example.com
+
+go 1.20
+-- template.gohtml --
+{{define "GET / F(form)"}}<input type="number" name="field" min="13">{{end}}
+
