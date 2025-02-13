@@ -31,9 +31,9 @@ package hypertext
 
 import "net/http"
 
-type TemplateData [T any]struct{
+type TemplateData[T any] struct {
 	Request *http.Request
-	Data T
+	Data    T
 }
 ```
 
