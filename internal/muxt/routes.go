@@ -51,7 +51,7 @@ const (
 
 	errIdent = "err"
 
-	resultTypeName = "responseData"
+	resultTypeName = "TemplateData"
 )
 
 type RoutesFileConfiguration struct {
@@ -166,7 +166,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Body: new(ast.BlockStmt),
 	}
 
-	const newResponseDataFuncIdent = "newResponseData"
+	const newResponseDataFuncIdent = "new" + resultTypeName
 
 	for _, t := range templates {
 		logger.Printf("routes has route for %s", t.pattern)
@@ -308,6 +308,15 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				Tok: token.TYPE,
 				Specs: []ast.Spec{
 					&ast.TypeSpec{Name: ast.NewIdent(config.ReceiverInterface), Type: receiverInterface},
+				},
+			},
+
+			// func routes
+			routesFunc,
+
+			&ast.GenDecl{
+				Tok: token.TYPE,
+				Specs: []ast.Spec{
 					&ast.TypeSpec{
 						Name: ast.NewIdent(resultTypeName),
 						TypeParams: &ast.FieldList{
@@ -327,9 +336,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 			// func newResultData
 			newResponseDataFunc,
-
-			// func routes
-			routesFunc,
 		},
 	}
 

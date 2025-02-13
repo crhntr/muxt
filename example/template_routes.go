@@ -10,20 +10,10 @@ import (
 	"strconv"
 )
 
-type (
-	RoutesReceiver interface {
-		SubmitFormEditRow(fruitID int, form EditRow) EditRowPage
-		GetFormEditRow(fruitID int) EditRowPage
-		List(_ context.Context) []Row
-	}
-	responseData[T any] struct {
-		Request *http.Request
-		Data    T
-	}
-)
-
-func newResponseData[T any](data T, request *http.Request) responseData[T] {
-	return responseData[T]{Data: data, Request: request}
+type RoutesReceiver interface {
+	SubmitFormEditRow(fruitID int, form EditRow) EditRowPage
+	GetFormEditRow(fruitID int) EditRowPage
+	List(_ context.Context) []Row
 }
 
 func routes(mux *http.ServeMux, receiver RoutesReceiver) {
@@ -50,7 +40,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		data := receiver.SubmitFormEditRow(id, form)
 		buf := bytes.NewBuffer(nil)
-		rd := newResponseData(data, request)
+		rd := newTemplateData(data, request)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -68,7 +58,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		id := idParsed
 		data := receiver.GetFormEditRow(id)
 		buf := bytes.NewBuffer(nil)
-		rd := newResponseData(data, request)
+		rd := newTemplateData(data, request)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -81,7 +71,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		data := struct {
 		}{}
 		buf := bytes.NewBuffer(nil)
-		rd := newResponseData(data, request)
+		rd := newTemplateData(data, request)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -94,7 +84,7 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		ctx := request.Context()
 		data := receiver.List(ctx)
 		buf := bytes.NewBuffer(nil)
-		rd := newResponseData(data, request)
+		rd := newTemplateData(data, request)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -103,4 +93,13 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})
+}
+
+type TemplateData[T any] struct {
+	Request *http.Request
+	Data    T
+}
+
+func newTemplateData[T any](data T, request *http.Request) TemplateData[T] {
+	return TemplateData[T]{Data: data, Request: request}
 }
