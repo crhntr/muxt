@@ -17,7 +17,6 @@ exec go test -cover
 {{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
 {{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
 {{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /time/{value}   PassTime(value)"   -}} <p>{{- .Data.Format "2006-01-02"   -}}</p> {{- end -}}
 
 -- go.mod --
 module server
@@ -29,7 +28,6 @@ package server
 import (
 	"embed"
 	"html/template"
-	"time"
 )
 
 //go:embed *.gohtml
@@ -52,7 +50,6 @@ func (T) PassUint8(in uint8) uint8        { return in }
 func (T) PassBool(in bool) bool           { return in }
 func (T) PassByte(in byte) byte           { return in }
 func (T) PassRune(in rune) rune           { return in }
-func (T) PassTime(in time.Time) time.Time { return in }
 -- template_test.go --
 package server
 
@@ -159,15 +156,6 @@ func Test(t *testing.T) {
 	})
 	t.Run("bool", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/bool/true", nil)
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-		res := rec.Result()
-		if res.StatusCode != http.StatusOK {
-			t.Error("expected OK")
-		}
-	})
-	t.Run("time", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/time/1994-11-01", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()

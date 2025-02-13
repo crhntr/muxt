@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template/parse"
-	"time"
 
 	"github.com/crhntr/dom"
 	"github.com/stretchr/testify/assert"
@@ -680,9 +679,6 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 			return statements, nil
 		}
 	case *types.Named:
-		if tp.Obj().Pkg().Path() == "time" && tp.Obj().Name() == "Time" {
-			return parseBlock(tmp, imports.TimeParseCall(time.DateOnly, str), validations, errCheck, assignment), nil
-		}
 		if encPkg, ok := imports.Types("encoding"); ok {
 			if textUnmarshaler := encPkg.Scope().Lookup("TextUnmarshaler").Type().Underlying().(*types.Interface); types.Implements(types.NewPointer(tp), textUnmarshaler) {
 				tp, _ := astTypeExpression(imports, valueType)
