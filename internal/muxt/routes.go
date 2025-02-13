@@ -746,7 +746,7 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 
 func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, handleErr, handleResult func(out ast.Expr) ast.Stmt) []ast.Stmt {
 	const errIdent = "err"
-	parse := &ast.AssignStmt{
+	callParse := &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent(tmpIdent), ast.NewIdent(errIdent)},
 		Tok: token.DEFINE,
 		Rhs: []ast.Expr{parseCall},
@@ -758,7 +758,7 @@ func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, han
 		},
 		Args: []ast.Expr{},
 	}))
-	block := &ast.BlockStmt{List: []ast.Stmt{parse, errCheck}}
+	block := &ast.BlockStmt{List: []ast.Stmt{callParse, errCheck}}
 	block.List = append(block.List, validations...)
 	block.List = append(block.List, handleResult(ast.NewIdent(tmpIdent)))
 	return block.List
