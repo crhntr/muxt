@@ -39,7 +39,7 @@ func TestGenerate(t *testing.T) {
 	e.Cmds = scripttest.DefaultCmds()
 	e.Cmds["muxt"] = scriptCommand()
 	ctx := context.Background()
-	scripttest.Test(t, ctx, e, nil, filepath.FromSlash("testdata/*.txtar"))
+	scripttest.Test(t, ctx, e, nil, filepath.FromSlash("testdata/*.txt"))
 }
 
 func scriptCommand() script.Cmd {
