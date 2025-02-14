@@ -12,10 +12,26 @@ No extra runtime dependencies are required—just plain Go code.
 
 ## Examples
 
-For more complete examples see:
+```html
+{{define "GET / F()" -}}
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'/>
+    <title>Hello!</title>
+</head>
+<body>
+<h1>Number {{.Data}}</h1>
+</body>
+</html>
+{{- end}}
+```
+
+For a small runnable, see: [./example/index.gohtml](./example/index.gohtml)
+
+For larger complete examples, see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
 - [muxt-template-module-htmx](https://github.com/crhntr/muxt-template-module-htmx)
-
 ## Documentation
 
 ### Introduction
