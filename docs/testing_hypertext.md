@@ -1,10 +1,8 @@
 # Testing Output
 
-I'd highly suggest using my other package
+Consider importing my other package [`"github.com/crhntr/dom"`](https://pkg.go.dev/github.com/crhntr/dom/domtest).
 
-[`import "github.com/crhntr/dom"`](https://pkg.go.dev/github.com/crhntr/dom/domtest)
-
-I generally write tests that look something like this (but usually table driven):
+I generally write tests that look something like this:
 
 ```go
 package hypertext
