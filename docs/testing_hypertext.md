@@ -125,9 +125,9 @@ func TestBlog(t *testing.T) {
 			},
 		},
 	} {
-		t.Run(tt.Name, tt.Run(func(fakes *fake.App) http.Handler {
+		t.Run(tt.Name, tt.Run(func(app *fake.App) http.Handler {
 			mux := http.NewServeMux()
-			blog.Routes(mux, fakes)
+			blog.Routes(mux, app)
 			return mux
 		}))
 	}
