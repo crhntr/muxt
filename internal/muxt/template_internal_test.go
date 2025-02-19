@@ -105,7 +105,7 @@ func stringList[T fmt.Stringer](in []T) []string {
 func mustNewTemplateName(in ...string) []Template {
 	var result []Template
 	for _, n := range in {
-		p, err, _ := NewTemplateName(n)
+		p, err, _ := newTemplate(n)
 		if err != nil {
 			panic(err)
 		}
@@ -391,9 +391,64 @@ func TestNewTemplateName(t *testing.T) {
 				assert.Equal(t, "f()", pat.handler)
 			},
 		},
+		{
+			Name:     "no arg post",
+			In:       "GET / F()",
+			ExpMatch: true,
+		},
+		{
+			Name:     "no arg get",
+			In:       "POST / F()",
+			ExpMatch: true,
+		},
+		{
+			Name:     "float64 as handler",
+			In:       "POST / 1.2",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, `failed to parse status code: strconv.Atoi: parsing "1.2": invalid syntax`)
+			},
+		},
+		{
+			Name:     "status constant",
+			In:       "POST / http.StatusOK",
+			ExpMatch: true,
+		},
+		{
+			Name:     "not an expression",
+			In:       "GET / package main",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "failed to parse handler expression: ")
+			},
+		},
+		{
+			Name:     "function literal",
+			In:       "GET / func() {} ()",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "expected function identifier")
+			},
+		},
+		{
+			Name:     "call ellipsis",
+			In:       "GET /{fileName} F(fileName...)",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "unexpected ellipsis")
+			},
+		},
+		{
+			Name:     "response arg and status code",
+			In:       "GET /{fileName} 201 F(response)",
+			ExpMatch: true,
+			Error: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "you can not use response as an argument and specify an HTTP status code")
+			},
+		},
 	} {
 		t.Run(tt.Name, func(t *testing.T) {
-			pat, err, match := NewTemplateName(tt.In)
+			pat, err, match := newTemplate(tt.In)
 			require.Equal(t, tt.ExpMatch, match)
 			if tt.Error != nil {
 				tt.Error(t, err)

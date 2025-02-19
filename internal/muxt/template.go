@@ -20,7 +20,7 @@ func Templates(ts *template.Template) ([]Template, error) {
 	var templateNames []Template
 	patterns := make(map[string]struct{})
 	for _, t := range ts.Templates() {
-		mt, err, ok := NewTemplateName(t.Name())
+		mt, err, ok := newTemplate(t.Name())
 		if !ok {
 			continue
 		}
@@ -59,8 +59,6 @@ type Template struct {
 
 	template *template.Template
 }
-
-func NewTemplateName(in string) (Template, error, bool) { return newTemplate(in) }
 
 func newTemplate(in string) (Template, error, bool) {
 	if !templateNameMux.MatchString(in) {
