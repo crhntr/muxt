@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
+	"sync"
 
 	"github.com/crhntr/muxt/example/hypertext"
 )
 
 type Backend struct {
+	sync.RWMutex
 	data []hypertext.Row
 }
 
 func (b *Backend) SubmitFormEditRow(fruitID int, form hypertext.EditRow) hypertext.EditRowPage {
+	b.Lock()
+	defer b.Unlock()
 	if fruitID < 0 || fruitID >= len(b.data) {
 		return hypertext.EditRowPage{Error: fmt.Errorf("fruit not found")}
 	}
@@ -24,13 +29,19 @@ func (b *Backend) SubmitFormEditRow(fruitID int, form hypertext.EditRow) hyperte
 }
 
 func (b *Backend) GetFormEditRow(fruitID int) hypertext.EditRowPage {
+	b.RLock()
+	defer b.RUnlock()
 	if fruitID < 0 || fruitID >= len(b.data) {
 		return hypertext.EditRowPage{Error: fmt.Errorf("fruit not found")}
 	}
 	return hypertext.EditRowPage{Error: nil, Row: b.data[fruitID]}
 }
 
-func (b *Backend) List(_ context.Context) []hypertext.Row { return b.data }
+func (b *Backend) List(_ context.Context) []hypertext.Row {
+	b.RLock()
+	defer b.RUnlock()
+	return slices.Clone(b.data)
+}
 
 func main() {
 	backend := &Backend{
