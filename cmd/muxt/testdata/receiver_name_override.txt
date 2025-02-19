@@ -54,7 +54,7 @@ func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
 	var service T
-	routes(mux, service)
+	TemplateRoutes(mux, service)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()

@@ -44,7 +44,7 @@ func (T) ToUpper(in string) any { return Data{Name: strings.ToUpper(in)} }
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
-	routes(mux, T{})
+	TemplateRoutes(mux, T{})
 
 	req := httptest.NewRequest(http.MethodGet, "/fruits/peach/tree", nil)
 	rec := httptest.NewRecorder()

@@ -53,7 +53,7 @@ import (
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
-	routes(mux, Server{})
+	TemplateRoutes(mux, Server{})
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {

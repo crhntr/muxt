@@ -48,7 +48,7 @@ import (
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
-	routes(mux, Server{})
+	TemplateRoutes(mux, Server{})
 
 	req := httptest.NewRequest(http.MethodGet, "/project/p1/task/t2", nil)
 	rec := httptest.NewRecorder()

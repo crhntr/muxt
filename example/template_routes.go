@@ -16,7 +16,7 @@ type RoutesReceiver interface {
 	List(_ context.Context) []Row
 }
 
-func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 	mux.HandleFunc("PATCH /fruits/{id}", func(response http.ResponseWriter, request *http.Request) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {

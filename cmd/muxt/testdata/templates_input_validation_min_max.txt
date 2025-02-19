@@ -48,7 +48,7 @@ func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
 	var service T
-	routes(mux, service)
+	TemplateRoutes(mux, service)
 
 	t.Run("below min", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/?value=3", nil)

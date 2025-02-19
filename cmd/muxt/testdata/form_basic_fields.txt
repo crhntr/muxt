@@ -86,7 +86,7 @@ func Test(t *testing.T) {
 		return form
 	}
 
-	routes(mux, service)
+	TemplateRoutes(mux, service)
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(url.Values{
 		"FieldInt":    []string{"1"},

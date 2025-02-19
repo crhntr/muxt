@@ -39,7 +39,7 @@ const (
 
 	defaultPackageName           = "main"
 	DefaultTemplatesVariableName = "templates"
-	DefaultRoutesFunctionName    = "routes"
+	DefaultRoutesFunctionName    = "TemplateRoutes"
 	DefaultOutputFileName        = "template_routes.go"
 	DefaultReceiverInterfaceName = "RoutesReceiver"
 

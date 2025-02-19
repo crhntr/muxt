@@ -62,7 +62,7 @@ import (
 func Test(t *testing.T) {
 	mux := http.NewServeMux()
 
-	routes(mux, T{})
+	TemplateRoutes(mux, T{})
 
 	t.Run("int", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/int/123", nil)
