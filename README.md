@@ -21,7 +21,7 @@ No extra runtime dependencies are required—just plain Go code.
     <title>Hello!</title>
 </head>
 <body>
-<h1>Number {{.Data}}</h1>
+<h1>Number {{.Result}}</h1>
 </body>
 </html>
 {{- end}}
