@@ -89,7 +89,7 @@ func (s *scope) walk(tree *parse.Tree, dot, prev types.Type, node parse.Node) (t
 	case *parse.VariableNode:
 		return s.checkVariableNode(tree, n, nil)
 	case *parse.IdentifierNode:
-		return s.checkIdentifierNode(n)
+		return s.checkIdentifierNode(tree, n)
 	case *parse.TextNode:
 		return nil, nil
 	case *parse.WithNode:
@@ -333,7 +333,7 @@ func (s *scope) checkCommandNode(tree *parse.Tree, dot, prev types.Type, cmd *pa
 		}
 		tp, _, err := s.CallChecker.CheckCall(n.Ident, cmd.Args[1:], argTypes)
 		if err != nil {
-			return nil, err
+			return nil, s.error(tree, cmd, err)
 		}
 		return tp, nil
 	case *parse.PipeNode:
@@ -590,9 +590,12 @@ func isIter2(signature *types.Signature) (types.Type, types.Type, bool) {
 	return yp.At(0).Type(), yp.At(1).Type(), true
 }
 
-func (s *scope) checkIdentifierNode(n *parse.IdentifierNode) (types.Type, error) {
+func (s *scope) checkIdentifierNode(tree *parse.Tree, n *parse.IdentifierNode) (types.Type, error) {
 	if !strings.HasPrefix(n.Ident, "$") {
 		tp, _, err := s.CheckCall(n.Ident, nil, nil)
+		if err != nil {
+			return nil, s.error(tree, n, err)
+		}
 		return tp, err
 	}
 	tp, ok := s.variables[n.Ident]
