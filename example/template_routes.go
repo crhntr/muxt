@@ -70,10 +70,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		_, _ = buf.WriteTo(response)
 	})
 	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
-		data := struct {
+		result := struct {
 		}{}
 		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(data, request)
+		rd := newTemplateData(result, request)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return

@@ -170,6 +170,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	const newResponseDataFuncIdent = "new" + templateDataTypeName
 
 	for _, t := range templates {
+		const dataVarIdent = "result"
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
 			handlerFunc := &ast.FuncLit{
@@ -177,7 +178,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
-							Lhs: []ast.Expr{ast.NewIdent("data")},
+							Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)},
 							Tok: token.DEFINE,
 							Rhs: []ast.Expr{&ast.CompositeLit{Type: &ast.StructType{Fields: &ast.FieldList{}}}},
 						},
@@ -187,7 +188,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t.name, config.TemplatesVariable, true, t.statusCode, &ast.CallExpr{
 				Fun: ast.NewIdent(newResponseDataFuncIdent),
 				Args: []ast.Expr{
-					ast.NewIdent("data"),
+					ast.NewIdent(dataVarIdent),
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 				},
 			})...)
@@ -228,7 +229,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, imports, sigs, nil, receiver, t.call); err != nil {
 			return "", err
 		}
-		const dataVarIdent = "result"
 
 		receiverCallStatements, err := callReceiverMethod(imports, dataVarIdent, sig, &ast.CallExpr{
 			Fun:  callFun,
