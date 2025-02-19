@@ -14,9 +14,9 @@ import (
 
 func Test_example(t *testing.T) {
 	t.Run("generate", func(t *testing.T) {
-		require.NoError(t, os.Remove(filepath.FromSlash("../../example/template_routes.go")))
+		_ = os.Remove(filepath.FromSlash("../../example/hypertext/template_routes.go"))
 		ctx := t.Context()
-		cmd := exec.CommandContext(ctx, "go", "generate")
+		cmd := exec.CommandContext(ctx, "go", "generate", "./...")
 		cmd.Dir = filepath.FromSlash("../../example")
 		cmd.Stderr = os.Stdout
 		cmd.Stdout = os.Stdout
@@ -24,7 +24,7 @@ func Test_example(t *testing.T) {
 	})
 	t.Run("check", func(t *testing.T) {
 		ctx := t.Context()
-		cmd := exec.CommandContext(ctx, "go", "run", ".", "-C", filepath.FromSlash("../../example"), "check", "--receiver-type", "Backend")
+		cmd := exec.CommandContext(ctx, "go", "run", ".", "-C", filepath.FromSlash("../../example/hypertext"), "check", "--receiver-type", "Backend")
 		cmd.Dir = "."
 		cmd.Stderr = os.Stdout
 		cmd.Stdout = os.Stdout

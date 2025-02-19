@@ -3,6 +3,8 @@ github.com/andybalholm/cascadia v1.3.3/go.mod h1:xNd9bqTn98Ln4DwST8/nG+H0yuB8Hmg
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crhntr/dom v0.1.2 h1:MyCJtV39pgr6oxxVDxJU7IvdL4PaoiXZ1YmL5HUv1qU=
 github.com/crhntr/dom v0.1.2/go.mod h1:GETgV5XM7ugjm/viAqsf9lX2lyYRwB2kvDILcEfJDQk=
+github.com/crhntr/dom v0.3.0 h1:9Ybf9IIJP6JMqep4TH5EDBN47gYFd1x8em9RujaXC74=
+github.com/crhntr/dom v0.3.0/go.mod h1:GETgV5XM7ugjm/viAqsf9lX2lyYRwB2kvDILcEfJDQk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
