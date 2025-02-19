@@ -24,7 +24,7 @@ type Server struct {
 }
 -- template.gohtml --
 {{- define "GET / F()" -}}
-	{{- .Data -}}
+	{{- .Result -}}
 {{- end -}}
 
 -- template.go --

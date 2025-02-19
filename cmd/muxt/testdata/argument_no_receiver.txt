@@ -7,7 +7,7 @@ exec go test
 -- template.gohtml --
 
 {{- define "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)" -}}
-	{{printf "%v" .Data}}
+	{{printf "%v" .Result}}
 {{- end -}}
 
 -- go.mod --

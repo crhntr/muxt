@@ -38,9 +38,9 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			}
 			form.Value = value
 		}
-		data := receiver.SubmitFormEditRow(id, form)
+		result := receiver.SubmitFormEditRow(id, form)
 		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(data, request)
+		rd := newTemplateData(result, request)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -56,9 +56,9 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		id := idParsed
-		data := receiver.GetFormEditRow(id)
+		result := receiver.GetFormEditRow(id)
 		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(data, request)
+		rd := newTemplateData(result, request)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -82,9 +82,9 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 	})
 	mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
-		data := receiver.List(ctx)
+		result := receiver.List(ctx)
 		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(data, request)
+		rd := newTemplateData(result, request)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
@@ -97,9 +97,9 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
 
 type TemplateData[T any] struct {
 	Request *http.Request
-	Data    T
+	Result  T
 }
 
-func newTemplateData[T any](data T, request *http.Request) TemplateData[T] {
-	return TemplateData[T]{Data: data, Request: request}
+func newTemplateData[T any](result T, request *http.Request) TemplateData[T] {
+	return TemplateData[T]{Result: result, Request: request}
 }

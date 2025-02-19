@@ -50,18 +50,18 @@
         {{- end}}
 
         {{- define "GET /{$} List(ctx)" -}}
-          {{template "index.gohtml" .Data}}
+          {{template "index.gohtml" .Result}}
         {{- end -}}
 
         {{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
-          {{template "edit-row" .Data}}
+          {{template "edit-row" .Result}}
         {{- end -}}
 
         {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
-            {{- if .Data.Error -}}
-                {{template "edit-row" .Data}}
+            {{- if .Result.Error -}}
+                {{template "edit-row" .Result}}
             {{- else -}}
-                {{template "view-row" .Data.Row}}
+                {{template "view-row" .Result.Row}}
             {{- end -}}
         {{ end -}}
 

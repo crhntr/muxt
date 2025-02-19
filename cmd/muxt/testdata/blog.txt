@@ -160,8 +160,8 @@ var _ blog.RoutesReceiver = new(App)
 {{end}}
 
 {{define "article-content"}}
-	<h1>{{.Data.Title}}</h1>
-	<p>{{.Data.Content}}</p>
+	<h1>{{.Result.Title}}</h1>
+	<p>{{.Result.Content}}</p>
 {{end}}
 
 {{define "article-page"}}
@@ -182,7 +182,7 @@ var _ blog.RoutesReceiver = new(App)
 {{end}}
 
 {{define "GET /article/{id} Article(id)"}}
-	{{- if .Data.Error -}}
+	{{- if .Result.Error -}}
 		{{template "error-page" .}}
 	{{- else -}}
 		{{template "article-page" .}}
@@ -196,7 +196,7 @@ var _ blog.RoutesReceiver = new(App)
 
 {{define "error-page"}}
   {{if .Request.Header.Get "HX-Request" }}
-      {{template "error-message" .Data.Error}}
+      {{template "error-message" .Result.Error}}
   {{else}}
 		<!DOCTYPE html>
 		<html lang="en">
@@ -205,7 +205,7 @@ var _ blog.RoutesReceiver = new(App)
 			<title>Error</title>
 		</head>
 		<body>
-    {{template "error-message" .Data.Error}}
+    {{template "error-message" .Result.Error}}
 		</body>
 		</html>
   {{end}}
@@ -471,8 +471,8 @@ var _ blog.RoutesReceiver = new(App)
 {{end}}
 
 {{define "article-content"}}
-	<h1>{{.Data.Title}}</h1>
-	<p>{{.Data.Content}}</p>
+	<h1>{{.Result.Title}}</h1>
+	<p>{{.Result.Content}}</p>
 {{end}}
 
 {{define "article-page"}}
@@ -493,7 +493,7 @@ var _ blog.RoutesReceiver = new(App)
 {{end}}
 
 {{define "GET /article/{id} Article(id)"}}
-	{{- if .Data.Error -}}
+	{{- if .Result.Error -}}
 		{{template "error-page" .}}
 	{{- else -}}
 		{{template "article-page" .}}
@@ -507,7 +507,7 @@ var _ blog.RoutesReceiver = new(App)
 
 {{define "error-page"}}
   {{if .Request.Header.Get "HX-Request" }}
-      {{template "error-message" .Data.Error}}
+      {{template "error-message" .Result.Error}}
   {{else}}
 		<!DOCTYPE html>
 		<html lang="en">
@@ -516,7 +516,7 @@ var _ blog.RoutesReceiver = new(App)
 			<title>Error</title>
 		</head>
 		<body>
-    {{template "error-message" .Data.Error}}
+    {{template "error-message" .Result.Error}}
 		</body>
 		</html>
   {{end}}

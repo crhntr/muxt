@@ -5,7 +5,7 @@ cat template_routes.go
 exec go test -v
 
 -- template.gohtml --
-{{define "GET / F(form)"}}{{.Data}}{{end}}
+{{define "GET / F(form)"}}{{.Result}}{{end}}
 -- go.mod --
 module server
 

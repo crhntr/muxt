@@ -3,7 +3,7 @@ muxt generate --receiver-type=Server
 exec go test -cover
 
 -- template.gohtml --
-{{define "GET /{id} F(id)"}}{{.Data}}{{end}}
+{{define "GET /{id} F(id)"}}{{.Result}}{{end}}
 
 -- go.mod --
 module server

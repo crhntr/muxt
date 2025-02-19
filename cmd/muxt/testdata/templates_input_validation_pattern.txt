@@ -6,7 +6,7 @@ exec go test
 
 -- index.gohtml --
 {{define "GET / UpdateValue(form)" }}
-	{{block "pat" .Data -}}
+	{{block "pat" .Result -}}
     <input type="text" name="value" pattern="[0-9]{3}">
   {{- end}}
 {{end}}

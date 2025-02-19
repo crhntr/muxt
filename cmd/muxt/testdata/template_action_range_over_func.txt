@@ -8,7 +8,7 @@ muxt check
 
 -- index.gohtml --
 {{define "GET / Iterator()" }}
-	{{range $k, $v := .Data}}
+	{{range $k, $v := .Result}}
 		- {{$k}}: {{$v}}
 	{{end}}
 {{end}}

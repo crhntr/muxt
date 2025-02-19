@@ -6,17 +6,17 @@ exec go test -cover
 
 -- template.gohtml --
 
-{{- define "GET /bool/{value}   PassBool(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /int/{value}    PassInt(value)"    -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /int16/{value}  PassInt16(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /int32/{value}  PassInt32(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /int64/{value}  PassInt64(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /int8/{value}   PassInt8(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /uint/{value}   PassUint(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /uint16/{value} PassUint16(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
-{{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Data -}}</p> {{- end -}}
+{{- define "GET /bool/{value}   PassBool(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /int/{value}    PassInt(value)"    -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /int16/{value}  PassInt16(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /int32/{value}  PassInt32(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /int64/{value}  PassInt64(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /int8/{value}   PassInt8(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /uint/{value}   PassUint(value)"   -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /uint16/{value} PassUint16(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
 
 -- go.mod --
 module server
