@@ -1,6 +1,6 @@
 muxt generate --receiver-type=T
 
-! muxt check --receiver-type=T
+! muxt check
 stderr 'checking endpoint GET / Endpoint\(\)'
 stderr 'ERROR argument 0 has type int32 expected int64'
 

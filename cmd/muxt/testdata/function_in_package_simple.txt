@@ -2,7 +2,7 @@ muxt generate
 
 exec go test -cover
 
-muxt check --receiver-type=Server
+muxt check
 
 -- template.gohtml --
 {{define "GET / function(ctx)" }}{{.}}{{end}}

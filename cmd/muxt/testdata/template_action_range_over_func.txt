@@ -4,7 +4,7 @@ cat template_routes.go
 
 exec go test
 
-muxt check --receiver-type=T
+muxt check
 
 -- index.gohtml --
 {{define "GET / Iterator()" }}

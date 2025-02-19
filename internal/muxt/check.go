@@ -19,9 +19,6 @@ func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) 
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
 	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
-	if config.ReceiverType == "" {
-		return fmt.Errorf("receiver-type is required")
-	}
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",
