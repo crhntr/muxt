@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,10 +13,9 @@ import (
 )
 
 func Test_example(t *testing.T) {
-	require.NoError(t, os.Remove(filepath.FromSlash("../../example/template_routes.go")))
-
-	ctx := context.TODO()
 	t.Run("generate", func(t *testing.T) {
+		require.NoError(t, os.Remove(filepath.FromSlash("../../example/template_routes.go")))
+		ctx := t.Context()
 		cmd := exec.CommandContext(ctx, "go", "generate")
 		cmd.Dir = filepath.FromSlash("../../example")
 		cmd.Stderr = os.Stdout
@@ -25,6 +23,7 @@ func Test_example(t *testing.T) {
 		require.NoError(t, cmd.Run())
 	})
 	t.Run("check", func(t *testing.T) {
+		ctx := t.Context()
 		cmd := exec.CommandContext(ctx, "go", "run", ".", "-C", filepath.FromSlash("../../example"), "check", "--receiver-type", "Backend")
 		cmd.Dir = "."
 		cmd.Stderr = os.Stdout
@@ -38,7 +37,7 @@ func TestGenerate(t *testing.T) {
 	e.Quiet = true
 	e.Cmds = scripttest.DefaultCmds()
 	e.Cmds["muxt"] = scriptCommand()
-	ctx := context.Background()
+	ctx := t.Context()
 	scripttest.Test(t, ctx, e, nil, filepath.FromSlash("testdata/*.txt"))
 }
 
