@@ -28,7 +28,7 @@ func TestRoutes(t *testing.T) {
 			return EditRowPage{Row: Row{ID: 1, Name: "a", Value: 97}, Error: nil}
 		}
 
-		routes(mux, fake)
+		TemplateRoutes(mux, fake)
 
 		rec := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPatch, "/fruits/1", strings.NewReader(url.Values{"count": []string{"5"}}.Encode()))
