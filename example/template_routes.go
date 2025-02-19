@@ -46,6 +46,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})
@@ -64,6 +65,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})
@@ -77,6 +79,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})
@@ -90,6 +93,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})

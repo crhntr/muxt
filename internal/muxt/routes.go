@@ -1076,6 +1076,20 @@ func executeFuncDecl(imports *source.Imports, templateName, templatesVariableIde
 			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
 			Args: []ast.Expr{source.String("content-type"), source.String("text/html; charset=utf-8")},
 		}}, &ast.ExprStmt{X: &ast.CallExpr{
+			Fun: &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+			Args: []ast.Expr{source.String("content-length"), &ast.CallExpr{
+				Fun: &ast.SelectorExpr{
+					X:   ast.NewIdent(imports.Add("", "strconv")),
+					Sel: ast.NewIdent("Itoa"),
+				},
+				Args: []ast.Expr{
+					&ast.CallExpr{
+						Fun:  &ast.SelectorExpr{X: ast.NewIdent("buf"), Sel: ast.NewIdent("Len")},
+						Args: []ast.Expr{},
+					},
+				},
+			}},
+		}}, &ast.ExprStmt{X: &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
 			Args: []ast.Expr{source.HTTPStatusCode(imports, statusCode)},
 		}})
