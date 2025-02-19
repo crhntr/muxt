@@ -2,6 +2,7 @@
 cd internal/hypertext
 
 muxt generate --receiver-type=Handler --receiver-type-package=crhntr.com/muxt-test/internal/endpoints --routes-func=Routes
+muxt check
 
 cd ../../
 

@@ -1,6 +1,7 @@
 env GOPACKAGE=server
 
 muxt generate
+muxt check
 
 exec go test -cover
 

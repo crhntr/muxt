@@ -1,6 +1,7 @@
 # F is defined and form slice field
 
 muxt generate --receiver-type=T
+muxt check
 
 -- in.go --
 package main

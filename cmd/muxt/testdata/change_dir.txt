@@ -1,5 +1,6 @@
 
 muxt -C a/b/c generate
+muxt -C a/b/c check
 
 exec go -C a/b/c build
 

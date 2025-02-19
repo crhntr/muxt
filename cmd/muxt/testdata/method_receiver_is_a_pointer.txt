@@ -1,6 +1,7 @@
 # method receiver is a pointer
 
 muxt generate --receiver-type=T
+muxt check
 
 -- receiver.go --
 package main

@@ -1,4 +1,5 @@
 muxt generate --receiver-type=Server
+muxt check
 
 exec go build
 

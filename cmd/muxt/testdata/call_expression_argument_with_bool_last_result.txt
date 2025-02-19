@@ -1,6 +1,7 @@
 # call expression argument with bool last result
 
 muxt generate --receiver-type=T
+muxt check
 
 -- in.go --
 package main

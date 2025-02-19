@@ -1,6 +1,7 @@
 # F is defined and form type is a struct
 
 muxt generate --receiver-type=T
+muxt check
 
 -- in.go --
 package main

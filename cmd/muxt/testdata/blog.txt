@@ -2,6 +2,7 @@ exec go get github.com/crhntr/dom@v0.2.3
 exec go mod tidy
 
 muxt generate --receiver-type=App --routes-func=Routes
+muxt check
 
 exec go test -v
 -- go.mod --

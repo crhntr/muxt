@@ -1,6 +1,7 @@
 # simple call larger receiver with larger package
 
 muxt generate --receiver-type=T
+muxt check
 
 -- receiver.go --
 package main

@@ -1,6 +1,7 @@
 # F is not defined and a form field is passed
 
 muxt generate --receiver-type=T
+muxt check
 
 -- in.go --
 package main

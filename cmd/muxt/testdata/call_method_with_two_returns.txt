@@ -1,6 +1,7 @@
 # call method with two returns
 
 muxt generate --receiver-type=T
+muxt check
 
 -- receiver.go --
 package main

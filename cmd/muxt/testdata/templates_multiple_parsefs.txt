@@ -3,6 +3,11 @@ stdout 'routes has route for GET /'
 stdout 'routes has route for GET /form'
 stdout 'routes has route for POST /form'
 
+muxt check
+stderr 'checking endpoint GET /'
+stderr 'checking endpoint GET /form'
+stderr 'checking endpoint POST /form'
+
 -- index.gohtml --
 {{define "GET /" }}
 	<h1>Hello, world!</h1>

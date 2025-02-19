@@ -1,4 +1,5 @@
 muxt generate
+muxt check
 
 cat template_routes.go
 

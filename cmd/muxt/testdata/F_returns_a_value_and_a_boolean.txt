@@ -1,6 +1,7 @@
 # F returns a value and a boolean
 
 muxt generate --receiver-type=T
+muxt check
 
 -- receiver.go --
 package main
