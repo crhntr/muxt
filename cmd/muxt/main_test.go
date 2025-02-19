@@ -12,6 +12,8 @@ import (
 	"rsc.io/script/scripttest"
 )
 
+//go:generate go run github.com/crhntr/txtarfmt/cmd/txtarfmt -ext=.txt testdata/*
+
 func Test_example(t *testing.T) {
 	t.Run("generate", func(t *testing.T) {
 		_ = os.Remove(filepath.FromSlash("../../example/hypertext/template_routes.go"))

@@ -13,7 +13,7 @@ import (
 
 type T struct{}
 
-func (T) F(context.Context, string, string) any {return nil}
+func (T) F(context.Context, string, string) any { return nil }
 -- template.go --
 package main
 
@@ -25,7 +25,7 @@ import (
 //go:embed template.gohtml
 var templatesDir embed.FS
 
-var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 -- go.mod --
 module example.com
 

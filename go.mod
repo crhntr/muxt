@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/crhntr/txtarfmt v0.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2 // indirect
@@ -24,4 +25,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-tool github.com/maxbrunsfeld/counterfeiter/v6
+tool (
+	github.com/crhntr/txtarfmt
+	github.com/crhntr/txtarfmt/cmd/txtarfmt
+	github.com/maxbrunsfeld/counterfeiter/v6
+)

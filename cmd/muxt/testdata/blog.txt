@@ -9,7 +9,6 @@ exec go test -v
 module example.com
 
 go 1.24
-
 -- app.go --
 package blog
 
@@ -227,7 +226,6 @@ import (
 var source embed.FS
 
 var templates = template.Must(template.ParseFS(source, "*.gohtml"))
-
 -- template_test.go --
 package blog_test
 

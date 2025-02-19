@@ -11,7 +11,6 @@ type (
 
 	T struct{}
 )
-
 -- f.go --
 package main
 
@@ -35,7 +34,7 @@ import (
 //go:embed template.gohtml
 var templatesDir embed.FS
 
-var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml")
+var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 -- go.mod --
 module example.com
 
