@@ -32,7 +32,7 @@ func Test_example(t *testing.T) {
 	})
 }
 
-func TestGenerate(t *testing.T) {
+func Test(t *testing.T) {
 	e := script.NewEngine()
 	e.Quiet = true
 	e.Cmds = scripttest.DefaultCmds()

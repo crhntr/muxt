@@ -19,18 +19,18 @@ var templatesDir embed.FS
 var templates = template.Must(template.ParseFS(templatesDir, "template.gohtml"))
 -- template.gohtml --
 {{- define "GET / F(form)" -}}
-FieldInt={{.FieldInt}}
-FieldInt64={{.FieldInt64}}
-FieldInt32={{.FieldInt32}}
-FieldInt16={{.FieldInt16}}
-FieldInt8={{.FieldInt8}}
-FieldUint={{.FieldUint}}
-FieldUint64={{.FieldUint64}}
-FieldUint32={{.FieldUint32}}
-FieldUint16={{.FieldUint16}}
-FieldUint8={{.FieldUint8}}
-FieldBool={{.FieldBool}}
-FieldTime={{.FieldTime}}
+FieldInt={{.Result.FieldInt}}
+FieldInt64={{.Result.FieldInt64}}
+FieldInt32={{.Result.FieldInt32}}
+FieldInt16={{.Result.FieldInt16}}
+FieldInt8={{.Result.FieldInt8}}
+FieldUint={{.Result.FieldUint}}
+FieldUint64={{.Result.FieldUint64}}
+FieldUint32={{.Result.FieldUint32}}
+FieldUint16={{.Result.FieldUint16}}
+FieldUint8={{.Result.FieldUint8}}
+FieldBool={{.Result.FieldBool}}
+FieldTime={{.Result.FieldTime}}
 {{- end -}}
 -- in.go --
 package main

@@ -167,7 +167,7 @@ var _ blog.RoutesReceiver = new(App)
 
 {{define "article-page"}}
 {{if .Request.Header.Get "HX-Request" }}
-	{{template "page-body" .}}
+	{{template "article-content" .}}
 {{else}}
 <!DOCTYPE html>
 <html lang="en">
@@ -478,7 +478,7 @@ var _ blog.RoutesReceiver = new(App)
 
 {{define "article-page"}}
 {{if .Request.Header.Get "HX-Request" }}
-	{{template "page-body" .}}
+	{{template "article-content" .}}
 {{else}}
 <!DOCTYPE html>
 <html lang="en">

@@ -47,7 +47,7 @@ func Test(t *testing.T) {
 		}
 		body, _ := io.ReadAll(res.Body)
 
-		if !strings.Contains(string(body), `<textarea name="Title" value=""></textarea>`) {
+		if !strings.Contains(string(body), `<input name="Title">`) {
 			t.Error(string(body))
 		}
 	})
@@ -67,7 +67,7 @@ func Test(t *testing.T) {
 			t.Fail()
 		}
 		body, _ := io.ReadAll(res.Body)
-		if !strings.Contains(string(body), `<textarea name="Title" value="HELLO"></textarea>`) {
+		if !strings.Contains(string(body), `<input name="Title" value="HELLO">`) {
 			t.Error(string(body))
 		}
 	})
@@ -112,15 +112,14 @@ var (
 	templates = template.Must(template.ParseFS(templateFiles, "*"))
 )
 -- internal/hypertext/form.gohtml --
-<form method="POST" action="/article">
-	<textarea name="Title" value="{{if .}}{{.Title}}{{end}}"></textarea>
-</form>
-<details><summary>data</summary><pre>{{printf "%#v" .}}</pre></details>
-
 {{- define "POST /article CreatArticle(ctx, form)" -}}
-	{{- template "form.gohtml" .Result -}}
+	<form method="POST" action="/article">
+  	<input name="Title" value="{{if .}}{{.Result.Title}}{{end}}">
+  </form>
 {{- end -}}
 
 {{- define "GET /article/new" -}}
-	{{- template "form.gohtml" -}}
+	<form method="POST" action="/article">
+    <input name="Title">
+  </form>
 {{- end -}}
