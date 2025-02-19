@@ -55,7 +55,7 @@ var templates = template.Must(template.ParseFS(templateFS, "*.gohtml"))
 
 func main() {
 	mux := http.NewServeMux()
-	// routes(mux, nil) // we will un-comment this later
+	// TemplateRoutes(mux, Server{}) // un-comment this after you run `muxt generate`
 	log.Fatal(http.ListenAndServe(":"+cmp.Or(os.Getenv("PORT"), "8080"), mux))
 }
 
@@ -92,7 +92,7 @@ Now run `go generate`
 
 *See [the Go blog article on Go generate](https://go.dev/blog/generate) to learn more.*
 
-Un-comment the line `// routes(mux, nil)`
+Un-comment the line `// TemplateRoutes(mux, Server{})`
 
 Run `go run .`
 
@@ -110,25 +110,15 @@ import (
   "net/http"
 )
 
-type (
-  RoutesReceiver interface {
-    F() any
-  }
-  responseData[T any] struct {
-    Request *http.Request
-    Data    T
-  }
-)
-
-func newResponseData[T any](data T, request *http.Request) responseData[T] {
-  return responseData[T]{Data: data, Request: request}
+type RoutesReceiver interface {
+  F() any
 }
 
-func routes(mux *http.ServeMux, receiver RoutesReceiver) {
+func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
   mux.HandleFunc("GET /", func(response http.ResponseWriter, request *http.Request) {
-    data := receiver.F()
+    result := receiver.F()
     buf := bytes.NewBuffer(nil)
-    rd := newResponseData(data, request)
+    rd := newTemplateData(result, request)
     if err := templates.ExecuteTemplate(buf, "GET / F()", rd); err != nil {
       http.Error(response, err.Error(), http.StatusInternalServerError)
       return
@@ -137,6 +127,15 @@ func routes(mux *http.ServeMux, receiver RoutesReceiver) {
     response.WriteHeader(http.StatusOK)
     _, _ = buf.WriteTo(response)
   })
+}
+
+type TemplateData[T any] struct {
+  Request *http.Request
+  Result  T
+}
+
+func newTemplateData[T any](result T, request *http.Request) TemplateData[T] {
+  return TemplateData[T]{Result: result, Request: request}
 }
 ```
 
@@ -150,11 +149,9 @@ The (optionally) generated execute function uses the byte buffer.
 The named empty interface RoutesReceiver has one method `F() string`.
 The method signature was discovered by muxt by iterating over the methods on the named receiver `type Server`.
 
-`func routes` is where generated (inline) http.HandlerFunc closures are mapped to http routes on the multiplexer.
+`func TemplateRoutes` is where generated (inline) http.HandlerFunc closures are mapped to http routes on the multiplexer.
 It receives a pointer to the `http.ServeMux` if you have any route collisions from routes added on mux before
-or after calling `routes`, `mux.HandleFunc` will panic.
+or after calling `TemplateRoutes`, `mux.HandleFunc` will panic.
 The endpoint string `GET /` is cut out of the template name.
 Inside the http handler func, the named method is called.
 The result is then passed to execute.
-
-## Next Steps

@@ -33,7 +33,7 @@ import "net/http"
 
 type TemplateData[T any] struct {
 	Request *http.Request
-	Data    T
+	Result    T
 }
 ```
 
