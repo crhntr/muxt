@@ -5,7 +5,7 @@ exec go test -cover
 cat template_routes.go
 
 -- template.gohtml --
-{{define "aGET / F()" -}}
+{{define "GET / F()" -}}
 <!DOCTYPE html>
 <html lang='en'>
 <head>
