@@ -1,4 +1,4 @@
-package templatetype
+package typelate
 
 import (
 	"fmt"
@@ -10,6 +10,8 @@ import (
 	"text/template/parse"
 )
 
+// TreeFinder should wrap https://pkg.go.dev/html/template#Template.Lookup and return the Tree field from the Template
+// If you are using text/template the lookup function from that package should also work.
 type TreeFinder interface {
 	FindTree(name string) (*parse.Tree, bool)
 }

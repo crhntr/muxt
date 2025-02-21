@@ -1,13 +1,13 @@
-package templatetype_test
+package typelate_test
 
 import (
 	"text/template"
 	"text/template/parse"
 
-	"github.com/crhntr/muxt/internal/templatetype"
+	"github.com/crhntr/muxt/internal/typelate"
 )
 
-func findTextTree(tmpl *template.Template) templatetype.FindTreeFunc {
+func findTextTree(tmpl *template.Template) typelate.FindTreeFunc {
 	return func(name string) (*parse.Tree, bool) {
 		ts := tmpl.Lookup(name)
 		if ts == nil {

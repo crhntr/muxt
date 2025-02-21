@@ -1,4 +1,4 @@
-package templatetype
+package typelate
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 
 type Functions map[string]*types.Signature
 
+// DefaultFunctions returns the standard functions defined in both html/template and text/template.
 func DefaultFunctions(pkg *types.Package) Functions {
 	fns := make(map[string]*types.Signature)
 	for pn, idents := range map[string]map[string]string{

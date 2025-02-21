@@ -1,4 +1,4 @@
-package templatetype_test
+package typelate_test
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/internal/templatetype"
+	"github.com/crhntr/muxt/internal/typelate"
 )
 
 var loadPkg = sync.OnceValue(func() []*packages.Package {
@@ -765,14 +765,14 @@ func TestTree(t *testing.T) {
 
 			dataType := treeTestRowType(t, testPkg, ttRows, tt.Name)
 
-			sourceFunctions := templatetype.DefaultFunctions(testPkg.Types)
+			sourceFunctions := typelate.DefaultFunctions(testPkg.Types)
 			for name := range functions {
 				fn := testPkg.Types.Scope().Lookup(name).(*types.Func).Signature()
 				require.NotNil(t, fn)
 				sourceFunctions[name] = fn
 			}
 
-			if checkErr := templatetype.Check(templates.Tree, dataType, testPkg.Types, testPkg.Fset, templatetype.FindTreeFunc(func(name string) (*parse.Tree, bool) {
+			if checkErr := typelate.Check(templates.Tree, dataType, testPkg.Types, testPkg.Fset, typelate.FindTreeFunc(func(name string) (*parse.Tree, bool) {
 				ts := templates.Lookup(name)
 				if ts == nil {
 					return nil, false
@@ -797,7 +797,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, templatetype.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 	t.Run("field on parenthesized interface", func(t *testing.T) {
 		tp := testPkg.Types.Scope().Lookup("Fooer").Type()
@@ -807,7 +807,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, templatetype.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 }
 

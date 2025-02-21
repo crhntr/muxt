@@ -1,4 +1,4 @@
-package templatetype_test
+package typelate_test
 
 import (
 	"bytes"

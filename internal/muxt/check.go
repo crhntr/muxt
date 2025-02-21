@@ -10,7 +10,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/crhntr/muxt/internal/source"
-	"github.com/crhntr/muxt/internal/templatetype"
+	"github.com/crhntr/muxt/internal/typelate"
 )
 
 func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) error {
@@ -47,8 +47,8 @@ func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) 
 	if err != nil {
 		return err
 	}
-	fns := templatetype.DefaultFunctions(routesPkg.Types)
-	fns = fns.Add(templatetype.Functions(fm))
+	fns := typelate.DefaultFunctions(routesPkg.Types)
+	fns = fns.Add(typelate.Functions(fm))
 
 	var errs []error
 	for _, file := range routesPkg.Syntax {
@@ -59,7 +59,7 @@ func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) 
 			}
 			log.Println("checking endpoint", templateName)
 			tree := ts.Lookup(templateName).Tree
-			if err := templatetype.Check(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
+			if err := typelate.Check(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
 				log.Println("ERROR", err)
 				log.Println()
 				errs = append(errs, err)
