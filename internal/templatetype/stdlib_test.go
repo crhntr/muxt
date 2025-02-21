@@ -621,10 +621,10 @@ func stdlibTestRowType(t *testing.T, p *packages.Package, ttRows *ast.CompositeL
 
 type MortalFunctions templatetype.Functions
 
-func (fn MortalFunctions) CheckCall(name string, nodes []parse.Node, args []types.Type) (types.Type, bool, error) {
+func (fn MortalFunctions) CheckCall(name string, nodes []parse.Node, args []types.Type) (types.Type, error) {
 	switch name {
 	case "die":
-		return nil, true, fmt.Errorf("exec error die")
+		return nil, fmt.Errorf("exec error die")
 	default:
 		return templatetype.Functions(fn).CheckCall(name, nodes, args)
 	}

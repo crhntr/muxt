@@ -21,7 +21,7 @@ func (fn FindTreeFunc) FindTree(name string) (*parse.Tree, bool) {
 }
 
 type CallChecker interface {
-	CheckCall(string, []parse.Node, []types.Type) (types.Type, bool, error)
+	CheckCall(string, []parse.Node, []types.Type) (types.Type, error)
 }
 
 func Check(tree *parse.Tree, data types.Type, pkg *types.Package, fileSet *token.FileSet, trees TreeFinder, fnChecker CallChecker) error {
@@ -331,7 +331,7 @@ func (s *scope) checkCommandNode(tree *parse.Tree, dot, prev types.Type, cmd *pa
 		if err != nil {
 			return nil, err
 		}
-		tp, _, err := s.CallChecker.CheckCall(n.Ident, cmd.Args[1:], argTypes)
+		tp, err := s.CallChecker.CheckCall(n.Ident, cmd.Args[1:], argTypes)
 		if err != nil {
 			return nil, s.error(tree, cmd, err)
 		}
@@ -448,7 +448,7 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 					}
 				}
 				if i == len(idents)-1 {
-					res, _, err := checkCallArguments(sig, args)
+					res, err := checkCallArguments(sig, args)
 					if err != nil {
 						return nil, err
 					}
@@ -466,7 +466,7 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 		if !ok {
 			return nil, s.error(tree, n, fmt.Errorf("expected method or function"))
 		}
-		tp, _, err := checkCallArguments(sig, args)
+		tp, err := checkCallArguments(sig, args)
 		if err != nil {
 			return nil, err
 		}
@@ -592,7 +592,7 @@ func isIter2(signature *types.Signature) (types.Type, types.Type, bool) {
 
 func (s *scope) checkIdentifierNode(tree *parse.Tree, n *parse.IdentifierNode) (types.Type, error) {
 	if !strings.HasPrefix(n.Ident, "$") {
-		tp, _, err := s.CheckCall(n.Ident, nil, nil)
+		tp, err := s.CheckCall(n.Ident, nil, nil)
 		if err != nil {
 			return nil, s.error(tree, n, err)
 		}
