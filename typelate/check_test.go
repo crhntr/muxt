@@ -8,7 +8,7 @@ import (
 	"go/types"
 	"html/template"
 	"io"
-	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,9 +40,11 @@ func TestTree(t *testing.T) {
 		return p.Name == "typelate_test"
 	})
 
+	_, currentFileName, _, ok := runtime.Caller(0)
+	require.True(t, ok, "failed to find current file name")
 	fileIndex := slices.IndexFunc(testPkg.Syntax, func(file *ast.File) bool {
 		pos := testPkg.Fset.Position(file.Pos())
-		return file.Name.Name == "typelate_test" && filepath.Base(pos.Filename) == "check_test.go"
+		return pos.Filename == currentFileName
 	})
 	if fileIndex < 0 {
 		t.Fatal("no check_test.go found")
