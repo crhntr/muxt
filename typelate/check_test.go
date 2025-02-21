@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	typelate2 "github.com/crhntr/muxt/typelate"
+	"github.com/crhntr/muxt/typelate"
 )
 
 var loadPkg = sync.OnceValue(func() []*packages.Package {
@@ -37,12 +37,12 @@ var loadPkg = sync.OnceValue(func() []*packages.Package {
 func TestTree(t *testing.T) {
 	const testFuncName = "TestTree"
 	testPkg := find(t, loadPkg(), func(p *packages.Package) bool {
-		return p.Name == "templatetype_test"
+		return p.Name == "typelate_test"
 	})
 
 	fileIndex := slices.IndexFunc(testPkg.Syntax, func(file *ast.File) bool {
 		pos := testPkg.Fset.Position(file.Pos())
-		return file.Name.Name == "templatetype_test" && filepath.Base(pos.Filename) == "check_test.go"
+		return file.Name.Name == "typelate_test" && filepath.Base(pos.Filename) == "check_test.go"
 	})
 	if fileIndex < 0 {
 		t.Fatal("no check_test.go found")
@@ -765,14 +765,14 @@ func TestTree(t *testing.T) {
 
 			dataType := treeTestRowType(t, testPkg, ttRows, tt.Name)
 
-			sourceFunctions := typelate2.DefaultFunctions(testPkg.Types)
+			sourceFunctions := typelate.DefaultFunctions(testPkg.Types)
 			for name := range functions {
 				fn := testPkg.Types.Scope().Lookup(name).(*types.Func).Signature()
 				require.NotNil(t, fn)
 				sourceFunctions[name] = fn
 			}
 
-			if checkErr := typelate2.Check(templates.Tree, dataType, testPkg.Types, testPkg.Fset, typelate2.FindTreeFunc(func(name string) (*parse.Tree, bool) {
+			if checkErr := typelate.Check(templates.Tree, dataType, testPkg.Types, testPkg.Fset, typelate.FindTreeFunc(func(name string) (*parse.Tree, bool) {
 				ts := templates.Lookup(name)
 				if ts == nil {
 					return nil, false
@@ -797,7 +797,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, typelate2.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 	t.Run("field on parenthesized interface", func(t *testing.T) {
 		tp := testPkg.Types.Scope().Lookup("Fooer").Type()
@@ -807,7 +807,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, typelate2.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 }
 

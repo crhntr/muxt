@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	typelate2 "github.com/crhntr/muxt/typelate"
+	"github.com/crhntr/muxt/typelate"
 )
 
 // bigInt and bigUint are hex string representing numbers either side
@@ -50,7 +50,7 @@ func TestExec(t *testing.T) {
 	}
 
 	testPkg := find(t, loadPkg(), func(p *packages.Package) bool {
-		return p.Name == "templatetype_test"
+		return p.Name == "typelate_test"
 	})
 
 	funcExec := template.FuncMap{
@@ -70,7 +70,7 @@ func TestExec(t *testing.T) {
 		"vfunc":       vfunc,
 		"zeroArgs":    zeroArgs,
 	}
-	funcSource := typelate2.DefaultFunctions(testPkg.Types)
+	funcSource := typelate.DefaultFunctions(testPkg.Types)
 	for k := range funcExec {
 		v, ok := testPkg.Types.Scope().Lookup(k).Type().(*types.Signature)
 		require.True(t, ok)
@@ -79,7 +79,7 @@ func TestExec(t *testing.T) {
 	}
 	fileIndex := slices.IndexFunc(testPkg.Syntax, func(file *ast.File) bool {
 		pos := testPkg.Fset.Position(file.Pos())
-		return file.Name.Name == "templatetype_test" && filepath.Base(pos.Filename) == "stdlib_test.go"
+		return file.Name.Name == "typelate_test" && filepath.Base(pos.Filename) == "stdlib_test.go"
 	})
 	if fileIndex < 0 {
 		t.Fatal("no stdlib_test.go found")
@@ -567,7 +567,7 @@ func TestExec(t *testing.T) {
 			dataType := stdlibTestRowType(t, testPkg, ttRows, tt.name)
 			require.NotNil(t, dataType)
 
-			checkErr := typelate2.Check(tmpl.Tree, dataType, testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
+			checkErr := typelate.Check(tmpl.Tree, dataType, testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
 			switch {
 			case !tt.ok && checkErr == nil:
 				t.Logf("exec error: %s", execErr)
@@ -619,13 +619,13 @@ func stdlibTestRowType(t *testing.T, p *packages.Package, ttRows *ast.CompositeL
 	return nil
 }
 
-type MortalFunctions typelate2.Functions
+type MortalFunctions typelate.Functions
 
 func (fn MortalFunctions) CheckCall(name string, nodes []parse.Node, args []types.Type) (types.Type, error) {
 	switch name {
 	case "die":
 		return nil, fmt.Errorf("exec error die")
 	default:
-		return typelate2.Functions(fn).CheckCall(name, nodes, args)
+		return typelate.Functions(fn).CheckCall(name, nodes, args)
 	}
 }
