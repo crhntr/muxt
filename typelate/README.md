@@ -1,5 +1,9 @@
 # Typelate
 
+This was developed to work with `muxt check`.
+Consider calling that instead of this.
+I make no promises about package API stability.
+
 Do you write templates late at night?
 Are you concerned about shipping silly bugs that should have been caught by a static analyser?
 Maybe typelate is for you.

@@ -4,7 +4,7 @@ import (
 	"text/template"
 	"text/template/parse"
 
-	"github.com/crhntr/muxt/internal/typelate"
+	"github.com/crhntr/muxt/typelate"
 )
 
 func findTextTree(tmpl *template.Template) typelate.FindTreeFunc {
