@@ -40,7 +40,6 @@ var formHTML embed.FS
 var templates = template.Must(template.ParseFS(formHTML, "*"))
 
 type T struct{}
-
 -- cmd/main.go --
 package main
 

@@ -44,7 +44,7 @@ package main
 import "time"
 
 type (
-	T  struct{
+	T struct {
 		spy func(form In) In
 	}
 	In struct {
@@ -96,8 +96,8 @@ func Test(t *testing.T) {
 
 	service := T{
 		spy: func(form In) In {
-  		return form
-  	},
+			return form
+		},
 	}
 	mux := http.NewServeMux()
 	TemplateRoutes(mux, service)
@@ -105,11 +105,11 @@ func Test(t *testing.T) {
 
 	res := rec.Result()
 
-		body, err := io.ReadAll(res.Body)
-    if err != nil {
-      t.Error(err)
-    }
-    t.Log(string(body))
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(body))
 
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("exp %q got %q", http.StatusText(http.StatusOK), http.StatusText(res.StatusCode))

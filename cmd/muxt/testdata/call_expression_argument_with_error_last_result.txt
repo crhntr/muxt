@@ -20,7 +20,6 @@ func (T) F(context.Context, Session, int) any { return nil }
 func (T) Author(int) (Session, error) { return Session{}, nil }
 
 func main() {}
-
 -- template.go --
 package main
 

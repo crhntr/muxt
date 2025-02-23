@@ -43,7 +43,6 @@ var indexHTML embed.FS
 var formHTML embed.FS
 
 var templates = template.Must(template.Must(template.ParseFS(formHTML, "*")).ParseFS(indexHTML, "*"))
-
 -- cmd/main.go --
 package main
 

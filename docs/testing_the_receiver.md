@@ -36,7 +36,8 @@ type UpdateArticle {
 
 ## When You Really Need http.ResponseWriter
 
-There are some cases (like streaming large file downloads or sending a specific header) where passing the response is unavoidable.
+There are some cases (like streaming large file downloads or sending a specific header) where passing the response is
+unavoidable.
 In those situations remember to assert WriteHeader is called.
 Make sure to set relevant headers and set the status code but dont' call `response.Write`. That's for execute.
 
@@ -61,4 +62,5 @@ func (MyReceiver) UserSettings(ctx context.Context, SessionClaims, userID int) U
 ```
 
 When the second result from `SessionRedirectUnauthenticated` returns `true`, the next function is called.
-When the second result from `SessionRedirectUnauthenticated` returns `false` the handler returns early and `UserSettings` is not called.
+When the second result from `SessionRedirectUnauthenticated` returns `false` the handler returns early and
+`UserSettings` is not called.

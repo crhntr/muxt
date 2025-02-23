@@ -3,10 +3,13 @@
 When building server-side applications with **Muxt**-generated routes, you often want to verify both the
 **HTTP response** (e.g., status codes, headers)
 and the **HTML/DOM output** (e.g., specific elements, text content, or errors).
-The [`domtest`](https://github.com/crhntr/dom) package offers a convenient table-driven approach to do exactly that—asserting both HTTP and HTML-based outcomes in one cohesive flow.
+The [`domtest`](https://github.com/crhntr/dom) package offers a convenient table-driven approach to do exactly
+that—asserting both HTTP and HTML-based outcomes in one cohesive flow.
 
-Below is an example test suite from the `blog_test` package, which illustrates how to integrate `domtest` with a Muxt route function named `Routes`.
-A typical BDD test pattern emerges. Each test case specifies `Given` (setup, optional), `When` (the request, required), and `Then` (assertions, optional).
+Below is an example test suite from the `blog_test` package, which illustrates how to integrate `domtest` with a Muxt
+route function named `Routes`.
+A typical BDD test pattern emerges. Each test case specifies `Given` (setup, optional), `When` (the request, required),
+and `Then` (assertions, optional).
 By leveraging `domtest`’s various assertion helpers, you can check DOM structure and content directly.
 
 ---
@@ -18,7 +21,6 @@ By leveraging `domtest`’s various assertion helpers, you can check DOM structu
 
 This is an excerpt from a test.
 To see the complete code run.
-
 
 ```shell
 # I haven't actually run this script. It should get the gist across though.
@@ -141,7 +143,7 @@ func TestBlog(t *testing.T) {
 
 - **`Given func(t *testing.T, app *fake.App)`**  
   Set up initial conditions—e.g., “ArticleReturns” to specify what happens when the route calls `app.Article(id)`.
-- 
+-
 - **`When func(t *testing.T) *http.Request`**  
   Creates the incoming request for this scenario (method, path, optional headers/body).
 
@@ -152,7 +154,8 @@ func TestBlog(t *testing.T) {
     - `domtest.Fragment(...)` for partial responses, or
     - a custom function that checks `response.StatusCode` directly.
 
-Inside each `Then` block, you can use `require` or `assert` from [stretchr/testify](https://github.com/stretchr/testify) to fail the test if the expected DOM elements or status codes aren’t present.
+Inside each `Then` block, you can use `require` or `assert` from [stretchr/testify](https://github.com/stretchr/testify)
+to fail the test if the expected DOM elements or status codes aren’t present.
 
 The final closure passed into Run is for you to call the muxt generated `routes` function.
 It receives the fake receiver as a parameter.
@@ -172,6 +175,7 @@ Then: domtest.Document(func(t *testing.T, document spec.Document, app *fake.App)
     }
 }),
 ```
+
 - The test ensures `app.Article(1)` was called.
 - Looks up `<h1>` and `<p>` tags and verifies text content matches the expectation.
 
@@ -193,8 +197,10 @@ Then: domtest.Document(func(t *testing.T, document spec.Document, app *fake.App)
   }),
 },
 ```
+
 - Sets up the domain method to return an error.
-- Uses `domtest.QuerySelector("#error-message", ...)` to confirm the `<div id="error-message">` or similar element contains the string `"lemon"`.
+- Uses `domtest.QuerySelector("#error-message", ...)` to confirm the `<div id="error-message">` or similar element
+  contains the string `"lemon"`.
 
 ### Example: Partial Responses [HTMX](http://htmx.org/)
 
@@ -218,9 +224,9 @@ Although the Document parser will allow incomplete documents, you may want to te
   }),
 },
 ```
+
 - Simulates an **HTMX** request by adding `HX-Request: true`.
 - Uses `domtest.Fragment(atom.Body, ...)` to parse only a `<body>` snippet or partial, checking content.
-
 
 ## Why vibe with `muxt` + `domtest`
 
@@ -231,10 +237,12 @@ Although the Document parser will allow incomplete documents, you may want to te
     - Check domain calls (e.g., `ArticleArgsForCall(0) == 1`) and the rendered DOM (the `<h1>` or error messages).
 
 3. **Minimal Overhead**
-    - `domtest` sets up a structure that’s easy to read, maintain, and expand. Adding new test cases or scenarios is straightforward.
+    - `domtest` sets up a structure that’s easy to read, maintain, and expand. Adding new test cases or scenarios is
+      straightforward.
 
 4. **Supports TDD/BDD**
-    - The table-driven approach with `Given`, `When`, and `Then` aligns naturally with Behavior-Driven Development or Extreme Programming’s quick feedback loop.
+    - The table-driven approach with `Given`, `When`, and `Then` aligns naturally with Behavior-Driven Development or
+      Extreme Programming’s quick feedback loop.
 
 ## Tips
 
@@ -243,12 +251,16 @@ Although the Document parser will allow incomplete documents, you may want to te
    (e.g., “viewing the home page,” “the page has an error,” “when the id is not an integer.”)
 
 2. **Use Mocking Tools**
-    - For more complex domain interactions, consider a mocking library like [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter), generating stubs for your Muxt receiver methods.
+    - For more complex domain interactions, consider a mocking library
+      like [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter), generating stubs for your Muxt receiver
+      methods.
 
 3. **Keep Tests Atomic**
-    - Each scenario should test one major idea: e.g., “user not logged in -> unauthorized,” or “invalid input -> show error.” Avoid piling too many steps into a single test.
+    - Each scenario should test one major idea: e.g., “user not logged in -> unauthorized,” or “invalid input -> show
+      error.” Avoid piling too many steps into a single test.
 
 4. **Combine with Muxt’s Type Checking**
-    - If you’re using Muxt’s static type check feature, you’ll get extra assurance that your templates, route parameters, and domain method signatures align correctly before even hitting these tests.
+    - If you’re using Muxt’s static type check feature, you’ll get extra assurance that your templates, route
+      parameters, and domain method signatures align correctly before even hitting these tests.
 
 _(this article was mostly generated using an LLM model)_

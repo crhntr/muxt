@@ -149,7 +149,8 @@ The (optionally) generated execute function uses the byte buffer.
 The named empty interface RoutesReceiver has one method `F() string`.
 The method signature was discovered by muxt by iterating over the methods on the named receiver `type Server`.
 
-`func TemplateRoutes` is where generated (inline) http.HandlerFunc closures are mapped to http routes on the multiplexer.
+`func TemplateRoutes` is where generated (inline) http.HandlerFunc closures are mapped to http routes on the
+multiplexer.
 It receives a pointer to the `http.ServeMux` if you have any route collisions from routes added on mux before
 or after calling `TemplateRoutes`, `mux.HandleFunc` will panic.
 The endpoint string `GET /` is cut out of the template name.

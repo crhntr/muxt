@@ -8,24 +8,26 @@ There are three parameters you can pass to a method that always generate the sam
 
 ### Default Mapping
 
-If you don't provide a named type with `--receiver-type`, muxt will try use the following default types for the generated interface methods. 
+If you don't provide a named type with `--receiver-type`, muxt will try use the following default types for the
+generated interface methods.
 
 - `ctx` -> `http.Request.Context`
 - `request` -> `*http.Request`
 - `response` -> `http.ResponseWriter`
-- `form` -> `url.Values` 
-- (named path values) -> `string` (i.e. "/some/{value}" where the identifier "value" now a variable name in the call scope)
+- `form` -> `url.Values`
+- (named path values) -> `string` (i.e. "/some/{value}" where the identifier "value" now a variable name in the call
+  scope)
 
 The method will return `any`.
 This result type does not play well with `muxt check`.
 You should set a `--receiver-type`.
 
-
 #### Example without Receiver Type
 
 Using some of the above, the generated code will look something like this.
 
-Given `{{define "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)"}}Hello, world!{{end}}`,
+Given
+`{{define "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)"}}Hello, world!{{end}}`,
 then you will get this:
 
 ```go 
@@ -36,8 +38,8 @@ type RoutesReceiver interface {
 
 ### Example with Receiver Type
 
-Now, say you provide `--receiver-type=Server`, muxt now will generate parsers in the handler and the generated interface will look like this
-
+Now, say you provide `--receiver-type=Server`, muxt now will generate parsers in the handler and the generated interface
+will look like this
 
 ```go
 package server
@@ -57,7 +59,8 @@ func (_ Server) F(ctx context.Context, response http.ResponseWriter, request *ht
 
 ```
 
-Given (the same as above) `{{define "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)"}}Hello, world!{{end}}`,
+Given (the same as above)
+`{{define "GET /project/{projectID}/task/{taskID} F(ctx, response, request, projectID, taskID)"}}Hello, world!{{end}}`,
 then you will get this:
 
 ```go 
@@ -71,6 +74,7 @@ type RoutesReceiver interface {
 Muxt can generate form field and path parameter parsers for most basic Go types.
 
 ### Basic Kinds
+
 - `int`
 - `int64`
 - `int32`

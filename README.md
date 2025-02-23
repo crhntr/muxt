@@ -35,11 +35,13 @@ For larger complete examples, see:
 ## Documentation
 
 ### Introduction
+
 - [Getting Started](./docs/getting_started.md)
 - [Notes on Integration with Existing Projects](./docs/integrating.md)
 - [Writing Template Names](./docs/template_names.md)
 
 ### Reference
+
 - [Call Parameters](./docs/call_parameters.md)
 - [Call Results](./docs/call_results.md)
 - [Templates Variable](./docs/templates_variable.md)
@@ -47,10 +49,12 @@ For larger complete examples, see:
 - [Known Issues](./docs/known_issues.md)
 
 ### Testing
+
 - [Testing_Hypertext](./docs/testing_hypertext.md)
 - [Testing_the_Receiver](./docs/testing_the_receiver.md)
 
 ### Philosophy & Vision
+
 - [Manifesto](./docs/manifesto.md)
 - [Motivation](./docs/motivation.md)
 - Goals:
