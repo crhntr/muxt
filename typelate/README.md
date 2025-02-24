@@ -11,7 +11,7 @@ consider using [muxt check](https://github.com/crhntr/muxt) directly instead.
 
 ## Why Typelate?
 
-Do you write templates late at night and worry about subtle or silly bugs slipping through?
+Do you type up templates late at night wishing you had a type checker for your templates? Try typelate.
 Typelate leverages Go’s type checker to help you identify mismatched function calls, incorrect field accesses, and other
 type errors in your templates—before you ship your code.
 
@@ -138,17 +138,17 @@ func Test(t *testing.T) {
    Typelate doesn’t yet differentiate between standard text vs. HTML template built-ins. We plan to split out
    `DefaultFunctions` into dedicated `TextDefaultFunctions` and `HTMLDefaultFunctions`.
 
-3**Google Safe HTML Templates**  
-It’s unclear whether Typelate works seamlessly with [safehtml](https://pkg.go.dev/github.com/google/safehtml) or other
-specialized template libraries.
-If you find it works, PR a removal of this warning. If it fails, send me a link to your code and I'll see if the
-typelate API can be improved to
-let it work with your template library.
+3. **Google Safe HTML Templates**  
+   It’s unclear whether Typelate works seamlessly with [safehtml](https://pkg.go.dev/github.com/google/safehtml) or other
+   specialized template libraries.
+   If you find it works, PR a removal of this warning. If it fails, send me a link to your code and I'll see if the
+   typelate API can be improved to
+   let it work with your template library.
 
-4**Exec-Time Panics vs. Compile-Time Checks**  
-Some template errors only appear at runtime (e.g., out-of-range indexing)
-Typelate can catch type-level issues but can’t detect certain execution-time conditions (like an index value that ends
-up being negative).
+4. **Exec-Time Panics vs. Compile-Time Checks**  
+   Some template errors only appear at runtime (e.g., out-of-range indexing)
+   Typelate can catch type-level issues but can’t detect certain execution-time conditions (like an index value that ends
+   up being negative).
 
 ## Contributing
 
