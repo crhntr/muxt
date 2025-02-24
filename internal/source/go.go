@@ -260,11 +260,6 @@ func FindFieldWithName(list *ast.FieldList, name string) (*ast.Field, bool) {
 	return nil, false
 }
 
-func HasFieldWithName(list *ast.FieldList, name string) bool {
-	_, ok := FindFieldWithName(list, name)
-	return ok
-}
-
 func basicLiteralString(node ast.Node) (string, bool) {
 	name, ok := node.(*ast.BasicLit)
 	if !ok {

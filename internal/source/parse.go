@@ -108,7 +108,7 @@ type MaxLengthValidation struct {
 	MaxLength int
 }
 
-func (val MaxLengthValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MaxLengthValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
@@ -129,7 +129,7 @@ type MinLengthValidation struct {
 	MinLength int
 }
 
-func (val MinLengthValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MinLengthValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
