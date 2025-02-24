@@ -57,7 +57,6 @@ const (
 )
 
 type RoutesFileConfiguration struct {
-	executeFunc bool
 	PackageName,
 	PackagePath,
 	TemplatesVariable,
@@ -73,7 +72,6 @@ func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
 	config.TemplatesVariable = cmp.Or(config.TemplatesVariable, DefaultTemplatesVariableName)
 	config.RoutesFunction = cmp.Or(config.RoutesFunction, DefaultRoutesFunctionName)
 	config.ReceiverInterface = cmp.Or(config.ReceiverInterface, DefaultReceiverInterfaceName)
-	config.executeFunc = true
 	return config
 }
 
@@ -135,17 +133,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	templates, err := Templates(ts)
 	if err != nil {
 		return "", err
-	}
-
-	for _, p := range pl {
-		if p.Types.Path() == config.PackagePath {
-			if executeObj := p.Types.Scope().Lookup("execute"); executeObj != nil {
-				if _, ok := executeObj.(*types.Func); ok {
-					config.executeFunc = filepath.Base(p.Fset.Position(executeObj.Pos()).Filename) == config.OutputFileName
-				}
-			}
-			break
-		}
 	}
 
 	receiverInterface := &ast.InterfaceType{
