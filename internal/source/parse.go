@@ -102,3 +102,45 @@ func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.E
 		},
 	}
 }
+
+type MaxLengthValidation struct {
+	Name      string
+	MaxLength int
+}
+
+func (val MaxLengthValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
+			Op: token.GTR,
+			Y:  Int(val.MaxLength),
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				handleError(fmt.Sprintf("%s is too long (the max length is %d)", val.Name, val.MaxLength)),
+				&ast.ReturnStmt{},
+			},
+		},
+	}
+}
+
+type MinLengthValidation struct {
+	Name      string
+	MinLength int
+}
+
+func (val MinLengthValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
+			Op: token.LSS,
+			Y:  Int(val.MinLength),
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				handleError(fmt.Sprintf("%s is too short (the min length is %d)", val.Name, val.MinLength)),
+				&ast.ReturnStmt{},
+			},
+		},
+	}
+}

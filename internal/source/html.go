@@ -8,6 +8,7 @@ import (
 	"go/types"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/crhntr/dom/spec"
@@ -61,6 +62,39 @@ func ParseInputValidations(name string, input spec.Element, tp types.Type) ([]Va
 		result = append(result, PatternValidation{
 			Name: name,
 			Exp:  exp,
+		})
+	}
+	var minL MinLengthValidation
+	if val := input.GetAttribute("minlength"); val != "" {
+		n, err := strconv.Atoi(val)
+		if err != nil {
+			return nil, fmt.Errorf("minlength must be an integer: %w", err)
+		}
+		if n < 0 {
+			return nil, fmt.Errorf("minlength must not be negative")
+		}
+		minL = MinLengthValidation{
+			Name:      name,
+			MinLength: n,
+		}
+		result = append(result, minL)
+	}
+	if val := input.GetAttribute("maxlength"); val != "" {
+		maxLength, err := strconv.Atoi(val)
+		if err != nil {
+			return nil, fmt.Errorf("maxlength must be an integer: %w", err)
+		}
+		if maxLength < 0 {
+			return nil, fmt.Errorf("maxlength must not be negative")
+		}
+		if minL.MinLength != 0 {
+			if minL.MinLength > maxLength {
+				return nil, fmt.Errorf("maxlength (%d) must be greater than or equal to minlength (%d)", maxLength, minL.MinLength)
+			}
+		}
+		result = append(result, MaxLengthValidation{
+			Name:      name,
+			MaxLength: maxLength,
 		})
 	}
 	return result, nil

@@ -248,8 +248,48 @@ func Test_inputValidations(t *testing.T) {
 	}
 }`,
 		},
+		{
+			Name:     "max length below 0",
+			Type:     types.Universe.Lookup("string").Type(),
+			Template: `<input name="field" maxlength="-1"></input>`,
+			Error:    `maxlength must not be negative`,
+		},
+		{
+			Name:     "max length below 0",
+			Type:     types.Universe.Lookup("string").Type(),
+			Template: `<input name="field" minlength="-1"></input>`,
+			Error:    `minlength must not be negative`,
+		},
+		{
+			Name:     "max length less than min length",
+			Type:     types.Universe.Lookup("string").Type(),
+			Template: `<input name="field" maxlength="1" minlength="2"></input>`,
+			Error:    `maxlength (1) must be greater than or equal to minlength (2)`,
+		},
+		{
+			Name:     "max length",
+			Type:     types.Universe.Lookup("string").Type(),
+			Template: `<input name="field" maxlength="3"></input>`,
+			Result: `{
+	if len(v) > 3 {
+		http.Error(response, "field is too long (the max length is 3)", http.StatusBadRequest)
+		return
+	}
+}`,
+		},
+		{
+			Name:     "max length",
+			Type:     types.Universe.Lookup("string").Type(),
+			Template: `<input name="field" minlength="3"></input>`,
+			Result: `{
+	if len(v) < 3 {
+		http.Error(response, "field is too short (the min length is 3)", http.StatusBadRequest)
+		return
+	}
+}`,
+		},
 	} {
-		t.Run(fmt.Sprintf("cromulent attribute type %s %s", tt.Type, tt.Name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s for type %s", tt.Name, tt.Type), func(t *testing.T) {
 			v := ast.NewIdent("v")
 			ts := template.Must(template.New("").Parse(tt.Template))
 			nodes, err := html.ParseFragment(strings.NewReader(ts.Tree.Root.String()), &html.Node{
