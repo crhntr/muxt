@@ -7,14 +7,16 @@ import (
 	"strconv"
 )
 
+const IntBitLength = 32 << (^uint(0) >> 63)
+
 func ParseStringWithType(val string, tp types.Type) (reflect.Value, error) {
 	switch tp.Underlying().String() {
 	case reflect.Int.String():
-		n, err := strconv.ParseInt(val, 10, 64)
+		n, err := strconv.ParseInt(val, 10, IntBitLength)
 		if err != nil {
 			return reflect.Value{}, err
 		}
-		return reflect.ValueOf(int(n)), nil
+		return reflect.ValueOf(n), nil
 	case reflect.Int8.String():
 		n, err := strconv.ParseInt(val, 10, 8)
 		if err != nil {
@@ -40,7 +42,7 @@ func ParseStringWithType(val string, tp types.Type) (reflect.Value, error) {
 		}
 		return reflect.ValueOf(n), nil
 	case reflect.Uint.String():
-		n, err := strconv.ParseUint(val, 10, 64)
+		n, err := strconv.ParseUint(val, 10, IntBitLength)
 		if err != nil {
 			return reflect.Value{}, err
 		}
