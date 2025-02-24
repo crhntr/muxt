@@ -52,8 +52,7 @@ const (
 
 	errIdent = "err"
 
-	templateDataTypeName            = "TemplateData"
-	templateDataTypeResultFieldName = "Result"
+	templateDataTypeName = "TemplateData"
 )
 
 type RoutesFileConfiguration struct {
@@ -286,7 +285,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		},
 	}
 
-	routePathDecls, err := routePathTypeAndMethods(imports, templates, receiver)
+	routePathDecls, err := routePathTypeAndMethods(imports, templates)
 	if err != nil {
 		return "", err
 	}

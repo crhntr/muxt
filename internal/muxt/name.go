@@ -364,7 +364,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 	return method, nil
 }
 
-func routePathTypeAndMethods(imports *source.Imports, templates []Template, receiver *types.Named) ([]ast.Decl, error) {
+func routePathTypeAndMethods(imports *source.Imports, templates []Template) ([]ast.Decl, error) {
 	decls := []ast.Decl{
 		&ast.GenDecl{
 			Tok: token.TYPE,
