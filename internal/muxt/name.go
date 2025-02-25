@@ -259,7 +259,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 				prev := segmentExpressions[len(segmentExpressions)-1]
 				if prevBasic, ok := prev.(*ast.BasicLit); ok {
 					prevVal, _ := strconv.Unquote(prevBasic.Value)
-					prevBasic.Value = strconv.Quote(prevVal + segment)
+					prevBasic.Value = strconv.Quote(prevVal + "/" + segment)
 					continue
 				}
 			}
