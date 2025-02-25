@@ -26,5 +26,5 @@ type EditRowPage struct {
 }
 
 type EditRow struct {
-	Value int `name:"count" template:"count"`
+	Value int `name:"count" template:"count-input"`
 }
