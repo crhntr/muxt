@@ -87,7 +87,7 @@ func (imports *Imports) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, er
 	return file, fSet, err
 }
 
-func (imports *Imports) FieldTag(pos token.Pos) (*ast.Field, error) {
+func (imports *Imports) StructField(pos token.Pos) (*ast.Field, error) {
 	file, fileSet, err := imports.SyntaxFile(pos)
 	if err != nil {
 		return nil, err

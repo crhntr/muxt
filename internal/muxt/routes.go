@@ -539,10 +539,14 @@ func appendFormParseStatements(statements []ast.Stmt, t *Template, imports *sour
 		}
 
 		for i := 0; i < form.NumFields(); i++ {
-			field := form.Field(i)
-			inputName, fieldTemplate, err := fieldTags(imports, t.template, field)
-			if err != nil {
-				return nil, err
+			field, tags := form.Field(i), reflect.StructTag(form.Tag(i))
+			inputName := field.Name()
+			if name, found := tags.Lookup(InputAttributeNameStructTag); found {
+				inputName = name
+			}
+			var fieldTemplate *template.Template
+			if name, found := tags.Lookup(InputAttributeTemplateStructTag); found {
+				fieldTemplate = t.template.Lookup(name)
 			}
 			var templateNodes []*html.Node
 			if fieldTemplate != nil {
@@ -552,7 +556,6 @@ func appendFormParseStatements(statements []ast.Stmt, t *Template, imports *sour
 					Data:     atom.Body.String(),
 				})
 			}
-
 			var (
 				parseResult func(expr ast.Expr) ast.Stmt
 				str         ast.Expr
@@ -618,25 +621,6 @@ func appendFormParseStatements(statements []ast.Stmt, t *Template, imports *sour
 		return statements, nil
 	}
 	return nil, fmt.Errorf("expected form parameter type to be a struct")
-}
-
-func fieldTags(imports *source.Imports, t *template.Template, field *types.Var) (string, *template.Template, error) {
-	inputName := field.Name()
-	syntaxField, err := imports.FieldTag(field.Pos())
-	if err == nil && syntaxField != nil && syntaxField.Tag != nil {
-		unquoted, err := strconv.Unquote(syntaxField.Tag.Value)
-		if err != nil {
-			return "", nil, err
-		}
-		tags := reflect.StructTag(unquoted)
-		if name, found := tags.Lookup(InputAttributeNameStructTag); found {
-			inputName = name
-		}
-		if name, found := tags.Lookup(InputAttributeTemplateStructTag); found {
-			t = t.Lookup(name)
-		}
-	}
-	return inputName, t, nil
 }
 
 func formVariableDeclaration(imports *source.Imports, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
