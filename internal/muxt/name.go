@@ -153,47 +153,47 @@ func encodeVariable(imports *source.Imports, name string, syntax ast.Expr, tp ty
 	case types.Int8:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(8)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Int16:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(16)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Int32:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(32)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Int64:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(64)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Uint:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(64)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Uint8:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(8)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Uint16:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(16)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Uint32:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(32)},
+			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
 		}, nil
 	case types.Uint64:
 		return &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{ast.NewIdent(name), source.Int(64)},
+			Args: []ast.Expr{ast.NewIdent(name), source.Int(10)},
 		}, nil
 	case types.String:
 		return ast.NewIdent(name), nil
