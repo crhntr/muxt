@@ -11,23 +11,43 @@ No extra runtime dependencies are required—just plain Go code.
 	- Use this to mock out your server and test the view layer of your application
 
 ## Examples
+```go
+package main
 
+type Server struct{}
+
+func (s Server) F(x) int { return x * x }
+```
 ```html
-{{define "GET / F()" -}}
+{{define "GET /f/{x} F(x)" -}}
 <!DOCTYPE html>
 <html lang='en'>
 <head>
     <meta charset='UTF-8'/>
-    <title>Hello!</title>
+    <title>Hello, MUXT!</title>
 </head>
 <body>
-<h1>Number {{.Result}}</h1>
+<h1>F(x) is {{.Result}}</h1>
 </body>
 </html>
 {{- end}}
 ```
+The request `GET /f/4` will result in a handler that returns:
+```html
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'/>
+    <title>Hello, MUXT!</title>
+</head>
+<body>
+<h1>F(x) is 16</h1>
+</body>
+</html>
+```
 
-For a small runnable, see: [./example/hypertext/index.gohtml](https://github.com/crhntr/muxt/blob/main/example/hypertext/index.gohtml)
+
+For a small runnable example, see: [./example/hypertext/index.gohtml](https://github.com/crhntr/muxt/blob/main/example/hypertext/index.gohtml)
 
 For larger complete examples, see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
