@@ -28,6 +28,7 @@ func (s Server) F(x int) int { return x * x }
 </head>
 <body>
 <h1>F(x) is {{.Result}}</h1>
+<p>x is {{.Request.PathValue "x"}}</p>
 </body>
 </html>
 {{- end}}
@@ -42,6 +43,7 @@ The request `GET /f/4` will result in a handler that returns:
 </head>
 <body>
 <h1>F(x) is 16</h1>
+<p>x is 4</p>
 </body>
 </html>
 ```
