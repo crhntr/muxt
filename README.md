@@ -16,7 +16,7 @@ package main
 
 type Server struct{}
 
-func (s Server) F(x) int { return x * x }
+func (s Server) F(x int) int { return x * x }
 ```
 ```html
 {{define "GET /f/{x} F(x)" -}}
