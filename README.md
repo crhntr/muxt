@@ -27,7 +27,7 @@ No extra runtime dependencies are required—just plain Go code.
 {{- end}}
 ```
 
-For a small runnable, see: [./example/index.gohtml]([./example/hypertext/index.gohtml](https://github.com/crhntr/muxt/blob/main/example/hypertext/index.gohtml))
+For a small runnable, see: [./example/hypertext/index.gohtml](https://github.com/crhntr/muxt/blob/main/example/hypertext/index.gohtml)
 
 For larger complete examples, see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
