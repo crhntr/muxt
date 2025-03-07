@@ -201,8 +201,6 @@ func HTTPStatusCode(imports *Imports, n int) ast.Expr {
 	}
 }
 
-func Ident(n string) *ast.Ident { return &ast.Ident{Name: n} }
-
 func Int(n int) *ast.BasicLit { return &ast.BasicLit{Value: strconv.Itoa(n), Kind: token.INT} }
 
 func String(s string) *ast.BasicLit {

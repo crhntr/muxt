@@ -13,7 +13,7 @@ import (
 	"github.com/crhntr/muxt/typelate"
 )
 
-func CheckTemplates(wd string, log *log.Logger, config RoutesFileConfiguration) error {
+func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	config = config.applyDefaults()
 	if !token.IsIdentifier(config.PackageName) {
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)

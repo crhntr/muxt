@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"go/types"
 	"html/template"
@@ -143,7 +142,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{
-					httpServMuxField(imports),
+					httpServeMuxField(imports),
 					{
 						Names: []*ast.Ident{ast.NewIdent(receiverParamName)},
 						Type:  ast.NewIdent(config.ReceiverInterface),
@@ -436,7 +435,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 				log.Panicf("unexpected signature mismatch %s != %s", callSig, obj.Type())
 			}
 
-			callSigExpr, err := astTypeExpression(imports, callSig)
+			callSigExpr, err := imports.TypeASTExpression(callSig)
 			if err != nil {
 				return nil, err
 			}
@@ -501,14 +500,14 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 				statements = append(statements, s...)
 				t.pathValueTypes[arg.Name] = param.Type()
 			case arg.Name == TemplateNameScopeIdentifierForm:
-				s, err := appendFormParseStatements(statements, t, imports, arg, param)
+				s, err := appendParseFormToStructStatements(statements, t, imports, arg, param)
 				if err != nil {
 					return nil, err
 				}
 				statements = s
 			default:
-				pt, _ := astTypeExpression(imports, param.Type())
-				at, _ := astTypeExpression(imports, argType)
+				pt, _ := imports.TypeASTExpression(param.Type())
+				at, _ := imports.TypeASTExpression(argType)
 				return nil, fmt.Errorf("method expects type %s but %s is %s", source.Format(pt), arg.Name, source.Format(at))
 			}
 		}
@@ -516,115 +515,112 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 	return statements, nil
 }
 
-func appendFormParseStatements(statements []ast.Stmt, t *Template, imports *source.Imports, arg *ast.Ident, param types.Object) ([]ast.Stmt, error) {
+func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, imports *source.Imports, arg *ast.Ident, param types.Object) ([]ast.Stmt, error) {
 	const parsedVariableName = "value"
 	statements = append(statements, callParseForm())
-	switch tp := param.Type().(type) {
-	case *types.Named:
-		declareFormVar, err := formVariableDeclaration(imports, arg, tp)
-		if err != nil {
-			return nil, err
-		}
-		statements = append(statements, declareFormVar)
 
-		form, ok := tp.Underlying().(*types.Struct)
-		if !ok {
-			return nil, fmt.Errorf("expected form parameter type to be a struct")
-		}
-
-		parseErrCheck := func(exp ast.Expr) ast.Stmt {
-			return &ast.ExprStmt{
-				X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest),
-			}
-		}
-
-		for i := 0; i < form.NumFields(); i++ {
-			field, tags := form.Field(i), reflect.StructTag(form.Tag(i))
-			inputName := field.Name()
-			if name, found := tags.Lookup(InputAttributeNameStructTag); found {
-				inputName = name
-			}
-			var fieldTemplate *template.Template
-			if name, found := tags.Lookup(InputAttributeTemplateStructTag); found {
-				fieldTemplate = t.template.Lookup(name)
-			}
-			var templateNodes []*html.Node
-			if fieldTemplate != nil {
-				templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
-					Type:     html.ElementNode,
-					DataAtom: atom.Body,
-					Data:     atom.Body.String(),
-				})
-			}
-			var (
-				parseResult func(expr ast.Expr) ast.Stmt
-				str         ast.Expr
-				elemType    types.Type
-			)
-			switch ft := field.Type().(type) {
-			case *types.Slice:
-				parseResult = func(expr ast.Expr) ast.Stmt {
-					return &ast.AssignStmt{
-						Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}},
-						Tok: token.ASSIGN,
-						Rhs: []ast.Expr{&ast.CallExpr{
-							Fun:  ast.NewIdent("append"),
-							Args: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}, expr},
-						}},
-					}
-				}
-				str = ast.NewIdent("val")
-				elemType = ft.Elem()
-				validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
-				if ok && err != nil {
-					return nil, err
-				}
-				parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
-				if err != nil {
-					return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
-				}
-				statements = append(statements, &ast.RangeStmt{
-					Key:   ast.NewIdent("_"),
-					Value: ast.NewIdent("val"),
-					Tok:   token.DEFINE,
-					X:     &ast.IndexExpr{X: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("Form")}, Index: &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}},
-					Body:  &ast.BlockStmt{List: parseStatements},
-				})
-			default:
-				parseResult = func(expr ast.Expr) ast.Stmt {
-					return &ast.AssignStmt{
-						Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}},
-						Tok: token.ASSIGN,
-						Rhs: []ast.Expr{expr},
-					}
-				}
-				str = &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("FormValue")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}}}
-				elemType = field.Type()
-				validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
-				if ok && err != nil {
-					return nil, err
-				}
-				parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
-				if err != nil {
-					return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
-				}
-				if len(parseStatements) > 1 {
-					statements = append(statements, &ast.BlockStmt{
-						List: parseStatements,
-					})
-				} else {
-					statements = append(statements, parseStatements...)
-				}
-			}
-		}
-
-		return statements, nil
+	declareFormVar, err := formVariableDeclaration(imports, arg, param.Type())
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("expected form parameter type to be a struct")
+	statements = append(statements, declareFormVar)
+
+	form, ok := param.Type().Underlying().(*types.Struct)
+	if !ok {
+		return nil, fmt.Errorf("expected form parameter type to be a struct")
+	}
+
+	parseErrCheck := func(exp ast.Expr) ast.Stmt {
+		return &ast.ExprStmt{
+			X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest),
+		}
+	}
+
+	for i := 0; i < form.NumFields(); i++ {
+		field, tags := form.Field(i), reflect.StructTag(form.Tag(i))
+		inputName := field.Name()
+		if name, found := tags.Lookup(InputAttributeNameStructTag); found {
+			inputName = name
+		}
+		var fieldTemplate *template.Template
+		if name, found := tags.Lookup(InputAttributeTemplateStructTag); found {
+			fieldTemplate = t.template.Lookup(name)
+		}
+		var templateNodes []*html.Node
+		if fieldTemplate != nil {
+			templateNodes, _ = html.ParseFragment(strings.NewReader(fieldTemplate.Tree.Root.String()), &html.Node{
+				Type:     html.ElementNode,
+				DataAtom: atom.Body,
+				Data:     atom.Body.String(),
+			})
+		}
+		var (
+			parseResult func(expr ast.Expr) ast.Stmt
+			str         ast.Expr
+			elemType    types.Type
+		)
+		switch ft := field.Type().(type) {
+		case *types.Slice:
+			parseResult = func(expr ast.Expr) ast.Stmt {
+				return &ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{&ast.CallExpr{
+						Fun:  ast.NewIdent("append"),
+						Args: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}, expr},
+					}},
+				}
+			}
+			str = ast.NewIdent("val")
+			elemType = ft.Elem()
+			validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			if ok && err != nil {
+				return nil, err
+			}
+			parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
+			}
+			statements = append(statements, &ast.RangeStmt{
+				Key:   ast.NewIdent("_"),
+				Value: ast.NewIdent("val"),
+				Tok:   token.DEFINE,
+				X:     &ast.IndexExpr{X: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("Form")}, Index: &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}},
+				Body:  &ast.BlockStmt{List: parseStatements},
+			})
+		default:
+			parseResult = func(expr ast.Expr) ast.Stmt {
+				return &ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierForm), Sel: ast.NewIdent(field.Name())}},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{expr},
+				}
+			}
+			str = &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("FormValue")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}}}
+			elemType = field.Type()
+			validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			if ok && err != nil {
+				return nil, err
+			}
+			parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
+			}
+			if len(parseStatements) > 1 {
+				statements = append(statements, &ast.BlockStmt{
+					List: parseStatements,
+				})
+			} else {
+				statements = append(statements, parseStatements...)
+			}
+		}
+	}
+
+	return statements, nil
 }
 
 func formVariableDeclaration(imports *source.Imports, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
-	typeExp, err := astTypeExpression(imports, tp)
+	typeExp, err := imports.TypeASTExpression(tp)
 	if err != nil {
 		return nil, err
 	}
@@ -642,7 +638,7 @@ func formVariableDeclaration(imports *source.Imports, arg *ast.Ident, tp types.T
 }
 
 func formVariableAssignment(imports *source.Imports, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
-	typeExp, err := astTypeExpression(imports, tp)
+	typeExp, err := imports.TypeASTExpression(tp)
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +661,7 @@ func formVariableAssignment(imports *source.Imports, arg *ast.Ident, tp types.Ty
 	}, nil
 }
 
-func httpServMuxField(imports *source.Imports) *ast.Field {
+func httpServeMuxField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(muxParamName)},
 		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent("ServeMux")}},
@@ -689,23 +685,23 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 		case "int":
 			return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
 		case "int8":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 8), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseInt8Call(str), validations, errCheck, convert), nil
 		case "int16":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 16), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseInt16Call(str), validations, errCheck, convert), nil
 		case "int32":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 32), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseInt32Call(str), validations, errCheck, convert), nil
 		case "int64":
-			return parseBlock(tmp, imports.StrconvParseIntCall(str, 10, 64), validations, errCheck, assignment), nil
+			return parseBlock(tmp, imports.StrconvParseInt64Call(str), validations, errCheck, assignment), nil
 		case "uint":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 0), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseUint0Call(str), validations, errCheck, convert), nil
 		case "uint8":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 8), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseUint8Call(str), validations, errCheck, convert), nil
 		case "uint16":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 16), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseUint16Call(str), validations, errCheck, convert), nil
 		case "uint32":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 32), validations, errCheck, convert), nil
+			return parseBlock(tmp, imports.StrconvParseUint32Call(str), validations, errCheck, convert), nil
 		case "uint64":
-			return parseBlock(tmp, imports.StrconvParseUintCall(str, 10, 64), validations, errCheck, assignment), nil
+			return parseBlock(tmp, imports.StrconvParseUint64Call(str), validations, errCheck, assignment), nil
 		case "string":
 			if len(validations) == 0 {
 				assign := assignment(str)
@@ -722,7 +718,7 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 	case *types.Named:
 		if encPkg, ok := imports.Types("encoding"); ok {
 			if textUnmarshaler := encPkg.Scope().Lookup("TextUnmarshaler").Type().Underlying().(*types.Interface); types.Implements(types.NewPointer(tp), textUnmarshaler) {
-				tp, _ := astTypeExpression(imports, valueType)
+				tp, _ := imports.TypeASTExpression(valueType)
 				return []ast.Stmt{
 					&ast.DeclStmt{
 						Decl: &ast.GenDecl{
@@ -775,7 +771,7 @@ func generateParseValueFromStringStatements(imports *source.Imports, tmp string,
 			}
 		}
 	}
-	tp, _ := astTypeExpression(imports, valueType)
+	tp, _ := imports.TypeASTExpression(valueType)
 	return nil, fmt.Errorf("unsupported type: %s", source.Format(tp))
 }
 
@@ -846,16 +842,6 @@ func callReceiverMethod(imports *source.Imports, dataVarIdent string, method *ty
 	} else {
 		return []ast.Stmt{&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}}}, nil
 	}
-}
-
-func astTypeExpression(imports *source.Imports, tp types.Type) (ast.Expr, error) {
-	s := types.TypeString(tp, func(pkg *types.Package) string {
-		if pkg.Path() == imports.OutputPackage() {
-			return ""
-		}
-		return imports.Add("", pkg.Path())
-	})
-	return parser.ParseExpr(s)
 }
 
 var assertion AssertionFailureReporter
@@ -951,7 +937,7 @@ func ensureMethodSignature(imports *source.Imports, signatures map[string]*types
 		if !isMethod {
 			return nil
 		}
-		exp, err := astTypeExpression(imports, mo.Type())
+		exp, err := imports.TypeASTExpression(mo.Type())
 		if err != nil {
 			return err
 		}
@@ -1066,13 +1052,7 @@ func executeFuncDecl(imports *source.Imports, templateName, templatesVariableIde
 		&ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent("buf")},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{&ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "bytes")),
-					Sel: ast.NewIdent("NewBuffer"),
-				},
-				Args: []ast.Expr{source.Nil()},
-			}},
+			Rhs: []ast.Expr{imports.BytesNewBuffer(source.Nil())},
 		},
 		&ast.AssignStmt{
 			Lhs: []ast.Expr{ast.NewIdent("rd")},
@@ -1109,19 +1089,8 @@ func executeFuncDecl(imports *source.Imports, templateName, templatesVariableIde
 			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
 			Args: []ast.Expr{source.String("content-type"), source.String("text/html; charset=utf-8")},
 		}}, &ast.ExprStmt{X: &ast.CallExpr{
-			Fun: &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
-			Args: []ast.Expr{source.String("content-length"), &ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent(imports.Add("", "strconv")),
-					Sel: ast.NewIdent("Itoa"),
-				},
-				Args: []ast.Expr{
-					&ast.CallExpr{
-						Fun:  &ast.SelectorExpr{X: ast.NewIdent("buf"), Sel: ast.NewIdent("Len")},
-						Args: []ast.Expr{},
-					},
-				},
-			}},
+			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+			Args: []ast.Expr{source.String("content-length"), imports.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("buf"), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
 		}}, &ast.ExprStmt{X: &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
 			Args: []ast.Expr{source.HTTPStatusCode(imports, statusCode)},

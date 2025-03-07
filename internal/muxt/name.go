@@ -110,98 +110,6 @@ func calculateIdentifiers(in []Template) {
 	}
 }
 
-type BasicPathSegment string
-
-func (segment BasicPathSegment) Expr() ast.Expr {
-	return &ast.BasicLit{
-		Kind:  token.STRING,
-		Value: strconv.Quote(string(segment)),
-	}
-}
-
-type HostSlashPathSegment string
-
-func (segment HostSlashPathSegment) Expr() ast.Expr {
-	return &ast.BasicLit{
-		Kind:  token.STRING,
-		Value: strconv.Quote(string(segment)),
-	}
-}
-
-type StringPathValuePathSegment string
-
-func (segment StringPathValuePathSegment) Expr() ast.Expr {
-	return ast.NewIdent(string(segment))
-}
-
-func encodeVariable(imports *source.Imports, name string, syntax ast.Expr, tp types.Type) (ast.Expr, error) {
-	basicType, ok := tp.Underlying().(*types.Basic)
-	if !ok {
-		return nil, fmt.Errorf("unsupported type %s for path parameters: %s", source.Format(syntax), name)
-	}
-	switch basicType.Kind() {
-	case types.Bool, types.UntypedBool:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatBool")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("bool"), Args: []ast.Expr{ast.NewIdent(name)}}},
-		}, nil
-	case types.Int, types.UntypedInt:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("Itoa")},
-			Args: []ast.Expr{ast.NewIdent(name)},
-		}, nil
-	case types.Int8:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Int16:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Int32:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Int64:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Uint:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Uint8:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Uint16:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Uint32:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{ast.NewIdent(name)}}, source.Int(10)},
-		}, nil
-	case types.Uint64:
-		return &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
-			Args: []ast.Expr{ast.NewIdent(name), source.Int(10)},
-		}, nil
-	case types.String:
-		return ast.NewIdent(name), nil
-	default:
-		return nil, fmt.Errorf("unsupported basic type for path parameters: %s", name)
-	}
-}
-
 func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) {
 	encodingPkg, ok := imports.Types("encoding")
 	if !ok {
@@ -276,7 +184,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 		if !ok {
 			pathValueType = types.Universe.Lookup("string").Type()
 		}
-		tpNode, err := astTypeExpression(imports, pathValueType)
+		tpNode, err := imports.TypeASTExpression(pathValueType)
 		if err != nil {
 			return nil, err
 		}
@@ -326,9 +234,13 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 			continue
 		}
 
-		exp, err := encodeVariable(imports, ident, tpNode, pathValueType)
+		basicType, ok := pathValueType.Underlying().(*types.Basic)
+		if !ok {
+			return nil, fmt.Errorf("unsupported type %s for path parameters: %s", source.Format(tpNode), ident)
+		}
+		exp, err := imports.Format(ast.NewIdent(ident), basicType.Kind())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to encode variable %s: %v", ident, err)
 		}
 		segmentExpressions = append(segmentExpressions, exp)
 	}

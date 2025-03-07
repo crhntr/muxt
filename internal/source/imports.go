@@ -87,6 +87,16 @@ func (imports *Imports) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, er
 	return file, fSet, err
 }
 
+func (imports *Imports) TypeASTExpression(tp types.Type) (ast.Expr, error) {
+	s := types.TypeString(tp, func(pkg *types.Package) string {
+		if pkg.Path() == imports.OutputPackage() {
+			return ""
+		}
+		return imports.Add("", pkg.Path())
+	})
+	return parser.ParseExpr(s)
+}
+
 func (imports *Imports) StructField(pos token.Pos) (*ast.Field, error) {
 	file, fileSet, err := imports.SyntaxFile(pos)
 	if err != nil {
@@ -156,7 +166,7 @@ func (imports *Imports) Add(pkgIdent, pkgPath string) string {
 		}
 		var pi *ast.Ident
 		if path.Base(pkgPath) != pkgIdent {
-			pi = Ident(pkgIdent)
+			pi = ast.NewIdent(pkgIdent)
 		}
 		imports.GenDecl.Specs = append(imports.GenDecl.Specs, &ast.ImportSpec{
 			Path: String(pkgPath),
@@ -229,6 +239,10 @@ func (imports *Imports) StrconvAtoiCall(expr ast.Expr) *ast.CallExpr {
 	return imports.Call("", "strconv", "Atoi", []ast.Expr{expr})
 }
 
+func (imports *Imports) StrconvItoaCall(expr ast.Expr) *ast.CallExpr {
+	return imports.Call("", "strconv", "Itoa", []ast.Expr{expr})
+}
+
 func (imports *Imports) StrconvParseIntCall(expr ast.Expr, base, size int) *ast.CallExpr {
 	return imports.Call("", "strconv", "ParseInt", []ast.Expr{expr, Int(base), Int(size)})
 }
@@ -249,11 +263,165 @@ func (imports *Imports) TimeParseCall(layout string, expr ast.Expr) *ast.CallExp
 	return imports.Call("", "time", "Parse", []ast.Expr{String(layout), expr})
 }
 
+func (imports *Imports) BytesNewBuffer(expr ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   ast.NewIdent(imports.Add("", "bytes")),
+			Sel: ast.NewIdent("NewBuffer"),
+		},
+		Args: []ast.Expr{expr},
+	}
+}
+
 func (imports *Imports) HTTPRequestPtr() *ast.StarExpr {
 	return &ast.StarExpr{
 		X: &ast.SelectorExpr{
 			X:   ast.NewIdent(imports.Add("http", "net/http")),
 			Sel: ast.NewIdent("Request"),
 		},
+	}
+}
+
+func (imports *Imports) StrconvParseInt8Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseIntCall(in, 10, 8)
+}
+
+func (imports *Imports) StrconvParseInt16Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseIntCall(in, 10, 16)
+}
+
+func (imports *Imports) StrconvParseInt32Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseIntCall(in, 10, 32)
+}
+
+func (imports *Imports) StrconvParseInt64Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseIntCall(in, 10, 64)
+}
+
+func (imports *Imports) StrconvParseUint0Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseUintCall(in, 10, 0)
+}
+
+func (imports *Imports) StrconvParseUint8Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseUintCall(in, 10, 8)
+}
+
+func (imports *Imports) StrconvParseUint16Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseUintCall(in, 10, 16)
+}
+
+func (imports *Imports) StrconvParseUint32Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseUintCall(in, 10, 32)
+}
+
+func (imports *Imports) StrconvParseUint64Call(in ast.Expr) *ast.CallExpr {
+	return imports.StrconvParseUintCall(in, 10, 64)
+}
+
+func (imports *Imports) FormatInt(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("Itoa")},
+		Args: []ast.Expr{in},
+	}
+}
+
+func (imports *Imports) FormatInt8(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatInt16(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatInt32(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatInt64(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatUint(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatUint8(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatUint16(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatUint32(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatUint64(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Args: []ast.Expr{in, Int(10)},
+	}
+}
+
+func (imports *Imports) FormatBool(in ast.Expr) *ast.CallExpr {
+	return &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(imports.Add("", "strconv")), Sel: ast.NewIdent("FormatBool")},
+		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("bool"), Args: []ast.Expr{in}}},
+	}
+}
+
+func (imports *Imports) Format(variable ast.Expr, kind types.BasicKind) (ast.Expr, error) {
+	switch kind {
+	case types.Bool, types.UntypedBool:
+		return imports.FormatBool(variable), nil
+	case types.Int, types.UntypedInt:
+		return imports.FormatInt(variable), nil
+	case types.Int8:
+		return imports.FormatInt8(variable), nil
+	case types.Int16:
+		return imports.FormatInt16(variable), nil
+	case types.Int32:
+		return imports.FormatInt32(variable), nil
+	case types.Int64:
+		return imports.FormatInt64(variable), nil
+	case types.Uint:
+		return imports.FormatUint(variable), nil
+	case types.Uint8:
+		return imports.FormatUint8(variable), nil
+	case types.Uint16:
+		return imports.FormatUint16(variable), nil
+	case types.Uint32:
+		return imports.FormatUint32(variable), nil
+	case types.Uint64:
+		return imports.FormatUint64(variable), nil
+	case types.String:
+		return variable, nil
+	default:
+		return nil, fmt.Errorf("unsupported basic type for path parameters")
 	}
 }
