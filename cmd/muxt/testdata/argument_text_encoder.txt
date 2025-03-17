@@ -1,13 +1,21 @@
+cat f.go template.go
+
 muxt generate --receiver-type=Server
+
+cat f.go template_routes.go
+
 muxt check
 
 exec go test -cover
 
 -- template.gohtml --
-{{define "GET /{id} F(id)"}}{{.Result}}{{end}}
+{{- define "GET /{id} F(id)"}}{{.Result}}{{end -}}
 
+{{define "GET / Index()" -}}
+<a href="{{$.Path.F $.Result}}">See {{$.Result}}</a>
+{{- end}}
 -- go.mod --
-module server
+module example.com
 
 go 1.22
 -- template.go --
@@ -27,10 +35,16 @@ package main
 
 import "strconv"
 
+type Server struct{}
+
+func (Server) Index() ID { return 32 }
+
+func (Server) F(id ID) string { return strconv.Itoa(int(id) * 5) }
+
 type ID int64
 
 func (id *ID) UnmarshalText(text []byte) error {
-	n, err := strconv.ParseUint(string(text), 2, 64)
+	n, err := strconv.ParseInt(string(text), 2, 64)
 	if err != nil {
 		return err
 	}
@@ -38,9 +52,10 @@ func (id *ID) UnmarshalText(text []byte) error {
 	return nil
 }
 
-type Server struct{}
+func (id ID) MarshalText() ([]byte, error) {
+	return []byte(strconv.FormatInt(int64(id), 10)), nil
+}
 
-func (Server) F(id ID) string { return strconv.Itoa(int(id) * 5) }
 -- template_test.go --
 package main
 
@@ -52,7 +67,7 @@ import (
 	"net/http/httptest"
 )
 
-func Test(t *testing.T) {
+func TestF(t *testing.T) {
 	mux := http.NewServeMux()
 
 	TemplateRoutes(mux, Server{})
@@ -75,5 +90,31 @@ func Test(t *testing.T) {
 
 	if string(buf) != "35" {
 		t.Errorf(`expected "35" got %q`, string(buf))
+	}
+}
+
+func TestIndex(t *testing.T) {
+	mux := http.NewServeMux()
+
+	TemplateRoutes(mux, Server{})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	res := rec.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected OK got %d", res.StatusCode)
+	}
+
+	buf, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if exp := `<a href="/32">See 32</a>`; string(buf) != exp {
+		t.Errorf(`expected %q got %q`, exp, string(buf))
 	}
 }

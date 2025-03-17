@@ -158,6 +158,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 		return method, nil
 	}
 
+	hasErrorResult := false
 	for si, segment := range segmentStrings {
 		if len(segment) < 1 {
 			continue
@@ -199,6 +200,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 		last = pathValueType
 
 		if types.Implements(pathValueType, textMarshalerInterface) {
+			hasErrorResult = true
 			if len(method.Type.Results.List) == 1 {
 				method.Type.Results.List = append(method.Type.Results.List, &ast.Field{
 					Type: ast.NewIdent("error"),
@@ -230,7 +232,10 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 					},
 				},
 			})
-			segmentExpressions = append(segmentExpressions, ast.NewIdent(segmentIdent))
+			segmentExpressions = append(segmentExpressions, &ast.CallExpr{
+				Fun:  ast.NewIdent("string"),
+				Args: []ast.Expr{ast.NewIdent(segmentIdent)},
+			})
 			continue
 		}
 
@@ -270,7 +275,12 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 		}
 	}
 
-	method.Body.List = append(method.Body.List, &ast.ReturnStmt{Results: []ast.Expr{returnStmt}})
+	if hasErrorResult {
+		method.Body.List = append(method.Body.List, &ast.ReturnStmt{Results: []ast.Expr{returnStmt, source.Nil()}})
+	} else {
+		method.Body.List = append(method.Body.List, &ast.ReturnStmt{Results: []ast.Expr{returnStmt}})
+	}
+
 	method.Type.Params.List = fields
 
 	return method, nil
