@@ -8,10 +8,19 @@ exec go test
 muxt check
 
 -- index.gohtml --
-{{define "GET / Iterator()" }}
+{{define "GET /iter Iterator()" }}
 	{{range $k, $v := .Result}}
 		- {{$k}}: {{$v}}
 	{{end}}
+{{end}}
+
+{{define "GET /slice Slice()" }}
+	{{with $slice := .Result}}
+		{{range $index, $value := $slice -}}
+      - {{$index}}: {{$value}}
+    {{end -}}
+	{{end}}
+
 {{end}}
 
 -- go.mod --
@@ -42,4 +51,9 @@ func (T) Iterator() iter.Seq2[int, float64] {
 			}
 		}
 	}
+}
+
+
+func (T) Slice() []float64 {
+	return []float64{1, 2, 3, 4, 5}
 }

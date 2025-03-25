@@ -152,41 +152,8 @@ func (s *scope) checkPipeNode(tree *parse.Tree, dot types.Type, n *parse.PipeNod
 		}
 		result = tp
 	}
-	if len(n.Decl) > 0 {
-		switch r := result.(type) {
-		case *types.Slice:
-			if l := len(n.Decl); l == 1 {
-				s.variables[n.Decl[0].Ident[0]] = r.Elem()
-			} else if l == 2 {
-				s.variables[n.Decl[0].Ident[0]] = types.Typ[types.Int]
-				s.variables[n.Decl[1].Ident[0]] = r.Elem()
-			} else {
-				return nil, fmt.Errorf("expected 1 or 2 declaration")
-			}
-		case *types.Array:
-			if l := len(n.Decl); l == 1 {
-				s.variables[n.Decl[0].Ident[0]] = r.Elem()
-			} else if l == 2 {
-				s.variables[n.Decl[0].Ident[0]] = types.Typ[types.Int]
-				s.variables[n.Decl[1].Ident[0]] = r.Elem()
-			} else {
-				return nil, fmt.Errorf("expected 1 or 2 declaration")
-			}
-		case *types.Map:
-			if l := len(n.Decl); l == 1 {
-				s.variables[n.Decl[0].Ident[0]] = r.Elem()
-			} else if l == 2 {
-				s.variables[n.Decl[0].Ident[0]] = r.Key()
-				s.variables[n.Decl[1].Ident[0]] = r.Elem()
-			} else {
-				return nil, fmt.Errorf("expected 1 or 2 declaration")
-			}
-		default:
-			// assert.MaxLen(n.Decl, 1, "too many variable declarations in a pipe node")
-			if len(n.Decl) == 1 {
-				s.variables[n.Decl[0].Ident[0]] = result
-			}
-		}
+	if len(n.Decl) > 0 && len(n.Decl[0].Ident) > 0 {
+		s.variables[n.Decl[0].Ident[0]] = result
 	}
 	return result, nil
 }
@@ -493,19 +460,25 @@ func (s *scope) checkRangeNode(tree *parse.Tree, dot types.Type, n *parse.RangeN
 	switch pt := pipeType.(type) {
 	case *types.Slice:
 		x = pt.Elem()
-		if len(n.Pipe.Decl) > 1 {
+		if len(n.Pipe.Decl) == 1 {
+			child.variables[n.Pipe.Decl[0].Ident[0]] = x
+		} else if len(n.Pipe.Decl) > 1 {
 			child.variables[n.Pipe.Decl[0].Ident[0]] = types.Typ[types.Int]
 			child.variables[n.Pipe.Decl[1].Ident[0]] = x
 		}
 	case *types.Array:
 		x = pt.Elem()
-		if len(n.Pipe.Decl) > 1 {
+		if len(n.Pipe.Decl) == 1 {
+			child.variables[n.Pipe.Decl[0].Ident[0]] = x
+		} else if len(n.Pipe.Decl) > 1 {
 			child.variables[n.Pipe.Decl[0].Ident[0]] = types.Typ[types.Int]
 			child.variables[n.Pipe.Decl[1].Ident[0]] = x
 		}
 	case *types.Map:
 		x = pt.Elem()
-		if len(n.Pipe.Decl) > 1 {
+		if len(n.Pipe.Decl) == 1 {
+			child.variables[n.Pipe.Decl[0].Ident[0]] = pt.Elem()
+		} else if len(n.Pipe.Decl) > 1 {
 			child.variables[n.Pipe.Decl[0].Ident[0]] = pt.Key()
 			child.variables[n.Pipe.Decl[1].Ident[0]] = pt.Elem()
 		}

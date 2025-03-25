@@ -307,6 +307,13 @@ func TestTree(t *testing.T) {
 			},
 		},
 		{
+			Name:     "when passing key value range variables for slice from variable",
+			Template: `{{with $slice := .Numbers}}{{range $k, $v := $slice}}{{$.F $k $v}}{{end}}{{end}}`,
+			Data: MethodWithKeyValForSlices{
+				Numbers: []float64{1, 2},
+			},
+		},
+		{
 			Name:     "when passing key value range variables for array",
 			Template: `{{range $k, $v := .Numbers}}{{$.F $k $v}}{{end}}`,
 			Data: MethodWithKeyValForArray{
