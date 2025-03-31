@@ -55,7 +55,6 @@ func (id *ID) UnmarshalText(text []byte) error {
 func (id ID) MarshalText() ([]byte, error) {
 	return []byte(strconv.FormatInt(int64(id), 10)), nil
 }
-
 -- template_test.go --
 package main
 
