@@ -16,8 +16,8 @@
 
 ### Testing
 
-- [Testing_Hypertext](./testing_hypertext.md)
-- [Testing_the_Receiver](./testing_the_receiver.md)
+- [Testing Hypertext](./testing_hypertext.md)
+- [Testing the Receiver](./testing_the_receiver.md)
 
 ### Philosophy & Vision
 

@@ -50,8 +50,8 @@ For larger complete examples, see:
 
 ### Testing
 
-- [Testing_Hypertext](./docs/testing_hypertext.md)
-- [Testing_the_Receiver](./docs/testing_the_receiver.md)
+- [Testing Hypertext](./docs/testing_hypertext.md)
+- [Testing the Receiver](./docs/testing_the_receiver.md)
 
 ### Philosophy & Vision
 
