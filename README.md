@@ -10,6 +10,11 @@ No extra runtime dependencies are required—just plain Go code.
 - It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
 	- Use this to mock out your server and test the view layer of your application
 
+## Rename
+
+While, `muxt` felt like a good name for this project since this is a code generator that extends the standard library
+templates and `http.ServeMux`, it is not easily searchable. So, I am considering renaming it to `hyperhandler` or something like that.
+
 ## Examples
 
 ```html
