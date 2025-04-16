@@ -20,7 +20,7 @@ import (
 type Imports struct {
 	*ast.GenDecl
 	fileSet           *token.FileSet
-	types             map[string]*types.Package
+	typesCache        map[string]*types.Package
 	files             map[string]*ast.File
 	packages          []*packages.Package
 	outputPackage     string
@@ -33,7 +33,7 @@ func NewImports(decl *ast.GenDecl) *Imports {
 			log.Panicf("expected decl to have token.IMPORT Tok got %s", got)
 		}
 	}
-	return &Imports{GenDecl: decl, types: make(map[string]*types.Package), files: make(map[string]*ast.File)}
+	return &Imports{GenDecl: decl, typesCache: make(map[string]*types.Package), files: make(map[string]*ast.File)}
 }
 
 func (imports *Imports) Package(path string) (*packages.Package, bool) {
@@ -51,7 +51,7 @@ func (imports *Imports) AddPackages(packages ...*packages.Package) {
 		if pkg == nil {
 			continue
 		}
-		recursivelyRegisterPackages(imports.types, pkg.Types)
+		imports.typesCache[pkg.PkgPath] = pkg.Types
 		imports.packages = append(imports.packages, pkg)
 	}
 }
@@ -131,18 +131,37 @@ func (imports *Imports) StructField(pos token.Pos) (*ast.Field, error) {
 }
 
 func (imports *Imports) Types(pkgPath string) (*types.Package, bool) {
-	p, ok := imports.types[pkgPath]
-	return p, ok
+	if p, ok := imports.typesCache[pkgPath]; ok {
+		return p, true
+	}
+	for _, pkg := range imports.packages {
+		if pkg.Types.Path() == pkgPath {
+			p := pkg.Types
+			imports.typesCache[pkgPath] = p
+			return p, true
+		}
+	}
+	for _, pkg := range imports.packages {
+		if p, ok := recursivelySearchImports(pkg.Types, pkgPath); ok {
+			imports.typesCache[pkgPath] = p
+			return p, true
+		}
+	}
+	return nil, false
 }
 
-func recursivelyRegisterPackages(set map[string]*types.Package, pkg *types.Package) {
-	if pkg == nil {
-		return
+func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package, bool) {
+	for _, pkg := range pt.Imports() {
+		if pkg.Path() == pkgPath {
+			return pkg, true
+		}
 	}
-	set[pkg.Path()] = pkg
-	for _, p := range pkg.Imports() {
-		recursivelyRegisterPackages(set, p)
+	for _, pkg := range pt.Imports() {
+		if im, ok := recursivelySearchImports(pkg, pkgPath); ok {
+			return im, true
+		}
 	}
+	return nil, false
 }
 
 func (imports *Imports) Add(pkgIdent, pkgPath string) string {
