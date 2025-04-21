@@ -121,6 +121,7 @@ func (res *TemplateResponseWriter) Header() http.Header {
 func (res *TemplateResponseWriter) Write(in []byte) (int, error) {
 	if res.statusCode != 0 {
 		res.underlying.WriteHeader(res.statusCode)
+		res.statusCode = 0
 	}
 	return res.underlying.Write(in)
 }

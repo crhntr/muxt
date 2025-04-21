@@ -441,6 +441,11 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 											},
 										},
 									},
+									&ast.AssignStmt{
+										Lhs: []ast.Expr{ast.NewIdent("res.statusCode")},
+										Tok: token.ASSIGN,
+										Rhs: []ast.Expr{source.Int(0)},
+									},
 								},
 							},
 						},
