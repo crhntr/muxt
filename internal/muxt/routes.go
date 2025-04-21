@@ -1357,7 +1357,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 	}
 
 	statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(httpResponseField(imports).Names[0].Name), Sel: ast.NewIdent("WriteHeader")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("WriteHeader")},
 		Args: []ast.Expr{code},
 	}})
 	statements = append(statements, &ast.AssignStmt{
