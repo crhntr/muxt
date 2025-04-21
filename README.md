@@ -32,7 +32,7 @@ templates and `http.ServeMux`, it is not easily searchable. So, I am considering
 {{- end}}
 ```
 
-For a small runnable, see: [./example/index.gohtml](./example/index.gohtml)
+For a small runnable, see: [./example/hypertext/index.gohtml](./example/hypertext/index.gohtml)
 
 For larger complete examples, see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
