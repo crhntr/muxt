@@ -47,11 +47,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		statusCode := http.StatusOK
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		res.Header().Set("content-type", "text/html; charset=utf-8")
+		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		res.WriteHeader(response.statusCode)
+		_, _ = buf.WriteTo(res)
 	})
 	mux.HandleFunc("GET /fruits/{id}/edit", func(res http.ResponseWriter, request *http.Request) {
 		var response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
@@ -68,11 +67,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		statusCode := http.StatusOK
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		res.Header().Set("content-type", "text/html; charset=utf-8")
+		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		res.WriteHeader(response.statusCode)
+		_, _ = buf.WriteTo(res)
 	})
 	mux.HandleFunc("GET /help", func(res http.ResponseWriter, request *http.Request) {
 		var (
@@ -86,10 +84,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		response.WriteHeader(http.StatusOK)
-		_, _ = buf.WriteTo(response)
+		res.Header().Set("content-type", "text/html; charset=utf-8")
+		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		res.WriteHeader(response.statusCode)
+		_, _ = buf.WriteTo(res)
 	})
 	mux.HandleFunc("GET /{$}", func(res http.ResponseWriter, request *http.Request) {
 		var response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
@@ -101,11 +99,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		statusCode := http.StatusOK
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		res.Header().Set("content-type", "text/html; charset=utf-8")
+		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		res.WriteHeader(response.statusCode)
+		_, _ = buf.WriteTo(res)
 	})
 }
 

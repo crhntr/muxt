@@ -1300,21 +1300,14 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 		},
 	)
 	statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
 		Args: []ast.Expr{source.String("content-type"), source.String("text/html; charset=utf-8")},
 	}}, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
 		Args: []ast.Expr{source.String("content-length"), imports.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("buf"), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
 	}})
 
-	code := source.HTTPStatusCode(imports, t.defaultStatusCode)
-
 	if resultType != nil {
-		statements = append(statements, &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent("statusCode")},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{source.HTTPStatusCode(imports, t.defaultStatusCode)},
-		})
 		statusCoder := statusCoderInterface()
 		if types.Implements(resultType, statusCoder) {
 			statements = append(statements, &ast.IfStmt{
@@ -1327,7 +1320,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
-							Lhs: []ast.Expr{ast.NewIdent("statusCode")},
+							Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
 							Tok: token.ASSIGN,
 							Rhs: []ast.Expr{ast.NewIdent("sc")},
 						},
@@ -1345,7 +1338,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.AssignStmt{
-							Lhs: []ast.Expr{ast.NewIdent("statusCode")},
+							Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
 							Tok: token.ASSIGN,
 							Rhs: []ast.Expr{ast.NewIdent("sc")},
 						},
@@ -1353,12 +1346,11 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 				},
 			})
 		}
-		code = ast.NewIdent("statusCode")
 	}
 
 	statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("WriteHeader")},
-		Args: []ast.Expr{code},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("WriteHeader")},
+		Args: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
 	}})
 	statements = append(statements, &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
@@ -1368,7 +1360,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 				X:   ast.NewIdent("buf"),
 				Sel: ast.NewIdent("WriteTo"),
 			},
-			Args: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
+			Args: []ast.Expr{ast.NewIdent("res")},
 		}},
 	})
 	return statements
