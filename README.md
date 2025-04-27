@@ -65,3 +65,7 @@ For larger complete examples, see:
 - Goals:
   [see enhancement issues](https://github.com/crhntr/muxt/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement)
 
+
+## Prompting
+
+- [Prompting Helpers](./docs/prompts)

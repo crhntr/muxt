@@ -50,7 +50,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		statusCode := http.StatusOK
-		res.WriteHeader(statusCode)
+		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
 	mux.HandleFunc("GET /fruits/{id}/edit", func(res http.ResponseWriter, request *http.Request) {
@@ -71,7 +71,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		statusCode := http.StatusOK
-		res.WriteHeader(statusCode)
+		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
 	mux.HandleFunc("GET /help", func(res http.ResponseWriter, request *http.Request) {
@@ -88,7 +88,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		res.WriteHeader(http.StatusOK)
+		response.WriteHeader(http.StatusOK)
 		_, _ = buf.WriteTo(response)
 	})
 	mux.HandleFunc("GET /{$}", func(res http.ResponseWriter, request *http.Request) {
@@ -104,7 +104,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		response.Header().Set("content-type", "text/html; charset=utf-8")
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
 		statusCode := http.StatusOK
-		res.WriteHeader(statusCode)
+		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
 }
