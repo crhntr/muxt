@@ -419,7 +419,7 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 				if i == len(idents)-1 {
 					res, err := checkCallArguments(sig, args)
 					if err != nil {
-						return nil, err
+						return nil, s.error(tree, n, err)
 					}
 					return res, nil
 				}
@@ -437,7 +437,7 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 		}
 		tp, err := checkCallArguments(sig, args)
 		if err != nil {
-			return nil, err
+			return nil, s.error(tree, n, err)
 		}
 		return tp, nil
 	}
