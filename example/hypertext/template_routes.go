@@ -18,11 +18,10 @@ type RoutesReceiver interface {
 }
 
 func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
-	mux.HandleFunc("PATCH /fruits/{id}", func(res http.ResponseWriter, request *http.Request) {
-		var response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
+	mux.HandleFunc("PATCH /fruits/{id}", func(response http.ResponseWriter, request *http.Request) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
-			http.Error(res, err.Error(), http.StatusBadRequest)
+			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
 		id := idParsed
@@ -31,104 +30,86 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		{
 			value, err := strconv.Atoi(request.FormValue("count"))
 			if err != nil {
-				http.Error(res, err.Error(), http.StatusBadRequest)
+				http.Error(response, err.Error(), http.StatusBadRequest)
 				return
 			}
 			if value < 0 {
-				http.Error(res, "count must not be less than 0", http.StatusBadRequest)
+				http.Error(response, "count must not be less than 0", http.StatusBadRequest)
 				return
 			}
 			form.Value = value
 		}
 		result := receiver.SubmitFormEditRow(id, form)
-		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(result, request)
+		var (
+			buf        = bytes.NewBuffer(nil)
+			rd         = newTemplateData(result, request)
+			statusCode = http.StatusOK
+		)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
+			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		res.Header().Set("content-type", "text/html; charset=utf-8")
-		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		res.WriteHeader(response.statusCode)
-		_, _ = buf.WriteTo(res)
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		response.WriteHeader(statusCode)
+		_, _ = buf.WriteTo(response)
 	})
-	mux.HandleFunc("GET /fruits/{id}/edit", func(res http.ResponseWriter, request *http.Request) {
-		var response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
+	mux.HandleFunc("GET /fruits/{id}/edit", func(response http.ResponseWriter, request *http.Request) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
-			http.Error(res, err.Error(), http.StatusBadRequest)
+			http.Error(response, err.Error(), http.StatusBadRequest)
 			return
 		}
 		id := idParsed
 		result := receiver.GetFormEditRow(id)
-		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(result, request)
-		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		res.Header().Set("content-type", "text/html; charset=utf-8")
-		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		res.WriteHeader(response.statusCode)
-		_, _ = buf.WriteTo(res)
-	})
-	mux.HandleFunc("GET /help", func(res http.ResponseWriter, request *http.Request) {
 		var (
-			result = struct {
-			}{}
-			response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
+			buf        = bytes.NewBuffer(nil)
+			rd         = newTemplateData(result, request)
+			statusCode = http.StatusOK
 		)
-		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(result, request)
-		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
+		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		res.Header().Set("content-type", "text/html; charset=utf-8")
-		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		res.WriteHeader(response.statusCode)
-		_, _ = buf.WriteTo(res)
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		response.WriteHeader(statusCode)
+		_, _ = buf.WriteTo(response)
 	})
-	mux.HandleFunc("GET /{$}", func(res http.ResponseWriter, request *http.Request) {
-		var response = &TemplateResponseWriter{underlying: res, statusCode: http.StatusOK}
+	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
+		var result = struct {
+		}{}
+		var (
+			buf        = bytes.NewBuffer(nil)
+			rd         = newTemplateData(result, request)
+			statusCode = http.StatusOK
+		)
+		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		response.WriteHeader(statusCode)
+		_, _ = buf.WriteTo(response)
+	})
+	mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		result := receiver.List(ctx)
-		buf := bytes.NewBuffer(nil)
-		rd := newTemplateData(result, request)
+		var (
+			buf        = bytes.NewBuffer(nil)
+			rd         = newTemplateData(result, request)
+			statusCode = http.StatusOK
+		)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
+			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		res.Header().Set("content-type", "text/html; charset=utf-8")
-		res.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		res.WriteHeader(response.statusCode)
-		_, _ = buf.WriteTo(res)
+		response.Header().Set("content-type", "text/html; charset=utf-8")
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		response.WriteHeader(statusCode)
+		_, _ = buf.WriteTo(response)
 	})
-}
-
-type TemplateResponseWriter struct {
-	underlying http.ResponseWriter
-	statusCode int
-}
-
-func (res *TemplateResponseWriter) Header() http.Header {
-	return res.underlying.Header()
-}
-
-func (res *TemplateResponseWriter) Write(in []byte) (int, error) {
-	if res.statusCode != 0 {
-		res.underlying.WriteHeader(res.statusCode)
-		res.statusCode = 0
-	}
-	return res.underlying.Write(in)
-}
-
-func (res *TemplateResponseWriter) WriteHeader(statusCode int) {
-	res.statusCode = statusCode
-}
-
-func (res *TemplateResponseWriter) Unwrap() http.ResponseWriter {
-	return res.underlying
 }
 
 type TemplateData[T any] struct {

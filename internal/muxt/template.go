@@ -65,6 +65,8 @@ type Template struct {
 	pathValueNames []string
 
 	identifier string
+
+	hasResponseWriterArg bool
 }
 
 func newTemplate(in string) (Template, error, bool) {
@@ -156,6 +158,22 @@ func (t Template) parsePathValueNames() []string {
 	return result
 }
 
+func hasHTTPResponseWriterArgument(call *ast.CallExpr) bool {
+	for _, a := range call.Args {
+		switch arg := a.(type) {
+		case *ast.Ident:
+			if arg.Name == TemplateNameScopeIdentifierHTTPResponse {
+				return true
+			}
+		case *ast.CallExpr:
+			if hasHTTPResponseWriterArgument(arg) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func checkPathValueNames(in []string) error {
 	for i, n := range in {
 		if !token.IsIdentifier(n) {
@@ -222,6 +240,9 @@ func parseHandler(fileSet *token.FileSet, def *Template, pathParameterNames []st
 
 	def.fun = fun
 	def.call = call
+
+	def.hasResponseWriterArg = hasHTTPResponseWriterArgument(call)
+
 	return nil
 }
 

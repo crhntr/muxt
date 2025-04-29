@@ -42,7 +42,6 @@ const (
 	DefaultOutputFileName        = "template_routes.go"
 	DefaultReceiverInterfaceName = "RoutesReceiver"
 	urlHelperTypeName            = "TemplateRoutePaths"
-	templateResponseWriterName   = "TemplateResponseWriter"
 
 	InputAttributeNameStructTag     = "name"
 	InputAttributeTemplateStructTag = "template"
@@ -172,22 +171,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 										Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
 										Values: []ast.Expr{&ast.CompositeLit{Type: &ast.StructType{Fields: &ast.FieldList{}}}},
 									},
-									&ast.ValueSpec{
-										Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
-										Values: []ast.Expr{&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
-											Type: ast.NewIdent(templateResponseWriterName),
-											Elts: []ast.Expr{
-												&ast.KeyValueExpr{
-													Key:   ast.NewIdent("underlying"),
-													Value: ast.NewIdent("res"),
-												},
-												&ast.KeyValueExpr{
-													Key:   ast.NewIdent("statusCode"),
-													Value: source.HTTPStatusCode(imports, t.defaultStatusCode),
-												},
-											},
-										}}},
-									},
 								},
 							},
 						},
@@ -231,31 +214,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		handlerFunc := &ast.FuncLit{
 			Type: httpHandlerFuncType(imports),
 			Body: &ast.BlockStmt{
-				List: []ast.Stmt{
-					&ast.DeclStmt{
-						Decl: &ast.GenDecl{
-							Tok: token.VAR,
-							Specs: []ast.Spec{
-								&ast.ValueSpec{
-									Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
-									Values: []ast.Expr{&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
-										Type: ast.NewIdent(templateResponseWriterName),
-										Elts: []ast.Expr{
-											&ast.KeyValueExpr{
-												Key:   ast.NewIdent("underlying"),
-												Value: ast.NewIdent("res"),
-											},
-											&ast.KeyValueExpr{
-												Key:   ast.NewIdent("statusCode"),
-												Value: source.HTTPStatusCode(imports, t.defaultStatusCode),
-											},
-										},
-									}}},
-								},
-							},
-						},
-					},
-				},
+				List: []ast.Stmt{},
 			},
 		}
 
@@ -353,174 +312,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 			// func routes
 			routesFunc,
-
-			&ast.GenDecl{
-				Tok: token.TYPE,
-				Specs: []ast.Spec{
-					&ast.TypeSpec{
-						Name: ast.NewIdent(templateResponseWriterName),
-						Type: &ast.StructType{
-							Fields: &ast.FieldList{
-								List: []*ast.Field{
-									{
-										Names: []*ast.Ident{ast.NewIdent("underlying")},
-										Type:  imports.HTTPResponseWriter(),
-									},
-									{
-										Names: []*ast.Ident{ast.NewIdent("statusCode")},
-										Type:  ast.NewIdent("int"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			&ast.FuncDecl{
-				Name: ast.NewIdent("Header"),
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("res")}, Type: &ast.StarExpr{
-					X: ast.NewIdent("TemplateResponseWriter"),
-				}}}},
-				Type: &ast.FuncType{
-					Results: &ast.FieldList{List: []*ast.Field{{Type: imports.HTTPHeader()}}},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ReturnStmt{
-							Results: []ast.Expr{
-								&ast.CallExpr{
-									Fun: &ast.SelectorExpr{
-										X:   &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("underlying")},
-										Sel: ast.NewIdent("Header"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			&ast.FuncDecl{
-				Name: ast.NewIdent("Write"),
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("res")}, Type: &ast.StarExpr{
-					X: ast.NewIdent("TemplateResponseWriter"),
-				}}}},
-				Type: &ast.FuncType{
-					Params: &ast.FieldList{
-						List: []*ast.Field{
-							{
-								Names: []*ast.Ident{ast.NewIdent("in")},
-								Type:  &ast.ArrayType{Elt: ast.NewIdent("byte")},
-							},
-						},
-					},
-					Results: &ast.FieldList{
-						List: []*ast.Field{
-							{Type: ast.NewIdent("int")}, {Type: ast.NewIdent("error")},
-						},
-					},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						// if res.statusCode != 0 { res.WriteHeader(res.statusCode) }
-						&ast.IfStmt{
-							Cond: &ast.BinaryExpr{
-								X:  ast.NewIdent("res.statusCode"),
-								Op: token.NEQ,
-								Y:  source.Int(0),
-							},
-							Body: &ast.BlockStmt{
-								List: []ast.Stmt{
-									&ast.ExprStmt{
-										X: &ast.CallExpr{
-											Fun: &ast.SelectorExpr{
-												X:   &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("underlying")},
-												Sel: ast.NewIdent("WriteHeader"),
-											},
-											Args: []ast.Expr{
-												ast.NewIdent("res.statusCode"),
-											},
-										},
-									},
-									&ast.AssignStmt{
-										Lhs: []ast.Expr{ast.NewIdent("res.statusCode")},
-										Tok: token.ASSIGN,
-										Rhs: []ast.Expr{source.Int(0)},
-									},
-								},
-							},
-						},
-						&ast.ReturnStmt{
-							Results: []ast.Expr{
-								&ast.CallExpr{
-									Fun: &ast.SelectorExpr{
-										X:   &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("underlying")},
-										Sel: ast.NewIdent("Write"),
-									},
-									Args: []ast.Expr{
-										ast.NewIdent("in"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			&ast.FuncDecl{
-				Name: ast.NewIdent("WriteHeader"),
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("res")}, Type: &ast.StarExpr{
-					X: ast.NewIdent("TemplateResponseWriter"),
-				}}}},
-				Type: &ast.FuncType{
-					Params: &ast.FieldList{
-						List: []*ast.Field{
-							{
-								Names: []*ast.Ident{ast.NewIdent("statusCode")},
-								Type:  ast.NewIdent("int"),
-							},
-						},
-					},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						// res.statusCode = statusCode
-						&ast.AssignStmt{
-							Lhs: []ast.Expr{
-								&ast.SelectorExpr{
-									X:   ast.NewIdent("res"),
-									Sel: ast.NewIdent("statusCode"),
-								},
-							},
-							Tok: token.ASSIGN,
-							Rhs: []ast.Expr{
-								ast.NewIdent("statusCode"),
-							},
-						},
-					},
-				},
-			},
-			&ast.FuncDecl{
-				Name: ast.NewIdent("Unwrap"),
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("res")}, Type: &ast.StarExpr{
-					X: ast.NewIdent("TemplateResponseWriter"),
-				}}}},
-				Type: &ast.FuncType{
-					Results: &ast.FieldList{
-						List: []*ast.Field{{Type: imports.HTTPResponseWriter()}}, // return the underlying http.ResponseWriter
-					},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ReturnStmt{
-							Results: []ast.Expr{
-								&ast.SelectorExpr{
-									X:   ast.NewIdent("res"),
-									Sel: ast.NewIdent("underlying"),
-								},
-							},
-						},
-					},
-				},
-			},
 
 			&ast.GenDecl{
 				Tok: token.TYPE,
@@ -1186,22 +977,6 @@ func createMethodSignature(imports *source.Imports, signatures map[string]*types
 	return types.NewSignatureType(types.NewVar(0, nil, "", receiver.Obj().Type()), nil, nil, types.NewTuple(params...), results, false), nil
 }
 
-func hasHTTPResponseWriterArgument(call *ast.CallExpr) bool {
-	for _, a := range call.Args {
-		switch arg := a.(type) {
-		case *ast.Ident:
-			if arg.Name == TemplateNameScopeIdentifierHTTPResponse {
-				return true
-			}
-		case *ast.CallExpr:
-			if hasHTTPResponseWriterArgument(arg) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func errCheck(imports *source.Imports) func(msg ast.Expr) ast.Stmt {
 	return func(msg ast.Expr) ast.Stmt {
 		return &ast.ExprStmt{
@@ -1222,7 +997,7 @@ func callParseForm() *ast.ExprStmt {
 
 func httpResponseField(imports *source.Imports) *ast.Field {
 	return &ast.Field{
-		Names: []*ast.Ident{ast.NewIdent("res")},
+		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 		Type:  &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpResponseWriterIdent)},
 	}
 }
@@ -1262,17 +1037,35 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 }
 
 func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type, templatesVariableIdent string, result ast.Expr) []ast.Stmt {
-	statements := make([]ast.Stmt, 0, 5)
-	statements = append(statements,
-		&ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent("buf")},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{imports.BytesNewBuffer(source.Nil())},
+	const (
+		statusCodeIdent = "statusCode"
+		bufferIdent     = "buf"
+		resultDataIdent = "rd"
+	)
+	initialVars := []ast.Spec{
+		&ast.ValueSpec{
+			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
+			Values: []ast.Expr{imports.BytesNewBuffer(source.Nil())},
 		},
-		&ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent("rd")},
-			Tok: token.DEFINE,
-			Rhs: []ast.Expr{result},
+		&ast.ValueSpec{
+			Names:  []*ast.Ident{ast.NewIdent(resultDataIdent)},
+			Values: []ast.Expr{result},
+		},
+	}
+	if !t.hasResponseWriterArg {
+		initialVars = append(initialVars, &ast.ValueSpec{
+			Names:  []*ast.Ident{ast.NewIdent(statusCodeIdent)},
+			Values: []ast.Expr{source.HTTPStatusCode(imports, t.defaultStatusCode)},
+		})
+	}
+
+	var statements []ast.Stmt
+	statements = append(statements,
+		&ast.DeclStmt{
+			Decl: &ast.GenDecl{
+				Tok:   token.VAR,
+				Specs: initialVars,
+			},
 		},
 		&ast.IfStmt{
 			Init: &ast.AssignStmt{
@@ -1283,7 +1076,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 						X:   ast.NewIdent(templatesVariableIdent),
 						Sel: ast.NewIdent("ExecuteTemplate"),
 					},
-					Args: []ast.Expr{ast.NewIdent("buf"), &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(t.name)}, ast.NewIdent("rd")},
+					Args: []ast.Expr{ast.NewIdent(bufferIdent), &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(t.name)}, ast.NewIdent(resultDataIdent)},
 				}},
 			},
 			Cond: &ast.BinaryExpr{
@@ -1299,68 +1092,74 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 			},
 		},
 	)
-	statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
-		Args: []ast.Expr{source.String("content-type"), source.String("text/html; charset=utf-8")},
-	}}, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
-		Args: []ast.Expr{source.String("content-length"), imports.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("buf"), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
-	}})
 
-	if resultType != nil {
-		statusCoder := statusCoderInterface()
-		if types.Implements(resultType, statusCoder) {
-			statements = append(statements, &ast.IfStmt{
-				Cond: &ast.BinaryExpr{X: ast.NewIdent("sc"), Op: token.NEQ, Y: source.Int(0)},
-				Init: &ast.AssignStmt{
-					Lhs: []ast.Expr{ast.NewIdent("sc")},
-					Tok: token.DEFINE,
-					Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}}},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.AssignStmt{
-							Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
-							Tok: token.ASSIGN,
-							Rhs: []ast.Expr{ast.NewIdent("sc")},
+	if !t.hasResponseWriterArg {
+		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
+			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+			Args: []ast.Expr{source.String("content-type"), source.String("text/html; charset=utf-8")},
+		}}, &ast.ExprStmt{X: &ast.CallExpr{
+			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+			Args: []ast.Expr{source.String("content-length"), imports.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(bufferIdent), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
+		}})
+
+		if resultType != nil {
+			const (
+				tmpStatusCodeIdent = "sc"
+			)
+			statusCoder := statusCoderInterface()
+			if types.Implements(resultType, statusCoder) {
+				statements = append(statements, &ast.IfStmt{
+					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
+					Init: &ast.AssignStmt{
+						Lhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
+						Tok: token.DEFINE,
+						Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}}},
+					},
+					Body: &ast.BlockStmt{
+						List: []ast.Stmt{
+							&ast.AssignStmt{
+								Lhs: []ast.Expr{ast.NewIdent(statusCodeIdent)},
+								Tok: token.ASSIGN,
+								Rhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
+							},
 						},
 					},
-				},
-			})
-		} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, imports.OutputPackageType(), "StatusCode"); obj != nil {
-			statements = append(statements, &ast.IfStmt{
-				Cond: &ast.BinaryExpr{X: ast.NewIdent("sc"), Op: token.NEQ, Y: source.Int(0)},
-				Init: &ast.AssignStmt{
-					Lhs: []ast.Expr{ast.NewIdent("sc")},
-					Tok: token.DEFINE,
-					Rhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.AssignStmt{
-							Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
-							Tok: token.ASSIGN,
-							Rhs: []ast.Expr{ast.NewIdent("sc")},
+				})
+			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, imports.OutputPackageType(), "StatusCode"); obj != nil {
+				statements = append(statements, &ast.IfStmt{
+					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
+					Init: &ast.AssignStmt{
+						Lhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
+						Tok: token.DEFINE,
+						Rhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}},
+					},
+					Body: &ast.BlockStmt{
+						List: []ast.Stmt{
+							&ast.AssignStmt{
+								Lhs: []ast.Expr{ast.NewIdent(statusCodeIdent)},
+								Tok: token.ASSIGN,
+								Rhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
+							},
 						},
 					},
-				},
-			})
+				})
+			}
 		}
-	}
 
-	statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent("res"), Sel: ast.NewIdent("WriteHeader")},
-		Args: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("statusCode")}},
-	}})
+		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
+			Fun:  &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("WriteHeader")},
+			Args: []ast.Expr{ast.NewIdent(statusCodeIdent)},
+		}})
+	}
 	statements = append(statements, &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
 		Tok: token.ASSIGN,
 		Rhs: []ast.Expr{&ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent("buf"),
+				X:   ast.NewIdent(bufferIdent),
 				Sel: ast.NewIdent("WriteTo"),
 			},
-			Args: []ast.Expr{ast.NewIdent("res")},
+			Args: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 		}},
 	})
 	return statements

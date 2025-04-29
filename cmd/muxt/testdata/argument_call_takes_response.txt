@@ -87,16 +87,16 @@ func Test(t *testing.T) {
 	if res.WriteHeaderCallCount != 1 {
 		t.Errorf("unexpected WriteHeader count: want %d got %d", 1, res.WriteHeaderCallCount)
 	}
-	if res.HeaderCallCount != 3 {
+	if res.HeaderCallCount != 1 {
 		t.Errorf("unexpected Header call count: want %d got %d", 3, res.HeaderCallCount)
 	}
 	if val := rec.Result().Header.Get("x-some-data"); val != "123" {
 		t.Errorf("unexpected value for x-some-data: want %q got %q", "123", val)
 	}
-	if rec.Result().Header.Get("content-length") == "" {
-		t.Error("unexpected content-length to be set")
+	if rec.Result().Header.Get("content-length") != "" {
+		t.Error("expected content-length not to be set")
 	}
-	if rec.Result().Header.Get("content-type") == "" {
-		t.Error("unexpected content-type to be set")
+	if rec.Result().Header.Get("content-type") != "" {
+		t.Error("expected content-type not to be set")
 	}
 }
