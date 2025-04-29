@@ -58,7 +58,11 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 				continue
 			}
 			log.Println("checking endpoint", templateName)
-			tree := ts.Lookup(templateName).Tree
+			ts2 := ts.Lookup(templateName)
+			if ts2 == nil {
+				return fmt.Errorf("template %q not found in %q (try running generate again)", templateName, config.TemplatesVariable)
+			}
+			tree := ts2.Tree
 			if err := typelate.Check(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
 				log.Println("ERROR", err)
 				log.Println()
