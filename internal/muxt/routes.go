@@ -241,7 +241,68 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	const resultParamName = "result"
-	newResponseDataFunc := &ast.FuncDecl{
+
+	routePathDecls, err := routePathTypeAndMethods(imports, templates)
+	if err != nil {
+		return "", err
+	}
+
+	imports.SortImports()
+	file := &ast.File{
+		Name: ast.NewIdent(config.PackageName),
+		Decls: append([]ast.Decl{
+			// import
+			imports.GenDecl,
+
+			// type
+			&ast.GenDecl{
+				Tok: token.TYPE,
+				Specs: []ast.Spec{
+					&ast.TypeSpec{Name: ast.NewIdent(config.ReceiverInterface), Type: receiverInterface},
+				},
+			},
+
+			// func routes
+			routesFunc,
+
+			templateDataType(imports),
+			templateDataPathMethod(),
+			templateDataResultMethod(),
+			templateDataRequestMethod(imports),
+			templateDataStatusCodeFunction(),
+
+			// func newResultData
+			newTemplateData(imports, newResponseDataFuncIdent, resultParamName),
+		}, routePathDecls...),
+	}
+
+	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), file)
+}
+
+func templateDataType(imports *source.Imports) *ast.GenDecl {
+	return &ast.GenDecl{
+		Tok: token.TYPE,
+		Specs: []ast.Spec{
+			&ast.TypeSpec{
+				Name: ast.NewIdent(templateDataTypeName),
+				TypeParams: &ast.FieldList{
+					List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("T")}, Type: ast.NewIdent("any")}},
+				},
+				Type: &ast.StructType{
+					Fields: &ast.FieldList{
+						List: []*ast.Field{
+							{Names: []*ast.Ident{ast.NewIdent("request")}, Type: imports.HTTPRequestPtr()},
+							{Names: []*ast.Ident{ast.NewIdent("result")}, Type: ast.NewIdent("T")},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultParamName string) *ast.FuncDecl {
+	return &ast.FuncDecl{
 		Name: ast.NewIdent(newResponseDataFuncIdent),
 		Type: &ast.FuncType{
 			TypeParams: &ast.FieldList{
@@ -289,112 +350,116 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			},
 		},
 	}
+}
 
-	routePathDecls, err := routePathTypeAndMethods(imports, templates)
-	if err != nil {
-		return "", err
+func templateDataPathMethod() *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: &ast.FieldList{List: []*ast.Field{{Type: &ast.IndexExpr{
+			X:     ast.NewIdent(templateDataTypeName),
+			Index: ast.NewIdent("T"),
+		}}}},
+		Name: ast.NewIdent("Path"),
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("")}, Type: ast.NewIdent(urlHelperTypeName)}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{&ast.CompositeLit{Type: ast.NewIdent(urlHelperTypeName)}},
+				},
+			},
+		},
 	}
+}
 
-	imports.SortImports()
-	file := &ast.File{
-		Name: ast.NewIdent(config.PackageName),
-		Decls: append([]ast.Decl{
-			// import
-			imports.GenDecl,
-
-			// type
-			&ast.GenDecl{
-				Tok: token.TYPE,
-				Specs: []ast.Spec{
-					&ast.TypeSpec{Name: ast.NewIdent(config.ReceiverInterface), Type: receiverInterface},
+func templateDataResultMethod() *ast.FuncDecl {
+	const (
+		this = "data"
+	)
+	return &ast.FuncDecl{
+		Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent(this)},
+			Type: &ast.IndexExpr{
+				X:     ast.NewIdent(templateDataTypeName),
+				Index: ast.NewIdent("T"),
+			}}}},
+		Name: ast.NewIdent("Result"),
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("T")}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent("result")}},
 				},
 			},
+		},
+	}
+}
 
-			// func routes
-			routesFunc,
-
-			&ast.GenDecl{
-				Tok: token.TYPE,
-				Specs: []ast.Spec{
-					&ast.TypeSpec{
-						Name: ast.NewIdent(templateDataTypeName),
-						TypeParams: &ast.FieldList{
-							List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("T")}, Type: ast.NewIdent("any")}},
-						},
-						Type: &ast.StructType{
-							Fields: &ast.FieldList{
-								List: []*ast.Field{
-									{Names: []*ast.Ident{ast.NewIdent("request")}, Type: imports.HTTPRequestPtr()},
-									{Names: []*ast.Ident{ast.NewIdent("result")}, Type: ast.NewIdent("T")},
-								},
-							},
-						},
-					},
+func templateDataRequestMethod(imports *source.Imports) *ast.FuncDecl {
+	const (
+		this = "data"
+	)
+	return &ast.FuncDecl{
+		Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent(this)},
+			Type: &ast.IndexExpr{
+				X:     ast.NewIdent(templateDataTypeName),
+				Index: ast.NewIdent("T"),
+			}}}},
+		Name: ast.NewIdent("Request"),
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Type: imports.HTTPRequestPtr()}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent("request")}},
 				},
 			},
+		},
+	}
+}
 
-			&ast.FuncDecl{
-				Recv: &ast.FieldList{List: []*ast.Field{{Type: &ast.IndexExpr{
+func templateDataStatusCodeFunction() *ast.FuncDecl {
+	const (
+		this    = "data"
+		scIdent = "statusCode"
+	)
+	return &ast.FuncDecl{
+		Recv: &ast.FieldList{
+			List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent(this)},
+				Type: &ast.StarExpr{X: &ast.IndexExpr{
 					X:     ast.NewIdent(templateDataTypeName),
 					Index: ast.NewIdent("T"),
-				}}}},
-				Name: ast.NewIdent("Path"),
-				Type: &ast.FuncType{
-					Results: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("")}, Type: ast.NewIdent(urlHelperTypeName)}}},
+				}},
+			}},
+		},
+		Name: ast.NewIdent("StatusCode"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent(scIdent)},
+				Type:  ast.NewIdent("int"),
+			}}},
+			Results: &ast.FieldList{List: []*ast.Field{{
+				Type: &ast.StarExpr{X: &ast.IndexExpr{
+					X:     ast.NewIdent(templateDataTypeName),
+					Index: ast.NewIdent("T"),
+				}},
+			}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent(scIdent)}},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{ast.NewIdent(scIdent)},
 				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ReturnStmt{
-							Results: []ast.Expr{&ast.CompositeLit{Type: ast.NewIdent(urlHelperTypeName)}},
-						},
-					},
-				},
-			},
-
-			&ast.FuncDecl{
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("data")},
-					Type: &ast.IndexExpr{
-						X:     ast.NewIdent(templateDataTypeName),
-						Index: ast.NewIdent("T"),
-					}}}},
-				Name: ast.NewIdent("Result"),
-				Type: &ast.FuncType{
-					Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("T")}}},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ReturnStmt{
-							Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("data"), Sel: ast.NewIdent("result")}},
-						},
-					},
+				&ast.ReturnStmt{
+					Results: []ast.Expr{ast.NewIdent(this)},
 				},
 			},
-
-			&ast.FuncDecl{
-				Recv: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("data")},
-					Type: &ast.IndexExpr{
-						X:     ast.NewIdent(templateDataTypeName),
-						Index: ast.NewIdent("T"),
-					}}}},
-				Name: ast.NewIdent("Request"),
-				Type: &ast.FuncType{
-					Results: &ast.FieldList{List: []*ast.Field{{Type: imports.HTTPRequestPtr()}}},
-				},
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.ReturnStmt{
-							Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("data"), Sel: ast.NewIdent("request")}},
-						},
-					},
-				},
-			},
-
-			// func newResultData
-			newResponseDataFunc,
-		}, routePathDecls...),
+		},
 	}
-
-	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), file)
 }
 
 func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *source.Imports, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, call *ast.CallExpr) ([]ast.Stmt, error) {
@@ -1042,6 +1107,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 		bufferIdent     = "buf"
 		resultDataIdent = "rd"
 	)
+
 	initialVars := []ast.Spec{
 		&ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
@@ -1052,6 +1118,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 			Values: []ast.Expr{result},
 		},
 	}
+
 	if !t.hasResponseWriterArg {
 		initialVars = append(initialVars, &ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(statusCodeIdent)},
@@ -1151,6 +1218,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 			Args: []ast.Expr{ast.NewIdent(statusCodeIdent)},
 		}})
 	}
+
 	statements = append(statements, &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
 		Tok: token.ASSIGN,
@@ -1162,6 +1230,7 @@ func executeFuncDecl(imports *source.Imports, t Template, resultType types.Type,
 			Args: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 		}},
 	})
+
 	return statements
 }
 
