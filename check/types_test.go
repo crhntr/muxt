@@ -1,4 +1,4 @@
-package typelate_test
+package check_test
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package typelate
+package check
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ type CallChecker interface {
 	CheckCall(string, []parse.Node, []types.Type) (types.Type, error)
 }
 
-func Check(tree *parse.Tree, data types.Type, pkg *types.Package, fileSet *token.FileSet, trees TreeFinder, fnChecker CallChecker) error {
+func ParseTree(tree *parse.Tree, data types.Type, pkg *types.Package, fileSet *token.FileSet, trees TreeFinder, fnChecker CallChecker) error {
 	s := &scope{
 		global: global{
 			TreeFinder:  trees,

@@ -1,4 +1,4 @@
-package typelate_test
+package check_test
 
 import (
 	"bytes"
@@ -20,8 +20,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/typelate"
+	"github.com/crhntr/muxt/check"
 )
+
+const packageName = "check_test"
 
 var loadPkg = sync.OnceValue(func() []*packages.Package {
 	packageList, loadErr := packages.Load(&packages.Config{
@@ -37,7 +39,7 @@ var loadPkg = sync.OnceValue(func() []*packages.Package {
 func TestTree(t *testing.T) {
 	const testFuncName = "TestTree"
 	testPkg := find(t, loadPkg(), func(p *packages.Package) bool {
-		return p.Name == "typelate_test"
+		return p.Name == packageName
 	})
 
 	_, currentFileName, _, ok := runtime.Caller(0)
@@ -774,14 +776,14 @@ func TestTree(t *testing.T) {
 
 			dataType := treeTestRowType(t, testPkg, ttRows, tt.Name)
 
-			sourceFunctions := typelate.DefaultFunctions(testPkg.Types)
+			sourceFunctions := check.DefaultFunctions(testPkg.Types)
 			for name := range functions {
 				fn := testPkg.Types.Scope().Lookup(name).(*types.Func).Signature()
 				require.NotNil(t, fn)
 				sourceFunctions[name] = fn
 			}
 
-			if checkErr := typelate.Check(templates.Tree, dataType, testPkg.Types, testPkg.Fset, typelate.FindTreeFunc(func(name string) (*parse.Tree, bool) {
+			if checkErr := check.ParseTree(templates.Tree, dataType, testPkg.Types, testPkg.Fset, check.FindTreeFunc(func(name string) (*parse.Tree, bool) {
 				ts := templates.Lookup(name)
 				if ts == nil {
 					return nil, false
@@ -806,7 +808,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, check.ParseTree(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 	t.Run("field on parenthesized interface", func(t *testing.T) {
 		tp := testPkg.Types.Scope().Lookup("Fooer").Type()
@@ -816,7 +818,7 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, typelate.Check(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		require.NoError(t, check.ParseTree(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
 	})
 }
 

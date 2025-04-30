@@ -1,4 +1,4 @@
-package typelate
+package check
 
 import (
 	"fmt"

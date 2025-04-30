@@ -1,4 +1,4 @@
-package typelate_test
+package check_test
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/typelate"
+	"github.com/crhntr/muxt/check"
 )
 
 // bigInt and bigUint are hex string representing numbers either side
@@ -50,7 +50,7 @@ func TestExec(t *testing.T) {
 	}
 
 	testPkg := find(t, loadPkg(), func(p *packages.Package) bool {
-		return p.Name == "typelate_test"
+		return p.Name == packageName
 	})
 
 	funcExec := template.FuncMap{
@@ -70,7 +70,7 @@ func TestExec(t *testing.T) {
 		"vfunc":       vfunc,
 		"zeroArgs":    zeroArgs,
 	}
-	funcSource := typelate.DefaultFunctions(testPkg.Types)
+	funcSource := check.DefaultFunctions(testPkg.Types)
 	for k := range funcExec {
 		v, ok := testPkg.Types.Scope().Lookup(k).Type().(*types.Signature)
 		require.True(t, ok)
@@ -569,7 +569,7 @@ func TestExec(t *testing.T) {
 			dataType := stdlibTestRowType(t, testPkg, ttRows, tt.name)
 			require.NotNil(t, dataType)
 
-			checkErr := typelate.Check(tmpl.Tree, dataType, testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
+			checkErr := check.ParseTree(tmpl.Tree, dataType, testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
 			switch {
 			case !tt.ok && checkErr == nil:
 				t.Logf("exec error: %s", execErr)
@@ -621,13 +621,13 @@ func stdlibTestRowType(t *testing.T, p *packages.Package, ttRows *ast.CompositeL
 	return nil
 }
 
-type MortalFunctions typelate.Functions
+type MortalFunctions check.Functions
 
 func (fn MortalFunctions) CheckCall(name string, nodes []parse.Node, args []types.Type) (types.Type, error) {
 	switch name {
 	case "die":
 		return nil, fmt.Errorf("exec error die")
 	default:
-		return typelate.Functions(fn).CheckCall(name, nodes, args)
+		return check.Functions(fn).CheckCall(name, nodes, args)
 	}
 }

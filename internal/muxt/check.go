@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
+	"github.com/crhntr/muxt/check"
 	"github.com/crhntr/muxt/internal/source"
-	"github.com/crhntr/muxt/typelate"
 )
 
 func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
@@ -47,8 +47,8 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	if err != nil {
 		return err
 	}
-	fns := typelate.DefaultFunctions(routesPkg.Types)
-	fns = fns.Add(typelate.Functions(fm))
+	fns := check.DefaultFunctions(routesPkg.Types)
+	fns = fns.Add(check.Functions(fm))
 
 	var errs []error
 	for _, file := range routesPkg.Syntax {
@@ -63,7 +63,7 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 				return fmt.Errorf("template %q not found in %q (try running generate again)", templateName, config.TemplatesVariable)
 			}
 			tree := ts2.Tree
-			if err := typelate.Check(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
+			if err := check.ParseTree(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
 				log.Println("ERROR", err)
 				log.Println()
 				errs = append(errs, err)
