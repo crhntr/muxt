@@ -22,7 +22,7 @@ For a global-install run:
 
 ```bash
 cd # go outside your current project directory, in this case
-  go install github.com/typelate/muxt/cmd/muxt@latest
+  go install github.com/crhntr/muxt/cmd/muxt@latest
 cd - # go back to your repo
 ```
 

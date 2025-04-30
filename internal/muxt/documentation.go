@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/typelate/muxt/internal/source"
+	"github.com/crhntr/muxt/internal/source"
 )
 
 func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error {

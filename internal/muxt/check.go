@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/typelate/muxt/check"
-	"github.com/typelate/muxt/internal/source"
+	"github.com/crhntr/muxt/check"
+	"github.com/crhntr/muxt/internal/source"
 )
 
 func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {

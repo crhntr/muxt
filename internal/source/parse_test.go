@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 
-	"github.com/typelate/muxt/internal/source"
+	"github.com/crhntr/muxt/internal/source"
 )
 
 func Test_inputValidations(t *testing.T) {

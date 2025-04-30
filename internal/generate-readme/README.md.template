@@ -1,4 +1,4 @@
-# Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/typelate/muxt.svg)](https://pkg.go.dev/github.com/typelate/muxt) [![Go](https://github.com/typelate/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/typelate/muxt/actions/workflows/go.yml)
+# Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
 **Muxt** is a Go code generator that helps you build server-side rendered web apps with minimal overhead, leveraging Go
 1.22’s improved `http.ServeMux` and standard `html/template` features.
@@ -35,5 +35,5 @@ templates and `http.ServeMux`, it is not easily searchable. So, I am considering
 For a small runnable, see: [./example/hypertext/index.gohtml](./example/hypertext/index.gohtml)
 
 For larger complete examples, see:
-- [muxt-example-htmx-sortable](http://github.com/typelate/muxt-example-htmx-sortable) _**(NEW)**_
-- [muxt-template-module-htmx](https://github.com/typelate/muxt-template-module-htmx)
+- [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
+- [muxt-template-module-htmx](https://github.com/crhntr/muxt-template-module-htmx)

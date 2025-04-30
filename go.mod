@@ -1,4 +1,4 @@
-module github.com/typelate/muxt
+module github.com/crhntr/muxt
 
 go 1.24
 

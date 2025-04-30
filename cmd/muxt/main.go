@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/typelate/muxt/internal/configuration"
+	"github.com/crhntr/muxt/internal/configuration"
 )
 
 func main() {

@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/typelate/muxt/check"
+	"github.com/crhntr/muxt/check"
 )
 
 // bigInt and bigUint are hex string representing numbers either side

@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/typelate/muxt/example/hypertext"
+	"github.com/crhntr/muxt/example/hypertext"
 )
 
 type Backend struct {
