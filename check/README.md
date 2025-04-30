@@ -1,10 +1,10 @@
 # Typelate
 
 **Typelate** is a Go library for statically type-checking your Go text/templates and html/templates.
-It was originally developed to be used with [muxt check](https://github.com/crhntr/muxt), which provides a higher-level
+It was originally developed to be used with [muxt check](https://github.com/typelate/muxt), which provides a higher-level
 CLI for verifying template correctness.
 If you’re just looking for command-line usage or are are willing to shell out to a tool in your tests,
-consider using [muxt check](https://github.com/crhntr/muxt) directly instead.
+consider using [muxt check](https://github.com/typelate/muxt) directly instead.
 
 > **Disclaimer:** The Typelate package’s API may change in the future, and no guarantees of API stability are currently
 > provided.
@@ -58,7 +58,7 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/typelate"
+	"github.com/typelate/muxt/typelate"
 )
 
 func Test(t *testing.T) {

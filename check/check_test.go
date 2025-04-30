@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/check"
+	"github.com/typelate/muxt/check"
 )
 
 const packageName = "check_test"
