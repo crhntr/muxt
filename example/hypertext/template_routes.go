@@ -42,15 +42,20 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.SubmitFormEditRow(id, form)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(result, request)
+			rd         = newTemplateData(response, request, result)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
+		if contentType := response.Header().Get("content-type"); contentType == "" {
+			response.Header().Set("content-type", "text/html; charset=utf-8")
+		}
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		if rd.statusCode != 0 {
+			statusCode = rd.statusCode
+		}
 		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
@@ -64,15 +69,20 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.GetFormEditRow(id)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(result, request)
+			rd         = newTemplateData(response, request, result)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
+		if contentType := response.Header().Get("content-type"); contentType == "" {
+			response.Header().Set("content-type", "text/html; charset=utf-8")
+		}
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		if rd.statusCode != 0 {
+			statusCode = rd.statusCode
+		}
 		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
@@ -81,15 +91,20 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}{}
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(result, request)
+			rd         = newTemplateData(response, request, result)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
+		if contentType := response.Header().Get("content-type"); contentType == "" {
+			response.Header().Set("content-type", "text/html; charset=utf-8")
+		}
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		if rd.statusCode != 0 {
+			statusCode = rd.statusCode
+		}
 		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
@@ -98,39 +113,56 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.List(ctx)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(result, request)
+			rd         = newTemplateData(response, request, result)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
 			http.Error(response, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		response.Header().Set("content-type", "text/html; charset=utf-8")
+		if contentType := response.Header().Get("content-type"); contentType == "" {
+			response.Header().Set("content-type", "text/html; charset=utf-8")
+		}
 		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		if rd.statusCode != 0 {
+			statusCode = rd.statusCode
+		}
 		response.WriteHeader(statusCode)
 		_, _ = buf.WriteTo(response)
 	})
 }
 
 type TemplateData[T any] struct {
-	request *http.Request
-	result  T
+	response   http.ResponseWriter
+	request    *http.Request
+	result     T
+	statusCode int
 }
 
-func (TemplateData[T]) Path() TemplateRoutePaths {
+func newTemplateData[T any](response http.ResponseWriter, request *http.Request, result T) *TemplateData[T] {
+	return &TemplateData[T]{response: response, request: request, result: result}
+}
+
+func (data *TemplateData[T]) Path() TemplateRoutePaths {
 	return TemplateRoutePaths{}
 }
 
-func (data TemplateData[T]) Result() T {
+func (data *TemplateData[T]) Result() T {
 	return data.result
 }
 
-func (data TemplateData[T]) Request() *http.Request {
+func (data *TemplateData[T]) Request() *http.Request {
 	return data.request
 }
 
-func newTemplateData[T any](result T, request *http.Request) TemplateData[T] {
-	return TemplateData[T]{result: result, request: request}
+func (data *TemplateData[T]) StatusCode(statusCode int) *TemplateData[T] {
+	data.statusCode = statusCode
+	return data
+}
+
+func (data *TemplateData[T]) Header(key, value string) *TemplateData[T] {
+	data.response.Header().Set(key, value)
+	return data
 }
 
 type TemplateRoutePaths struct {
