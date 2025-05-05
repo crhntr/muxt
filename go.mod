@@ -29,3 +29,5 @@ tool (
 	github.com/crhntr/txtarfmt/cmd/txtarfmt
 	github.com/maxbrunsfeld/counterfeiter/v6
 )
+
+retract v0.15.0 // v0.15.0 used the wrong module path
