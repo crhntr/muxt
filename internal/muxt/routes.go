@@ -78,7 +78,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	if !token.IsIdentifier(config.PackageName) {
 		return "", fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
-	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
+	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",
@@ -89,25 +89,25 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	pl, err := packages.Load(&packages.Config{
-		Fset: imports.FileSet(),
+		Fset: file.FileSet(),
 		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
 	}, patterns...)
 	if err != nil {
 		return "", err
 	}
-	imports.AddPackages(pl...)
-	routesPkg, ok := imports.PackageAtFilepath(wd)
+	file.AddPackages(pl...)
+	routesPkg, ok := file.PackageAtFilepath(wd)
 	if !ok {
 		return "", fmt.Errorf("could not find package in working directory %q", wd)
 	}
-	imports.SetOutputPackage(routesPkg.Types)
+	file.SetOutputPackage(routesPkg.Types)
 	config.PackagePath = routesPkg.PkgPath
 	config.PackageName = routesPkg.Name
 	var receiver *types.Named
 	if config.ReceiverType != "" {
 		receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
-		receiverPkg, ok := imports.Package(receiverPkgPath)
+		receiverPkg, ok := file.Package(receiverPkgPath)
 		if !ok {
 			return "", fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
 		}
@@ -142,7 +142,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{
-					httpServeMuxField(imports),
+					httpServeMuxField(file),
 					{
 						Names: []*ast.Ident{ast.NewIdent(receiverParamName)},
 						Type:  ast.NewIdent(config.ReceiverInterface),
@@ -160,7 +160,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
 			handlerFunc := &ast.FuncLit{
-				Type: httpHandlerFuncType(imports),
+				Type: httpHandlerFuncType(file),
 				Body: &ast.BlockStmt{
 					List: []ast.Stmt{
 						&ast.DeclStmt{
@@ -177,7 +177,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 					},
 				},
 			}
-			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t, nil, config.TemplatesVariable, &ast.CallExpr{
+			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, config.TemplatesVariable, &ast.CallExpr{
 				Fun: ast.NewIdent(newResponseDataFuncIdent),
 				Args: []ast.Expr{
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -192,7 +192,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		}
 
 		sigs := make(map[string]*types.Signature)
-		if err := ensureMethodSignature(imports, sigs, &templates[i], receiver, receiverInterface, t.call, routesPkg.Types); err != nil {
+		if err := ensureMethodSignature(file, sigs, &templates[i], receiver, receiverInterface, t.call, routesPkg.Types); err != nil {
 			return "", err
 		}
 		sig, ok := sigs[t.fun.Name]
@@ -215,17 +215,17 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		}
 
 		handlerFunc := &ast.FuncLit{
-			Type: httpHandlerFuncType(imports),
+			Type: httpHandlerFuncType(file),
 			Body: &ast.BlockStmt{
 				List: []ast.Stmt{},
 			},
 		}
 
-		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, &templates[i], imports, sigs, nil, receiver, t.call); err != nil {
+		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, &templates[i], file, sigs, nil, receiver, t.call); err != nil {
 			return "", err
 		}
 
-		receiverCallStatements, err := callReceiverMethod(imports, dataVarIdent, sig, &ast.CallExpr{
+		receiverCallStatements, err := callReceiverMethod(file, dataVarIdent, sig, &ast.CallExpr{
 			Fun:  callFun,
 			Args: slices.Clone(t.call.Args),
 		})
@@ -233,7 +233,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			return "", err
 		}
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(imports, t, sig.Results().At(0).Type(), config.TemplatesVariable, &ast.CallExpr{
+		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, &ast.CallExpr{
 			Fun: ast.NewIdent(newResponseDataFuncIdent),
 			Args: []ast.Expr{
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -248,17 +248,17 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 	const resultParamName = "result"
 
-	routePathDecls, err := routePathTypeAndMethods(imports, templates)
+	routePathDecls, err := routePathTypeAndMethods(file, templates)
 	if err != nil {
 		return "", err
 	}
 
-	imports.SortImports()
-	file := &ast.File{
+	file.SortImports()
+	outputFile := &ast.File{
 		Name: ast.NewIdent(config.PackageName),
 		Decls: append([]ast.Decl{
 			// import
-			imports.GenDecl,
+			file.GenDecl,
 
 			// type
 			&ast.GenDecl{
@@ -271,11 +271,11 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			// func routes
 			routesFunc,
 
-			templateDataType(imports),
-			newTemplateData(imports, newResponseDataFuncIdent, resultParamName),
+			templateDataType(file),
+			newTemplateData(file, newResponseDataFuncIdent, resultParamName),
 			templateDataPathMethod(),
 			templateDataResultMethod(),
-			templateDataRequestMethod(imports),
+			templateDataRequestMethod(file),
 			templateDataStatusCodeMethod(),
 			templateDataHeaderMethod(),
 			templateDataOkay(),
@@ -285,10 +285,10 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		}, routePathDecls...),
 	}
 
-	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), file)
+	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), outputFile)
 }
 
-func templateDataType(imports *source.File) *ast.GenDecl {
+func templateDataType(file *source.File) *ast.GenDecl {
 	return &ast.GenDecl{
 		Tok: token.TYPE,
 		Specs: []ast.Spec{
@@ -300,8 +300,8 @@ func templateDataType(imports *source.File) *ast.GenDecl {
 				Type: &ast.StructType{
 					Fields: &ast.FieldList{
 						List: []*ast.Field{
-							{Names: []*ast.Ident{ast.NewIdent("response")}, Type: imports.HTTPResponseWriter()},
-							{Names: []*ast.Ident{ast.NewIdent("request")}, Type: imports.HTTPRequestPtr()},
+							{Names: []*ast.Ident{ast.NewIdent("response")}, Type: file.HTTPResponseWriter()},
+							{Names: []*ast.Ident{ast.NewIdent("request")}, Type: file.HTTPRequestPtr()},
 							{Names: []*ast.Ident{ast.NewIdent("result")}, Type: ast.NewIdent("T")},
 							{Names: []*ast.Ident{ast.NewIdent("statusCode")}, Type: ast.NewIdent("int")},
 							{Names: []*ast.Ident{ast.NewIdent("okay")}, Type: ast.NewIdent("bool")},
@@ -314,7 +314,7 @@ func templateDataType(imports *source.File) *ast.GenDecl {
 	}
 }
 
-func newTemplateData(imports *source.File, newResponseDataFuncIdent, resultParamName string) *ast.FuncDecl {
+func newTemplateData(file *source.File, newResponseDataFuncIdent, resultParamName string) *ast.FuncDecl {
 	const (
 		okayIdent = "okay"
 		errIdent  = "err"
@@ -329,8 +329,8 @@ func newTemplateData(imports *source.File, newResponseDataFuncIdent, resultParam
 			},
 			Params: &ast.FieldList{
 				List: []*ast.Field{
-					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}, Type: imports.HTTPResponseWriter()},
-					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}, Type: imports.HTTPRequestPtr()},
+					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}, Type: file.HTTPResponseWriter()},
+					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}, Type: file.HTTPRequestPtr()},
 					{Names: []*ast.Ident{ast.NewIdent(resultParamName)}, Type: ast.NewIdent("T")},
 					{Names: []*ast.Ident{ast.NewIdent(okayIdent)}, Type: ast.NewIdent("bool")},
 					{Names: []*ast.Ident{ast.NewIdent(errIdent)}, Type: ast.NewIdent("error")},
@@ -446,12 +446,12 @@ func templateDataResultMethod() *ast.FuncDecl {
 	}
 }
 
-func templateDataRequestMethod(imports *source.File) *ast.FuncDecl {
+func templateDataRequestMethod(file *source.File) *ast.FuncDecl {
 	return &ast.FuncDecl{
 		Recv: templateDataMethodReceiver(),
 		Name: ast.NewIdent("Request"),
 		Type: &ast.FuncType{
-			Results: &ast.FieldList{List: []*ast.Field{{Type: imports.HTTPRequestPtr()}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: file.HTTPRequestPtr()}}},
 		},
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
@@ -594,7 +594,7 @@ func checkIfContentTypeHeaderSetOnTemplateData() *ast.IfStmt {
 	}
 }
 
-func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *source.File, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, call *ast.CallExpr) ([]ast.Stmt, error) {
+func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *source.File, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, call *ast.CallExpr) ([]ast.Stmt, error) {
 	fun, ok := call.Fun.(*ast.Ident)
 	if !ok {
 		return nil, fmt.Errorf("expected function to be identifier")
@@ -619,7 +619,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 		default:
 			// TODO: add error case
 		case *ast.CallExpr:
-			parseArgStatements, err := appendParseArgumentStatements(statements, t, imports, sigs, parsed, receiver, arg)
+			parseArgStatements, err := appendParseArgumentStatements(statements, t, file, sigs, parsed, receiver, arg)
 			if err != nil {
 				return nil, err
 			}
@@ -638,7 +638,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 				log.Panicf("unexpected signature mismatch %s != %s", callSig, obj.Type())
 			}
 
-			callSigExpr, err := imports.TypeASTExpression(callSig)
+			callSigExpr, err := file.TypeASTExpression(callSig)
 			if err != nil {
 				return nil, err
 			}
@@ -652,14 +652,14 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 				arg.Fun = ast.NewIdent(arg.Fun.(*ast.Ident).Name)
 			}
 
-			callMethodStatements, err := t.callReceiverMethod(imports, resultVarIdent, callSigExpr.(*ast.FuncType), arg)
+			callMethodStatements, err := t.callReceiverMethod(file, resultVarIdent, callSigExpr.(*ast.FuncType), arg)
 			if err != nil {
 				return nil, err
 			}
 
 			statements = append(parseArgStatements, callMethodStatements...)
 		case *ast.Ident:
-			argType, ok := defaultTemplateNameScope(imports, t, arg.Name)
+			argType, ok := defaultTemplateNameScope(file, t, arg.Name)
 			if !ok {
 				return nil, fmt.Errorf("failed to determine type for %s", arg.Name)
 			}
@@ -675,7 +675,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 					parsed[arg.Name] = struct{}{}
 					switch arg.Name {
 					case TemplateNameScopeIdentifierForm:
-						declareFormVar, err := formVariableAssignment(imports, arg, param.Type())
+						declareFormVar, err := formVariableAssignment(file, arg, param.Type())
 						if err != nil {
 							return nil, err
 						}
@@ -696,21 +696,21 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 			switch {
 			case slices.Contains(t.parsePathValueNames(), arg.Name):
 				parsed[arg.Name] = struct{}{}
-				s, err := generateParseValueFromStringStatements(imports, arg.Name+"Parsed", src, param.Type(), errCheck(imports), nil, singleAssignment(token.DEFINE, ast.NewIdent(arg.Name)))
+				s, err := generateParseValueFromStringStatements(file, arg.Name+"Parsed", src, param.Type(), errCheck(file), nil, singleAssignment(token.DEFINE, ast.NewIdent(arg.Name)))
 				if err != nil {
 					return nil, err
 				}
 				statements = append(statements, s...)
 				t.pathValueTypes[arg.Name] = param.Type()
 			case arg.Name == TemplateNameScopeIdentifierForm:
-				s, err := appendParseFormToStructStatements(statements, t, imports, arg, param)
+				s, err := appendParseFormToStructStatements(statements, t, file, arg, param)
 				if err != nil {
 					return nil, err
 				}
 				statements = s
 			default:
-				pt, _ := imports.TypeASTExpression(param.Type())
-				at, _ := imports.TypeASTExpression(argType)
+				pt, _ := file.TypeASTExpression(param.Type())
+				at, _ := file.TypeASTExpression(argType)
 				return nil, fmt.Errorf("method expects type %s but %s is %s", source.Format(pt), arg.Name, source.Format(at))
 			}
 		}
@@ -718,11 +718,11 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, imports *
 	return statements, nil
 }
 
-func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, imports *source.File, arg *ast.Ident, param types.Object) ([]ast.Stmt, error) {
+func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file *source.File, arg *ast.Ident, param types.Object) ([]ast.Stmt, error) {
 	const parsedVariableName = "value"
 	statements = append(statements, callParseForm())
 
-	declareFormVar, err := formVariableDeclaration(imports, arg, param.Type())
+	declareFormVar, err := formVariableDeclaration(file, arg, param.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -735,7 +735,7 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, impor
 
 	parseErrCheck := func(exp ast.Expr) ast.Stmt {
 		return &ast.ExprStmt{
-			X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest),
+			X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.CallError(errIdent), http.StatusBadRequest),
 		}
 	}
 
@@ -776,11 +776,11 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, impor
 			}
 			str = ast.NewIdent("val")
 			elemType = ft.Elem()
-			validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes))
 			if ok && err != nil {
 				return nil, err
 			}
-			parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
+			parseStatements, err := generateParseValueFromStringStatements(file, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
 			}
@@ -801,11 +801,11 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, impor
 			}
 			str = &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("FormValue")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}}}
 			elemType = field.Type()
-			validations, err, ok := source.GenerateValidations(imports, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(imports).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes))
 			if ok && err != nil {
 				return nil, err
 			}
-			parseStatements, err := generateParseValueFromStringStatements(imports, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
+			parseStatements, err := generateParseValueFromStringStatements(file, parsedVariableName, str, elemType, parseErrCheck, validations, parseResult)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
 			}
@@ -822,8 +822,8 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, impor
 	return statements, nil
 }
 
-func formVariableDeclaration(imports *source.File, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
-	typeExp, err := imports.TypeASTExpression(tp)
+func formVariableDeclaration(file *source.File, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
+	typeExp, err := file.TypeASTExpression(tp)
 	if err != nil {
 		return nil, err
 	}
@@ -840,8 +840,8 @@ func formVariableDeclaration(imports *source.File, arg *ast.Ident, tp types.Type
 	}, nil
 }
 
-func formVariableAssignment(imports *source.File, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
-	typeExp, err := imports.TypeASTExpression(tp)
+func formVariableAssignment(file *source.File, arg *ast.Ident, tp types.Type) (*ast.DeclStmt, error) {
+	typeExp, err := file.TypeASTExpression(tp)
 	if err != nil {
 		return nil, err
 	}
@@ -864,14 +864,14 @@ func formVariableAssignment(imports *source.File, arg *ast.Ident, tp types.Type)
 	}, nil
 }
 
-func httpServeMuxField(imports *source.File) *ast.Field {
+func httpServeMuxField(file *source.File) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(muxParamName)},
-		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent("ServeMux")}},
+		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(file.AddNetHTTP()), Sel: ast.NewIdent("ServeMux")}},
 	}
 }
 
-func generateParseValueFromStringStatements(imports *source.File, tmp string, str ast.Expr, valueType types.Type, errCheck func(expr ast.Expr) ast.Stmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
+func generateParseValueFromStringStatements(file *source.File, tmp string, str ast.Expr, valueType types.Type, errCheck func(expr ast.Expr) ast.Stmt, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt) ([]ast.Stmt, error) {
 	switch tp := valueType.(type) {
 	case *types.Basic:
 		convert := func(exp ast.Expr) ast.Stmt {
@@ -884,27 +884,27 @@ func generateParseValueFromStringStatements(imports *source.File, tmp string, st
 		default:
 			return nil, fmt.Errorf("method param type %s not supported", valueType.String())
 		case "bool":
-			return parseBlock(tmp, imports.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
+			return parseBlock(tmp, file.StrconvParseBoolCall(str), validations, errCheck, assignment), nil
 		case "int":
-			return parseBlock(tmp, imports.StrconvAtoiCall(str), validations, errCheck, assignment), nil
+			return parseBlock(tmp, file.StrconvAtoiCall(str), validations, errCheck, assignment), nil
 		case "int8":
-			return parseBlock(tmp, imports.StrconvParseInt8Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseInt8Call(str), validations, errCheck, convert), nil
 		case "int16":
-			return parseBlock(tmp, imports.StrconvParseInt16Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseInt16Call(str), validations, errCheck, convert), nil
 		case "int32":
-			return parseBlock(tmp, imports.StrconvParseInt32Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseInt32Call(str), validations, errCheck, convert), nil
 		case "int64":
-			return parseBlock(tmp, imports.StrconvParseInt64Call(str), validations, errCheck, assignment), nil
+			return parseBlock(tmp, file.StrconvParseInt64Call(str), validations, errCheck, assignment), nil
 		case "uint":
-			return parseBlock(tmp, imports.StrconvParseUint0Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseUint0Call(str), validations, errCheck, convert), nil
 		case "uint8":
-			return parseBlock(tmp, imports.StrconvParseUint8Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseUint8Call(str), validations, errCheck, convert), nil
 		case "uint16":
-			return parseBlock(tmp, imports.StrconvParseUint16Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseUint16Call(str), validations, errCheck, convert), nil
 		case "uint32":
-			return parseBlock(tmp, imports.StrconvParseUint32Call(str), validations, errCheck, convert), nil
+			return parseBlock(tmp, file.StrconvParseUint32Call(str), validations, errCheck, convert), nil
 		case "uint64":
-			return parseBlock(tmp, imports.StrconvParseUint64Call(str), validations, errCheck, assignment), nil
+			return parseBlock(tmp, file.StrconvParseUint64Call(str), validations, errCheck, assignment), nil
 		case "string":
 			if len(validations) == 0 {
 				assign := assignment(str)
@@ -919,9 +919,9 @@ func generateParseValueFromStringStatements(imports *source.File, tmp string, st
 			return statements, nil
 		}
 	case *types.Named:
-		if encPkg, ok := imports.Types("encoding"); ok {
+		if encPkg, ok := file.Types("encoding"); ok {
 			if textUnmarshaler := encPkg.Scope().Lookup("TextUnmarshaler").Type().Underlying().(*types.Interface); types.Implements(types.NewPointer(tp), textUnmarshaler) {
-				tp, _ := imports.TypeASTExpression(valueType)
+				tp, _ := file.TypeASTExpression(valueType)
 				return []ast.Stmt{
 					&ast.DeclStmt{
 						Decl: &ast.GenDecl{
@@ -974,7 +974,7 @@ func generateParseValueFromStringStatements(imports *source.File, tmp string, st
 			}
 		}
 	}
-	tp, _ := imports.TypeASTExpression(valueType)
+	tp, _ := file.TypeASTExpression(valueType)
 	return nil, fmt.Errorf("unsupported type: %s", source.Format(tp))
 }
 
@@ -998,7 +998,7 @@ func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, han
 	return block.List
 }
 
-func callReceiverMethod(imports *source.File, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
+func callReceiverMethod(file *source.File, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
 	const (
 		okIdent = "ok"
 	)
@@ -1019,7 +1019,7 @@ func callReceiverMethod(imports *source.File, dataVarIdent string, method *types
 					Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
 					Body: &ast.BlockStmt{
 						List: []ast.Stmt{
-							&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
+							&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
 							&ast.ReturnStmt{},
 						},
 					},
@@ -1055,31 +1055,31 @@ func (AssertionFailureReporter) Errorf(format string, args ...interface{}) {
 	log.Fatalf(format, args...)
 }
 
-func defaultTemplateNameScope(imports *source.File, template *Template, argumentIdentifier string) (types.Type, bool) {
+func defaultTemplateNameScope(file *source.File, template *Template, argumentIdentifier string) (types.Type, bool) {
 	switch argumentIdentifier {
 	case TemplateNameScopeIdentifierHTTPRequest:
-		pkg, ok := imports.Types("net/http")
+		pkg, ok := file.Types("net/http")
 		if !ok {
 			return nil, false
 		}
 		t := types.NewPointer(pkg.Scope().Lookup("Request").Type())
 		return t, true
 	case TemplateNameScopeIdentifierHTTPResponse:
-		pkg, ok := imports.Types("net/http")
+		pkg, ok := file.Types("net/http")
 		if !ok {
 			return nil, false
 		}
 		t := pkg.Scope().Lookup("ResponseWriter").Type()
 		return t, true
 	case TemplateNameScopeIdentifierContext:
-		pkg, ok := imports.Types("context")
+		pkg, ok := file.Types("context")
 		if !ok {
 			return nil, false
 		}
 		t := pkg.Scope().Lookup("Context").Type()
 		return t, true
 	case TemplateNameScopeIdentifierForm:
-		pkg, ok := imports.Types("net/url")
+		pkg, ok := file.Types("net/url")
 		if !ok {
 			return nil, false
 		}
@@ -1108,7 +1108,7 @@ func packageScopeFunc(pkg *types.Package, fun *ast.Ident) (types.Object, bool) {
 	return obj, true
 }
 
-func ensureMethodSignature(imports *source.File, signatures map[string]*types.Signature, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, call *ast.CallExpr, templatesPackage *types.Package) error {
+func ensureMethodSignature(file *source.File, signatures map[string]*types.Signature, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, call *ast.CallExpr, templatesPackage *types.Package) error {
 	switch fun := call.Fun.(type) {
 	case *ast.Ident:
 		isMethod := true
@@ -1118,7 +1118,7 @@ func ensureMethodSignature(imports *source.File, signatures map[string]*types.Si
 				mo = m
 				isMethod = false
 			} else {
-				ms, err := createMethodSignature(imports, signatures, t, receiver, receiverInterface, call, templatesPackage)
+				ms, err := createMethodSignature(file, signatures, t, receiver, receiverInterface, call, templatesPackage)
 				if err != nil {
 					return err
 				}
@@ -1130,7 +1130,7 @@ func ensureMethodSignature(imports *source.File, signatures map[string]*types.Si
 			for _, a := range call.Args {
 				switch arg := a.(type) {
 				case *ast.CallExpr:
-					if err := ensureMethodSignature(imports, signatures, t, receiver, receiverInterface, arg, templatesPackage); err != nil {
+					if err := ensureMethodSignature(file, signatures, t, receiver, receiverInterface, arg, templatesPackage); err != nil {
 						return err
 					}
 				}
@@ -1140,7 +1140,7 @@ func ensureMethodSignature(imports *source.File, signatures map[string]*types.Si
 		if !isMethod {
 			return nil
 		}
-		exp, err := imports.TypeASTExpression(mo.Type())
+		exp, err := file.TypeASTExpression(mo.Type())
 		if err != nil {
 			return err
 		}
@@ -1154,18 +1154,18 @@ func ensureMethodSignature(imports *source.File, signatures map[string]*types.Si
 	}
 }
 
-func createMethodSignature(imports *source.File, signatures map[string]*types.Signature, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, call *ast.CallExpr, templatesPackage *types.Package) (*types.Signature, error) {
+func createMethodSignature(file *source.File, signatures map[string]*types.Signature, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, call *ast.CallExpr, templatesPackage *types.Package) (*types.Signature, error) {
 	var params []*types.Var
 	for _, a := range call.Args {
 		switch arg := a.(type) {
 		case *ast.Ident:
-			tp, ok := defaultTemplateNameScope(imports, t, arg.Name)
+			tp, ok := defaultTemplateNameScope(file, t, arg.Name)
 			if !ok {
 				return nil, fmt.Errorf("could not determine a type for %s", arg.Name)
 			}
 			params = append(params, types.NewVar(0, receiver.Obj().Pkg(), arg.Name, tp))
 		case *ast.CallExpr:
-			if err := ensureMethodSignature(imports, signatures, t, receiver, receiverInterface, arg, templatesPackage); err != nil {
+			if err := ensureMethodSignature(file, signatures, t, receiver, receiverInterface, arg, templatesPackage); err != nil {
 				return nil, err
 			}
 		}
@@ -1174,10 +1174,10 @@ func createMethodSignature(imports *source.File, signatures map[string]*types.Si
 	return types.NewSignatureType(types.NewVar(0, nil, "", receiver.Obj().Type()), nil, nil, types.NewTuple(params...), results, false), nil
 }
 
-func errCheck(imports *source.File) func(msg ast.Expr) ast.Stmt {
+func errCheck(file *source.File) func(msg ast.Expr) ast.Stmt {
 	return func(msg ast.Expr) ast.Stmt {
 		return &ast.ExprStmt{
-			X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), msg, http.StatusBadRequest),
+			X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), msg, http.StatusBadRequest),
 		}
 	}
 }
@@ -1192,22 +1192,22 @@ func callParseForm() *ast.ExprStmt {
 	}}
 }
 
-func httpResponseField(imports *source.File) *ast.Field {
+func httpResponseField(file *source.File) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
-		Type:  &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpResponseWriterIdent)},
+		Type:  &ast.SelectorExpr{X: ast.NewIdent(file.AddNetHTTP()), Sel: ast.NewIdent(httpResponseWriterIdent)},
 	}
 }
 
-func httpRequestField(imports *source.File) *ast.Field {
+func httpRequestField(file *source.File) *ast.Field {
 	return &ast.Field{
 		Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
-		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(imports.AddNetHTTP()), Sel: ast.NewIdent(httpRequestIdent)}},
+		Type:  &ast.StarExpr{X: &ast.SelectorExpr{X: ast.NewIdent(file.AddNetHTTP()), Sel: ast.NewIdent(httpRequestIdent)}},
 	}
 }
 
-func httpHandlerFuncType(imports *source.File) *ast.FuncType {
-	return &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{httpResponseField(imports), httpRequestField(imports)}}}
+func httpHandlerFuncType(file *source.File) *ast.FuncType {
+	return &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{httpResponseField(file), httpRequestField(file)}}}
 }
 
 func contextAssignment(ident string) *ast.AssignStmt {
@@ -1233,7 +1233,7 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func executeFuncDecl(imports *source.File, t Template, resultType types.Type, templatesVariableIdent string, result ast.Expr) []ast.Stmt {
+func executeFuncDecl(file *source.File, t Template, resultType types.Type, templatesVariableIdent string, result ast.Expr) []ast.Stmt {
 	const (
 		statusCodeIdent = "statusCode"
 		bufferIdent     = "buf"
@@ -1243,7 +1243,7 @@ func executeFuncDecl(imports *source.File, t Template, resultType types.Type, te
 	initialVars := []ast.Spec{
 		&ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
-			Values: []ast.Expr{imports.BytesNewBuffer(source.Nil())},
+			Values: []ast.Expr{file.BytesNewBuffer(source.Nil())},
 		},
 		&ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(resultDataIdent)},
@@ -1254,7 +1254,7 @@ func executeFuncDecl(imports *source.File, t Template, resultType types.Type, te
 	if !t.hasResponseWriterArg {
 		initialVars = append(initialVars, &ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(statusCodeIdent)},
-			Values: []ast.Expr{source.HTTPStatusCode(imports, t.defaultStatusCode)},
+			Values: []ast.Expr{source.HTTPStatusCode(file, t.defaultStatusCode)},
 		})
 	}
 
@@ -1285,7 +1285,7 @@ func executeFuncDecl(imports *source.File, t Template, resultType types.Type, te
 			},
 			Body: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(httpResponseField(imports).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
+					&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
 					&ast.ReturnStmt{},
 				},
 			},
@@ -1296,7 +1296,7 @@ func executeFuncDecl(imports *source.File, t Template, resultType types.Type, te
 		statements = append(statements, checkIfContentTypeHeaderSetOnTemplateData())
 		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
-			Args: []ast.Expr{source.String("content-length"), imports.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(bufferIdent), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
+			Args: []ast.Expr{source.String("content-length"), file.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(bufferIdent), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
 		}})
 
 		if resultType != nil {
@@ -1322,7 +1322,7 @@ func executeFuncDecl(imports *source.File, t Template, resultType types.Type, te
 						},
 					},
 				})
-			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, imports.OutputPackageType(), "StatusCode"); obj != nil {
+			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackageType(), "StatusCode"); obj != nil {
 				statements = append(statements, &ast.IfStmt{
 					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
 					Init: &ast.AssignStmt{

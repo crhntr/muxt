@@ -27,28 +27,28 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 		patterns = append(patterns, config.ReceiverPackage)
 	}
 
-	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
+	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	pl, err := packages.Load(&packages.Config{
-		Fset: imports.FileSet(),
+		Fset: file.FileSet(),
 		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
 	}, patterns...)
 	if err != nil {
 		return err
 	}
-	imports.AddPackages(pl...)
-	routesPkg, ok := imports.PackageAtFilepath(wd)
+	file.AddPackages(pl...)
+	routesPkg, ok := file.PackageAtFilepath(wd)
 	if !ok {
 		return fmt.Errorf("could not find package in working directory %q", wd)
 	}
-	imports.SetOutputPackage(routesPkg.Types)
+	file.SetOutputPackage(routesPkg.Types)
 	config.PackagePath = routesPkg.PkgPath
 	config.PackageName = routesPkg.Name
 	var receiver *types.Named
 	if config.ReceiverType != "" {
 		receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
-		receiverPkg, ok := imports.Package(receiverPkgPath)
+		receiverPkg, ok := file.Package(receiverPkgPath)
 		if !ok {
 			return fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
 		}
