@@ -340,7 +340,7 @@ func (t Template) callHandleFunc(handlerFuncLit *ast.FuncLit) *ast.ExprStmt {
 	}}
 }
 
-func (t Template) callReceiverMethod(imports *source.Imports, dataVarIdent string, method *ast.FuncType, call *ast.CallExpr) ([]ast.Stmt, error) {
+func (t Template) callReceiverMethod(imports *source.File, dataVarIdent string, method *ast.FuncType, call *ast.CallExpr) ([]ast.Stmt, error) {
 	const (
 		okIdent = "ok"
 	)

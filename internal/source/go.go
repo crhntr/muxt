@@ -190,7 +190,7 @@ func HTTPStatusName(name string) (int, error) {
 	return 0, fmt.Errorf("unknown %s", name)
 }
 
-func HTTPStatusCode(imports *Imports, n int) ast.Expr {
+func HTTPStatusCode(imports *File, n int) ast.Expr {
 	ident, ok := httpCodes[n]
 	if !ok {
 		return &ast.BasicLit{Kind: token.INT, Value: strconv.Itoa(n)}

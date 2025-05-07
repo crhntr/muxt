@@ -110,7 +110,7 @@ func calculateIdentifiers(in []Template) {
 	}
 }
 
-func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) {
+func routePathFunc(imports *source.File, t *Template) (*ast.FuncDecl, error) {
 	encodingPkg, ok := imports.Types("encoding")
 	if !ok {
 		return nil, fmt.Errorf(`the "encoding" package must be loaded`)
@@ -286,7 +286,7 @@ func routePathFunc(imports *source.Imports, t *Template) (*ast.FuncDecl, error) 
 	return method, nil
 }
 
-func routePathTypeAndMethods(imports *source.Imports, templates []Template) ([]ast.Decl, error) {
+func routePathTypeAndMethods(imports *source.File, templates []Template) ([]ast.Decl, error) {
 	decls := []ast.Decl{
 		&ast.GenDecl{
 			Tok: token.TYPE,

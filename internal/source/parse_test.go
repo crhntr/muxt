@@ -298,7 +298,7 @@ func Test_inputValidations(t *testing.T) {
 				Data:     atom.Body.String(),
 			})
 			fragment := dom.NewDocumentFragment(nodes)
-			imports := source.NewImports(nil)
+			imports := source.NewFile(nil)
 			statements, err, ok := source.GenerateValidations(imports, v, tt.Type, `[name="field"]`, "field", "response", fragment)
 			require.True(t, ok)
 			if tt.Error != "" {

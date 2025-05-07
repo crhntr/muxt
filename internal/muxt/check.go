@@ -18,7 +18,7 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	if !token.IsIdentifier(config.PackageName) {
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
-	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
+	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",

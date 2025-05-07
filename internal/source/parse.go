@@ -12,7 +12,7 @@ import (
 	"github.com/crhntr/dom/spec"
 )
 
-func GenerateValidations(imports *Imports, variable ast.Expr, variableType types.Type, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment) ([]ast.Stmt, error, bool) {
+func GenerateValidations(imports *File, variable ast.Expr, variableType types.Type, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment) ([]ast.Stmt, error, bool) {
 	input := fragment.QuerySelector(inputQuery)
 	if input == nil {
 		return nil, nil, false
@@ -40,7 +40,7 @@ type MinValidation struct {
 	MinExp ast.Expr
 }
 
-func (val MinValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MinValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  variable,
@@ -61,7 +61,7 @@ type MaxValidation struct {
 	MinExp ast.Expr
 }
 
-func (val MaxValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MaxValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  variable,
@@ -82,7 +82,7 @@ type PatternValidation struct {
 	Exp  *regexp.Regexp
 }
 
-func (val PatternValidation) GenerateValidation(imports *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val PatternValidation) GenerateValidation(imports *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.UnaryExpr{
 			Op: token.NOT,
@@ -108,7 +108,7 @@ type MaxLengthValidation struct {
 	MaxLength int
 }
 
-func (val MaxLengthValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MaxLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
@@ -129,7 +129,7 @@ type MinLengthValidation struct {
 	MinLength int
 }
 
-func (val MinLengthValidation) GenerateValidation(_ *Imports, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MinLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},

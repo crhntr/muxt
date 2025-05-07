@@ -27,7 +27,7 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 		patterns = append(patterns, config.ReceiverPackage)
 	}
 
-	imports := source.NewImports(&ast.GenDecl{Tok: token.IMPORT})
+	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	pl, err := packages.Load(&packages.Config{
 		Fset: imports.FileSet(),
