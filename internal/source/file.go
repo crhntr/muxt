@@ -19,13 +19,14 @@ import (
 
 type File struct {
 	*ast.GenDecl
-	fileSet           *token.FileSet
-	typesCache        map[string]*types.Package
-	files             map[string]*ast.File
-	packages          []*packages.Package
-	outPkg            *types.Package
-	outputPackage     string
-	outputPackagePath string
+	fileSet            *token.FileSet
+	typesCache         map[string]*types.Package
+	files              map[string]*ast.File
+	packages           []*packages.Package
+	outPkg             *types.Package
+	outputPackage      string
+	outputPackagePath  string
+	packageIdentifiers map[string]string
 }
 
 func NewFile(decl *ast.GenDecl) *File {
@@ -34,7 +35,12 @@ func NewFile(decl *ast.GenDecl) *File {
 			log.Panicf("expected decl to have token.IMPORT Tok got %s", got)
 		}
 	}
-	return &File{GenDecl: decl, typesCache: make(map[string]*types.Package), files: make(map[string]*ast.File)}
+	return &File{GenDecl: decl,
+		typesCache:         make(map[string]*types.Package),
+		files:              make(map[string]*ast.File),
+		packages:           make([]*packages.Package, 0),
+		packageIdentifiers: make(map[string]string),
+	}
 }
 
 func (file *File) Package(path string) (*packages.Package, bool) {
@@ -171,6 +177,9 @@ func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package
 }
 
 func (file *File) Add(pkgIdent, pkgPath string) string {
+	if ident, ok := file.packageIdentifiers[pkgPath]; ok {
+		return ident
+	}
 	if file.GenDecl == nil {
 		file.GenDecl = new(ast.GenDecl)
 		file.GenDecl.Tok = token.IMPORT
@@ -184,9 +193,13 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 			pp, _ := strconv.Unquote(spec.Path.Value)
 			if pp == pkgPath {
 				if spec.Name != nil && spec.Name.Name != "" && spec.Name.Name != pkgIdent {
-					return spec.Name.Name
+					n := spec.Name.Name
+					file.packageIdentifiers[pkgPath] = n
+					return n
 				}
-				return path.Base(pp)
+				n := path.Base(pp)
+				file.packageIdentifiers[pkgPath] = n
+				return n
 			}
 		}
 		var pi *ast.Ident
@@ -201,7 +214,9 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 			return strings.Compare(a.(*ast.ImportSpec).Path.Value, b.(*ast.ImportSpec).Path.Value)
 		})
 	}
-	return pkgIdent
+	n := pkgIdent
+	file.packageIdentifiers[pkgPath] = n
+	return n
 }
 
 func (file *File) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast.CallExpr {
