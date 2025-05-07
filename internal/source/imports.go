@@ -204,22 +204,6 @@ func (imports *Imports) Add(pkgIdent, pkgPath string) string {
 	return pkgIdent
 }
 
-func (imports *Imports) Ident(pkgPath string) string {
-	if imports != nil && imports.GenDecl != nil {
-		for _, s := range imports.GenDecl.Specs {
-			spec := s.(*ast.ImportSpec)
-			pp, _ := strconv.Unquote(spec.Path.Value)
-			if pp == pkgPath {
-				if spec.Name != nil && spec.Name.Name != "" {
-					return spec.Name.Name
-				}
-				return path.Base(pp)
-			}
-		}
-	}
-	return path.Base(pkgPath)
-}
-
 func (imports *Imports) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
