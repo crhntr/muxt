@@ -42,7 +42,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.SubmitFormEditRow(id, form)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(response, request, result)
+			rd         = newTemplateData(response, request, result, true, nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
@@ -69,7 +69,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.GetFormEditRow(id)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(response, request, result)
+			rd         = newTemplateData(response, request, result, true, nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
@@ -91,7 +91,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}{}
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(response, request, result)
+			rd         = newTemplateData(response, request, result, true, nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
@@ -113,7 +113,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		result := receiver.List(ctx)
 		var (
 			buf        = bytes.NewBuffer(nil)
-			rd         = newTemplateData(response, request, result)
+			rd         = newTemplateData(response, request, result, true, nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
@@ -141,8 +141,8 @@ type TemplateData[T any] struct {
 	error      error
 }
 
-func newTemplateData[T any](response http.ResponseWriter, request *http.Request, result T) *TemplateData[T] {
-	return &TemplateData[T]{response: response, request: request, result: result}
+func newTemplateData[T any](response http.ResponseWriter, request *http.Request, result T, okay bool, err error) *TemplateData[T] {
+	return &TemplateData[T]{response: response, request: request, result: result, okay: okay, error: err}
 }
 
 func (data *TemplateData[T]) Path() TemplateRoutePaths {

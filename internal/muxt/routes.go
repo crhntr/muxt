@@ -183,6 +183,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 					ast.NewIdent(dataVarIdent),
+					ast.NewIdent("true"),
+					ast.NewIdent("nil"),
 				},
 			})...)
 			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
@@ -237,6 +239,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 				ast.NewIdent(dataVarIdent),
+				ast.NewIdent("true"),
+				ast.NewIdent("nil"),
 			},
 		})...)
 		routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
@@ -311,6 +315,10 @@ func templateDataType(imports *source.Imports) *ast.GenDecl {
 }
 
 func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultParamName string) *ast.FuncDecl {
+	const (
+		okayIdent = "okay"
+		errIdent  = "err"
+	)
 	return &ast.FuncDecl{
 		Name: ast.NewIdent(newResponseDataFuncIdent),
 		Type: &ast.FuncType{
@@ -324,6 +332,8 @@ func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultPa
 					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}, Type: imports.HTTPResponseWriter()},
 					{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}, Type: imports.HTTPRequestPtr()},
 					{Names: []*ast.Ident{ast.NewIdent(resultParamName)}, Type: ast.NewIdent("T")},
+					{Names: []*ast.Ident{ast.NewIdent(okayIdent)}, Type: ast.NewIdent("bool")},
+					{Names: []*ast.Ident{ast.NewIdent(errIdent)}, Type: ast.NewIdent("error")},
 				},
 			},
 			Results: &ast.FieldList{
@@ -348,8 +358,8 @@ func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultPa
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
 								&ast.KeyValueExpr{Key: ast.NewIdent("result"), Value: ast.NewIdent(resultParamName)},
-								&ast.KeyValueExpr{Key: ast.NewIdent("okay"), Value: ast.NewIdent("true")},
-								&ast.KeyValueExpr{Key: ast.NewIdent("error"), Value: ast.NewIdent("nil")},
+								&ast.KeyValueExpr{Key: ast.NewIdent("okay"), Value: ast.NewIdent(okayIdent)},
+								&ast.KeyValueExpr{Key: ast.NewIdent("error"), Value: ast.NewIdent(errIdent)},
 							},
 						}},
 					},
