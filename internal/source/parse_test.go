@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/types"
 	"html/template"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -302,8 +303,12 @@ func Test_inputValidations(t *testing.T) {
 			pl, err := loadPkg()
 			require.NoError(t, err)
 			fSet := fileSet()
+			wd, err := workingDir()
+			require.NoError(t, err)
 
-			file := source.NewFile(nil, fSet, pl)
+			file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+			require.NoError(t, err)
+
 			statements, err, ok := source.GenerateValidations(file, v, tt.Type, `[name="field"]`, "field", "response", fragment)
 			require.True(t, ok)
 			if tt.Error != "" {

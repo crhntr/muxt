@@ -96,13 +96,13 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	if err != nil {
 		return "", err
 	}
-	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
 
-	routesPkg, ok := file.PackageAtFilepath(wd)
-	if !ok {
-		return "", fmt.Errorf("could not find package in working directory %q", wd)
+	file, err := source.NewFile(filepath.Join(wd, config.OutputFileName), fileSet, pl)
+	if err != nil {
+		return "", err
 	}
-	file.SetOutputPackage(routesPkg.Types)
+	routesPkg := file.OutputPackage()
+
 	config.PackagePath = routesPkg.PkgPath
 	config.PackageName = routesPkg.Name
 	var receiver *types.Named
@@ -1323,7 +1323,7 @@ func executeFuncDecl(file *source.File, t Template, resultType types.Type, templ
 						},
 					},
 				})
-			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackageType(), "StatusCode"); obj != nil {
+			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackage().Types, "StatusCode"); obj != nil {
 				statements = append(statements, &ast.IfStmt{
 					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
 					Init: &ast.AssignStmt{

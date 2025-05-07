@@ -3,6 +3,7 @@ package source_test
 import (
 	"go/token"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -14,12 +15,6 @@ import (
 )
 
 var (
-	patterns = func() []string {
-		return []string{
-			".",
-			"net/http",
-		}
-	}
 	workingDir = sync.OnceValues(func() (string, error) {
 		return os.Getwd()
 	})
@@ -31,13 +26,17 @@ var (
 		if err != nil {
 			return nil, err
 		}
-		return packages.Load(&packages.Config{
-			Fset: fileSet(),
-			Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
-			Dir:  wd,
-		}, patterns()...)
+		return loadPackages(wd, []string{"context", "net/http", wd})
 	})
 )
+
+func loadPackages(wd string, patterns []string) ([]*packages.Package, error) {
+	return packages.Load(&packages.Config{
+		Fset: fileSet(),
+		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
+		Dir:  wd,
+	}, patterns...)
+}
 
 func TestImports(t *testing.T) {
 	t.Run("initial add", func(t *testing.T) {
@@ -45,7 +44,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		assert.Equal(t, "http", file.Add("http", "net/http"))
 		assert.Equal(t, source.Format(file.GenDecl), `import "net/http"`)
 	})
@@ -54,7 +57,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		assert.Equal(t, "p", file.Add("p", "net/http"))
 		assert.Equal(t, source.Format(file.GenDecl), `import p "net/http"`)
 	})
@@ -63,7 +70,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		assert.Equal(t, "http", file.Add("", "net/http"))
 		assert.Equal(t, source.Format(file.GenDecl), `import "net/http"`)
 	})
@@ -72,7 +83,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		_ = file.Add("", "net/http")
 		_ = file.Add("", "html/template")
 		assert.Equal(t, source.Format(file.GenDecl), `import (
@@ -85,7 +100,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		_ = file.Add("", "html/template")
 		_ = file.Add("", "net/http")
 		assert.Equal(t, source.Format(file.GenDecl), `import (
@@ -98,7 +117,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		_ = file.Add("t", "html/template")
 		assert.Equal(t, "t", file.Add("", "html/template"))
 	})
@@ -107,7 +130,11 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		fSet := fileSet()
 
-		file := source.NewFile(nil, fSet, pl)
+		wd, err := workingDir()
+		require.NoError(t, err)
+
+		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+		require.NoError(t, err)
 		_ = file.Add("", "html/template")
 		assert.Equal(t, "template", file.Add("", "html/template"))
 	})

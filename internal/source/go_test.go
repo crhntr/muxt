@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,16 +39,19 @@ func TestIterateFieldTypes(t *testing.T) {
 }
 
 func TestHTTPStatusCode(t *testing.T) {
-	pl, err := loadPkg()
-	require.NoError(t, err)
 	fSet := fileSet()
+	wd, err := workingDir()
+	require.NoError(t, err)
+	pl, err := loadPackages(wd, []string{wd})
 
-	imports := source.NewFile(nil, fSet, pl)
-	exp := source.HTTPStatusCode(imports, 600)
+	file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
+	require.NoError(t, err)
+
+	exp := source.HTTPStatusCode(file, 600)
 	require.NotNil(t, exp)
 	lit, ok := exp.(*ast.BasicLit)
 	require.True(t, ok)
 	require.Equal(t, token.INT, lit.Kind)
 	require.Equal(t, "600", lit.Value)
-	require.Nil(t, imports.GenDecl, "it should not add the import if it is not needed")
+	require.Empty(t, file.GenDecl.Specs, "it should not add the import if it is not needed")
 }

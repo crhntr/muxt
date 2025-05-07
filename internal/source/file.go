@@ -1,13 +1,11 @@
 package source
 
 import (
-	"cmp"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"go/types"
-	"log"
 	"path"
 	"path/filepath"
 	"slices"
@@ -23,22 +21,16 @@ type File struct {
 	typesCache         map[string]*types.Package
 	files              map[string]*ast.File
 	packages           []*packages.Package
-	outPkg             *types.Package
-	outputPackage      string
+	outPkg             *packages.Package
 	packageIdentifiers map[string]string
 }
 
-func NewFile(decl *ast.GenDecl, fileSet *token.FileSet, list []*packages.Package) *File {
-	if decl != nil {
-		if got := decl.Tok; got != token.IMPORT {
-			log.Panicf("expected decl to have token.IMPORT Tok got %s", got)
-		}
-	}
+func NewFile(filePath string, fileSet *token.FileSet, list []*packages.Package) (*File, error) {
 	if fileSet == nil {
 		fileSet = token.NewFileSet()
 	}
 	file := &File{
-		GenDecl:            decl,
+		GenDecl:            &ast.GenDecl{Tok: token.IMPORT},
 		fileSet:            fileSet,
 		typesCache:         make(map[string]*types.Package),
 		files:              make(map[string]*ast.File),
@@ -46,7 +38,12 @@ func NewFile(decl *ast.GenDecl, fileSet *token.FileSet, list []*packages.Package
 		packageIdentifiers: make(map[string]string),
 	}
 	file.addPackages(list)
-	return file
+	pkg, found := packageAtFilepath(list, filePath)
+	if !found {
+		return nil, fmt.Errorf("package not found for filepath %s", filePath)
+	}
+	file.outPkg = pkg
+	return file, nil
 }
 
 func (file *File) Package(path string) (*packages.Package, bool) {
@@ -69,27 +66,7 @@ func (file *File) addPackages(packages []*packages.Package) {
 	}
 }
 
-func (file *File) PackageAtFilepath(p string) (*packages.Package, bool) {
-	for _, pkg := range file.packages {
-		if len(pkg.GoFiles) > 0 && filepath.Dir(pkg.GoFiles[0]) == p {
-			return pkg, true
-		}
-	}
-	return nil, false
-}
-
-func (file *File) SetOutputPackage(pkg *types.Package) {
-	file.outPkg = pkg
-	file.outputPackage = pkg.Path()
-}
-
-func (file *File) OutputPackage() string {
-	return cmp.Or(file.outputPackage, "main")
-}
-
-func (file *File) OutputPackageType() *types.Package {
-	return file.outPkg
-}
+func (file *File) OutputPackage() *packages.Package { return file.outPkg }
 
 func (file *File) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
 	position := file.fileSet.Position(pos)
@@ -173,7 +150,7 @@ func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package
 }
 
 func (file *File) Add(pkgIdent, pkgPath string) string {
-	if pkgPath == file.OutputPackage() {
+	if pkgPath == file.OutputPackage().PkgPath {
 		return ""
 	}
 	if ident, ok := file.packageIdentifiers[pkgPath]; ok {
@@ -186,7 +163,7 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 	if pkgIdent == "" {
 		pkgIdent = path.Base(pkgPath)
 	}
-	if pkgPath != file.outputPackage {
+	if pkgPath != file.outPkg.PkgPath {
 		for _, s := range file.GenDecl.Specs {
 			spec := s.(*ast.ImportSpec)
 			pp, _ := strconv.Unquote(spec.Path.Value)
@@ -461,4 +438,17 @@ func (file *File) Format(variable ast.Expr, kind types.BasicKind) (ast.Expr, err
 	default:
 		return nil, fmt.Errorf("unsupported basic type for path parameters")
 	}
+}
+
+func packageAtFilepath(list []*packages.Package, dir string) (*packages.Package, bool) {
+	d := dir
+	if filepath.Ext(d) == ".go" {
+		d = filepath.Dir(dir)
+	}
+	for _, pkg := range list {
+		if len(pkg.GoFiles) > 0 && filepath.Dir(pkg.GoFiles[0]) == d {
+			return pkg, true
+		}
+	}
+	return nil, false
 }

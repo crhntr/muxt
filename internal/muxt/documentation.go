@@ -3,11 +3,11 @@ package muxt
 import (
 	"cmp"
 	"fmt"
-	"go/ast"
 	"go/token"
 	"go/types"
 	"io"
 	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -36,13 +36,12 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 	if err != nil {
 		return err
 	}
-	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
-
-	routesPkg, ok := file.PackageAtFilepath(wd)
-	if !ok {
-		return fmt.Errorf("could not find package in working directory %q", wd)
+	file, err := source.NewFile(filepath.Join(wd, config.OutputFileName), fileSet, pl)
+	if err != nil {
+		return err
 	}
-	file.SetOutputPackage(routesPkg.Types)
+	routesPkg := file.OutputPackage()
+
 	config.PackagePath = routesPkg.PkgPath
 	config.PackageName = routesPkg.Name
 	var receiver *types.Named

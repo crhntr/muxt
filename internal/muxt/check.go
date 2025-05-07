@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/token"
 	"log"
+	"path/filepath"
 
 	"golang.org/x/tools/go/packages"
 
@@ -38,12 +39,11 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 		return err
 	}
 
-	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
-
-	routesPkg, ok := file.PackageAtFilepath(wd)
-	if !ok {
-		return fmt.Errorf("could not find package in working directory %q", wd)
+	file, err := source.NewFile(filepath.Join(wd, config.OutputFileName), fileSet, pl)
+	if err != nil {
+		return err
 	}
+	routesPkg := file.OutputPackage()
 
 	ts, fm, err := source.Templates(wd, config.TemplatesVariable, routesPkg)
 	if err != nil {
