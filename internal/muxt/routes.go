@@ -274,6 +274,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			templateDataRequestMethod(imports),
 			templateDataStatusCodeMethod(),
 			templateDataHeaderMethod(),
+			templateDataOkay(),
+			templateDataError(),
 
 			// func newResultData
 		}, routePathDecls...),
@@ -298,6 +300,8 @@ func templateDataType(imports *source.Imports) *ast.GenDecl {
 							{Names: []*ast.Ident{ast.NewIdent("request")}, Type: imports.HTTPRequestPtr()},
 							{Names: []*ast.Ident{ast.NewIdent("result")}, Type: ast.NewIdent("T")},
 							{Names: []*ast.Ident{ast.NewIdent("statusCode")}, Type: ast.NewIdent("int")},
+							{Names: []*ast.Ident{ast.NewIdent("okay")}, Type: ast.NewIdent("bool")},
+							{Names: []*ast.Ident{ast.NewIdent("error")}, Type: ast.NewIdent("error")},
 						},
 					},
 				},
@@ -344,6 +348,8 @@ func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultPa
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
 								&ast.KeyValueExpr{Key: ast.NewIdent("result"), Value: ast.NewIdent(resultParamName)},
+								&ast.KeyValueExpr{Key: ast.NewIdent("okay"), Value: ast.NewIdent("true")},
+								&ast.KeyValueExpr{Key: ast.NewIdent("error"), Value: ast.NewIdent("nil")},
 							},
 						}},
 					},
@@ -353,11 +359,47 @@ func newTemplateData(imports *source.Imports, newResponseDataFuncIdent, resultPa
 	}
 }
 
+const (
+	templateDataReceiverName = "data"
+)
+
 func templateDataMethodReceiver() *ast.FieldList {
-	return &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("data")}, Type: &ast.StarExpr{X: &ast.IndexExpr{
+	return &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent(templateDataReceiverName)}, Type: &ast.StarExpr{X: &ast.IndexExpr{
 		X:     ast.NewIdent(templateDataTypeName),
 		Index: ast.NewIdent("T"),
 	}}}}}
+}
+
+func templateDataOkay() *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: templateDataMethodReceiver(),
+		Name: ast.NewIdent("Ok"),
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("bool")}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent("okay")}}},
+			},
+		},
+	}
+}
+
+func templateDataError() *ast.FuncDecl {
+	return &ast.FuncDecl{
+		Recv: templateDataMethodReceiver(),
+		Name: ast.NewIdent("Err"),
+		Type: &ast.FuncType{
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("error")}}},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent("error")}}},
+			},
+		},
+	}
 }
 
 func templateDataPathMethod() *ast.FuncDecl {
@@ -378,9 +420,6 @@ func templateDataPathMethod() *ast.FuncDecl {
 }
 
 func templateDataResultMethod() *ast.FuncDecl {
-	const (
-		this = "data"
-	)
 	return &ast.FuncDecl{
 		Recv: templateDataMethodReceiver(),
 		Name: ast.NewIdent("Result"),
@@ -390,7 +429,7 @@ func templateDataResultMethod() *ast.FuncDecl {
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				&ast.ReturnStmt{
-					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent("result")}},
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent("result")}},
 				},
 			},
 		},
@@ -398,9 +437,6 @@ func templateDataResultMethod() *ast.FuncDecl {
 }
 
 func templateDataRequestMethod(imports *source.Imports) *ast.FuncDecl {
-	const (
-		this = "data"
-	)
 	return &ast.FuncDecl{
 		Recv: templateDataMethodReceiver(),
 		Name: ast.NewIdent("Request"),
@@ -410,7 +446,7 @@ func templateDataRequestMethod(imports *source.Imports) *ast.FuncDecl {
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				&ast.ReturnStmt{
-					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent("request")}},
+					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent("request")}},
 				},
 			},
 		},
@@ -419,7 +455,6 @@ func templateDataRequestMethod(imports *source.Imports) *ast.FuncDecl {
 
 func templateDataStatusCodeMethod() *ast.FuncDecl {
 	const (
-		this    = "data"
 		scIdent = "statusCode"
 	)
 	return &ast.FuncDecl{
@@ -440,12 +475,12 @@ func templateDataStatusCodeMethod() *ast.FuncDecl {
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				&ast.AssignStmt{
-					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(this), Sel: ast.NewIdent(scIdent)}},
+					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent(scIdent)}},
 					Tok: token.ASSIGN,
 					Rhs: []ast.Expr{ast.NewIdent(scIdent)},
 				},
 				&ast.ReturnStmt{
-					Results: []ast.Expr{ast.NewIdent(this)},
+					Results: []ast.Expr{ast.NewIdent(templateDataReceiverName)},
 				},
 			},
 		},

@@ -137,6 +137,8 @@ type TemplateData[T any] struct {
 	request    *http.Request
 	result     T
 	statusCode int
+	okay       bool
+	error      error
 }
 
 func newTemplateData[T any](response http.ResponseWriter, request *http.Request, result T) *TemplateData[T] {
@@ -163,6 +165,14 @@ func (data *TemplateData[T]) StatusCode(statusCode int) *TemplateData[T] {
 func (data *TemplateData[T]) Header(key, value string) *TemplateData[T] {
 	data.response.Header().Set(key, value)
 	return data
+}
+
+func (data *TemplateData[T]) Ok() bool {
+	return data.okay
+}
+
+func (data *TemplateData[T]) Err() error {
+	return data.error
 }
 
 type TemplateRoutePaths struct {
