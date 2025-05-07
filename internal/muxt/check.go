@@ -38,9 +38,9 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 		return err
 	}
 
-	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
+	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
 
-	routesPkg, ok := imports.PackageAtFilepath(wd)
+	routesPkg, ok := file.PackageAtFilepath(wd)
 	if !ok {
 		return fmt.Errorf("could not find package in working directory %q", wd)
 	}
