@@ -38,7 +38,11 @@ func TestIterateFieldTypes(t *testing.T) {
 }
 
 func TestHTTPStatusCode(t *testing.T) {
-	imports := source.NewFile(nil)
+	pl, err := loadPkg()
+	require.NoError(t, err)
+	fSet := fileSet()
+
+	imports := source.NewFile(nil, fSet, pl)
 	exp := source.HTTPStatusCode(imports, 600)
 	require.NotNil(t, exp)
 	lit, ok := exp.(*ast.BasicLit)

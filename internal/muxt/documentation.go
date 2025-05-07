@@ -27,17 +27,17 @@ func Documentation(w io.Writer, wd string, config RoutesFileConfiguration) error
 		patterns = append(patterns, config.ReceiverPackage)
 	}
 
-	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
-
+	fileSet := token.NewFileSet()
 	pl, err := packages.Load(&packages.Config{
-		Fset: file.FileSet(),
+		Fset: fileSet,
 		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
 	}, patterns...)
 	if err != nil {
 		return err
 	}
-	file.AddPackages(pl...)
+	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
+
 	routesPkg, ok := file.PackageAtFilepath(wd)
 	if !ok {
 		return fmt.Errorf("could not find package in working directory %q", wd)

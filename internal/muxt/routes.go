@@ -78,7 +78,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	if !token.IsIdentifier(config.PackageName) {
 		return "", fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
-	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",
@@ -88,15 +87,17 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		patterns = append(patterns, config.ReceiverPackage)
 	}
 
+	fileSet := token.NewFileSet()
 	pl, err := packages.Load(&packages.Config{
-		Fset: file.FileSet(),
+		Fset: fileSet,
 		Mode: packages.NeedModule | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
 	}, patterns...)
 	if err != nil {
 		return "", err
 	}
-	file.AddPackages(pl...)
+	file := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
+
 	routesPkg, ok := file.PackageAtFilepath(wd)
 	if !ok {
 		return "", fmt.Errorf("could not find package in working directory %q", wd)

@@ -18,7 +18,6 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	if !token.IsIdentifier(config.PackageName) {
 		return fmt.Errorf("package name %q is not an identifier", config.PackageName)
 	}
-	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT})
 
 	patterns := []string{
 		wd, "encoding", "fmt", "net/http",
@@ -28,15 +27,18 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 		patterns = append(patterns, config.ReceiverPackage)
 	}
 
+	fileSet := token.NewFileSet()
+
 	pl, err := packages.Load(&packages.Config{
-		Fset: imports.FileSet(),
+		Fset: fileSet,
 		Mode: packages.NeedModule | packages.NeedTypesInfo | packages.NeedName | packages.NeedFiles | packages.NeedTypes | packages.NeedSyntax | packages.NeedEmbedPatterns | packages.NeedEmbedFiles,
 		Dir:  wd,
 	}, patterns...)
 	if err != nil {
 		return err
 	}
-	imports.AddPackages(pl...)
+
+	imports := source.NewFile(&ast.GenDecl{Tok: token.IMPORT}, fileSet, pl)
 
 	routesPkg, ok := imports.PackageAtFilepath(wd)
 	if !ok {

@@ -28,18 +28,25 @@ type File struct {
 	packageIdentifiers map[string]string
 }
 
-func NewFile(decl *ast.GenDecl) *File {
+func NewFile(decl *ast.GenDecl, fileSet *token.FileSet, list []*packages.Package) *File {
 	if decl != nil {
 		if got := decl.Tok; got != token.IMPORT {
 			log.Panicf("expected decl to have token.IMPORT Tok got %s", got)
 		}
 	}
-	return &File{GenDecl: decl,
+	if fileSet == nil {
+		fileSet = token.NewFileSet()
+	}
+	file := &File{
+		GenDecl:            decl,
+		fileSet:            fileSet,
 		typesCache:         make(map[string]*types.Package),
 		files:              make(map[string]*ast.File),
 		packages:           make([]*packages.Package, 0),
 		packageIdentifiers: make(map[string]string),
 	}
+	file.addPackages(list)
+	return file
 }
 
 func (file *File) Package(path string) (*packages.Package, bool) {
@@ -51,7 +58,7 @@ func (file *File) Package(path string) (*packages.Package, bool) {
 	return nil, false
 }
 
-func (file *File) AddPackages(packages ...*packages.Package) {
+func (file *File) addPackages(packages []*packages.Package) {
 	file.packages = slices.Grow(file.packages, len(packages))
 	for _, pkg := range packages {
 		if pkg == nil {
@@ -71,13 +78,6 @@ func (file *File) PackageAtFilepath(p string) (*packages.Package, bool) {
 	return nil, false
 }
 
-func (file *File) FileSet() *token.FileSet {
-	if file.fileSet == nil {
-		file.fileSet = token.NewFileSet()
-	}
-	return file.fileSet
-}
-
 func (file *File) SetOutputPackage(pkg *types.Package) {
 	file.outPkg = pkg
 	file.outputPackage = pkg.Path()
@@ -92,7 +92,7 @@ func (file *File) OutputPackageType() *types.Package {
 }
 
 func (file *File) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
-	position := file.FileSet().Position(pos)
+	position := file.fileSet.Position(pos)
 	fSet := token.NewFileSet()
 	f, err := parser.ParseFile(fSet, position.Filename, nil, parser.AllErrors|parser.ParseComments|parser.SkipObjectResolution)
 	return f, fSet, err

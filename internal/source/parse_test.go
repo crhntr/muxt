@@ -298,8 +298,13 @@ func Test_inputValidations(t *testing.T) {
 				Data:     atom.Body.String(),
 			})
 			fragment := dom.NewDocumentFragment(nodes)
-			imports := source.NewFile(nil)
-			statements, err, ok := source.GenerateValidations(imports, v, tt.Type, `[name="field"]`, "field", "response", fragment)
+
+			pl, err := loadPkg()
+			require.NoError(t, err)
+			fSet := fileSet()
+
+			file := source.NewFile(nil, fSet, pl)
+			statements, err, ok := source.GenerateValidations(file, v, tt.Type, `[name="field"]`, "field", "response", fragment)
 			require.True(t, ok)
 			if tt.Error != "" {
 				require.Error(t, err)
