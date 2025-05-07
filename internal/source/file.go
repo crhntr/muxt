@@ -25,7 +25,6 @@ type File struct {
 	packages           []*packages.Package
 	outPkg             *types.Package
 	outputPackage      string
-	outputPackagePath  string
 	packageIdentifiers map[string]string
 }
 
@@ -101,9 +100,6 @@ func (file *File) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
 
 func (file *File) TypeASTExpression(tp types.Type) (ast.Expr, error) {
 	s := types.TypeString(tp, func(pkg *types.Package) string {
-		if pkg.Path() == file.OutputPackage() {
-			return ""
-		}
 		return file.Add("", pkg.Path())
 	})
 	return parser.ParseExpr(s)
@@ -177,6 +173,9 @@ func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package
 }
 
 func (file *File) Add(pkgIdent, pkgPath string) string {
+	if pkgPath == file.OutputPackage() {
+		return ""
+	}
 	if ident, ok := file.packageIdentifiers[pkgPath]; ok {
 		return ident
 	}
