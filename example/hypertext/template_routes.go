@@ -6,6 +6,7 @@ package hypertext
 import (
 	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"path"
 	"strconv"
@@ -46,7 +47,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
+			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "PATCH /fruits/{id} SubmitFormEditRow(id, form)"), slog.String("pattern", "PATCH /fruits/{id}"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
+			http.Error(response, "failed to render page", http.StatusInternalServerError)
 			return
 		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
@@ -73,7 +75,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
+			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /fruits/{id}/edit GetFormEditRow(id)"), slog.String("pattern", "GET /fruits/{id}/edit"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
+			http.Error(response, "failed to render page", http.StatusInternalServerError)
 			return
 		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
@@ -95,7 +98,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
+			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /help"), slog.String("pattern", "GET /help"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
+			http.Error(response, "failed to render page", http.StatusInternalServerError)
 			return
 		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
@@ -117,7 +121,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
-			http.Error(response, err.Error(), http.StatusInternalServerError)
+			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /{$} List(ctx)"), slog.String("pattern", "GET /{$}"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
+			http.Error(response, "failed to render page", http.StatusInternalServerError)
 			return
 		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {

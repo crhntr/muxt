@@ -52,6 +52,8 @@ const (
 	errIdent = "err"
 
 	templateDataTypeName = "TemplateData"
+
+	executeTemplateErrorMessage = "failed to render page"
 )
 
 type RoutesFileConfiguration struct {
@@ -1294,7 +1296,8 @@ func executeFuncDecl(file *source.File, t Template, resultType types.Type, templ
 			},
 			Body: &ast.BlockStmt{
 				List: []ast.Stmt{
-					&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
+					&ast.ExprStmt{X: executeTemplateSlogLine(file, &t)},
+					&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.String(executeTemplateErrorMessage), http.StatusInternalServerError)},
 					&ast.ReturnStmt{},
 				},
 			},
@@ -1373,6 +1376,26 @@ func executeFuncDecl(file *source.File, t Template, resultType types.Type, templ
 	})
 
 	return statements
+}
+
+func executeTemplateSlogLine(file *source.File, t *Template) *ast.CallExpr {
+	args := []ast.Expr{
+		&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("Context")}},
+		source.String(executeTemplateErrorMessage),
+
+		file.SlogString("path", &ast.SelectorExpr{
+			X:   &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("URL")},
+			Sel: ast.NewIdent("Path"),
+		}),
+
+		file.SlogString("template", source.String(t.name)),
+		file.SlogString("pattern", source.String(t.pattern)),
+		file.SlogString("error", source.CallError(errIdent)),
+	}
+	if n := t.template.Tree.ParseName; n != "" {
+		args = append(args, file.SlogString("file", source.String(t.template.Tree.ParseName)))
+	}
+	return file.Call("", "log/slog", "ErrorContext", args)
 }
 
 type forest template.Template

@@ -393,6 +393,10 @@ func (file *File) Format(variable ast.Expr, kind types.BasicKind) (ast.Expr, err
 	}
 }
 
+func (file *File) SlogString(key string, val ast.Expr) *ast.CallExpr {
+	return file.Call("", "log/slog", "String", []ast.Expr{String(key), val})
+}
+
 func packageAtFilepath(list []*packages.Package, dir string) (*packages.Package, bool) {
 	d := dir
 	if filepath.Ext(d) == ".go" {
