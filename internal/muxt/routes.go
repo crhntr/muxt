@@ -288,7 +288,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		return "", err
 	}
 
-	file.SortImports()
 	is := file.ImportSpecs()
 	importSpecs := make([]ast.Spec, 0, len(is))
 	for _, s := range is {

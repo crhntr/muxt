@@ -170,14 +170,6 @@ func (file *File) ImportSpecs() []*ast.ImportSpec {
 	return slices.CompactFunc(result, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
 }
 
-func (file *File) SortImports() {
-	sorted := file.importSpecs[:0]
-	for _, spec := range file.ImportSpecs() {
-		sorted = append(sorted, spec)
-	}
-	file.importSpecs = sorted
-}
-
 func (file *File) AddNetHTTP() string { return file.Import("", "net/http") }
 
 func (file *File) HTTPErrorCall(response, message ast.Expr, code int) *ast.CallExpr {
