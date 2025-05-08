@@ -76,7 +76,7 @@ func (file *File) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
 
 func (file *File) TypeASTExpression(tp types.Type) (ast.Expr, error) {
 	s := types.TypeString(tp, func(pkg *types.Package) string {
-		return file.Add("", pkg.Path())
+		return file.Import("", pkg.Path())
 	})
 	return parser.ParseExpr(s)
 }
@@ -134,7 +134,7 @@ func (file *File) Types(pkgPath string) (*types.Package, bool) {
 	return nil, false
 }
 
-func (file *File) Add(pkgIdent, pkgPath string) string {
+func (file *File) Import(pkgIdent, pkgPath string) string {
 	if pkgPath == file.OutputPackage().PkgPath {
 		return ""
 	}
@@ -178,7 +178,7 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 func (file *File) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(file.Add(pkgName, pkgPath)),
+			X:   ast.NewIdent(file.Import(pkgName, pkgPath)),
 			Sel: ast.NewIdent(funcIdent),
 		},
 		Args: args,
@@ -202,10 +202,10 @@ func (file *File) SortImports() {
 	file.importSpecs = sorted
 }
 
-func (file *File) AddNetHTTP() string      { return file.Add("", "net/http") }
-func (file *File) AddPath() string         { return file.Add("", "path") }
-func (file *File) AddHTMLTemplate() string { return file.Add("", "html/template") }
-func (file *File) AddContext() string      { return file.Add("", "context") }
+func (file *File) AddNetHTTP() string      { return file.Import("", "net/http") }
+func (file *File) AddPath() string         { return file.Import("", "path") }
+func (file *File) AddHTMLTemplate() string { return file.Import("", "html/template") }
+func (file *File) AddContext() string      { return file.Import("", "context") }
 
 func (file *File) HTTPErrorCall(response, message ast.Expr, code int) *ast.CallExpr {
 	return file.Call("", "net/http", "Error", []ast.Expr{
@@ -246,7 +246,7 @@ func (file *File) TimeParseCall(layout string, expr ast.Expr) *ast.CallExpr {
 func (file *File) BytesNewBuffer(expr ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
 		Fun: &ast.SelectorExpr{
-			X:   ast.NewIdent(file.Add("", "bytes")),
+			X:   ast.NewIdent(file.Import("", "bytes")),
 			Sel: ast.NewIdent("NewBuffer"),
 		},
 		Args: []ast.Expr{expr},
@@ -256,7 +256,7 @@ func (file *File) BytesNewBuffer(expr ast.Expr) *ast.CallExpr {
 func (file *File) HTTPRequestPtr() *ast.StarExpr {
 	return &ast.StarExpr{
 		X: &ast.SelectorExpr{
-			X:   ast.NewIdent(file.Add("http", "net/http")),
+			X:   ast.NewIdent(file.Import("http", "net/http")),
 			Sel: ast.NewIdent("Request"),
 		},
 	}
@@ -264,14 +264,14 @@ func (file *File) HTTPRequestPtr() *ast.StarExpr {
 
 func (file *File) HTTPResponseWriter() *ast.SelectorExpr {
 	return &ast.SelectorExpr{
-		X:   ast.NewIdent(file.Add("http", "net/http")),
+		X:   ast.NewIdent(file.Import("http", "net/http")),
 		Sel: ast.NewIdent("ResponseWriter"),
 	}
 }
 
 func (file *File) HTTPHeader() *ast.SelectorExpr {
 	return &ast.SelectorExpr{
-		X:   ast.NewIdent(file.Add("http", "net/http")),
+		X:   ast.NewIdent(file.Import("http", "net/http")),
 		Sel: ast.NewIdent("Header"),
 	}
 }
@@ -314,77 +314,77 @@ func (file *File) StrconvParseUint64Call(in ast.Expr) *ast.CallExpr {
 
 func (file *File) FormatInt(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("Itoa")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("Itoa")},
 		Args: []ast.Expr{in},
 	}
 }
 
 func (file *File) FormatInt8(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatInt")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatInt16(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatInt")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatInt32(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatInt")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatInt64(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatInt")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatInt")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("int64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatUint(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatUint")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatUint8(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatUint")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatUint16(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatUint")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatUint32(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatUint")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("uint64"), Args: []ast.Expr{in}}, Int(10)},
 	}
 }
 
 func (file *File) FormatUint64(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatUint")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatUint")},
 		Args: []ast.Expr{in, Int(10)},
 	}
 }
 
 func (file *File) FormatBool(in ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Add("", "strconv")), Sel: ast.NewIdent("FormatBool")},
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "strconv")), Sel: ast.NewIdent("FormatBool")},
 		Args: []ast.Expr{&ast.CallExpr{Fun: ast.NewIdent("bool"), Args: []ast.Expr{in}}},
 	}
 }

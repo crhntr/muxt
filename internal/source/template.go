@@ -342,7 +342,7 @@ func parseTemplateNames(input string) []string {
 		}
 	}
 
-	// Add any remaining pattern
+	// Import any remaining pattern
 	if currentTemplateName.Len() > 0 {
 		templateNames = append(templateNames, currentTemplateName.String())
 	}

@@ -258,7 +258,7 @@ func routePathFunc(imports *source.File, t *Template) (*ast.FuncDecl, error) {
 		Op: token.ADD,
 		Y: &ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent(imports.Add("", "path")),
+				X:   ast.NewIdent(imports.Import("", "path")),
 				Sel: ast.NewIdent("Join"),
 			},
 			Args: segmentExpressions,

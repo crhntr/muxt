@@ -196,7 +196,7 @@ func HTTPStatusCode(imports *File, n int) ast.Expr {
 		return &ast.BasicLit{Kind: token.INT, Value: strconv.Itoa(n)}
 	}
 	return &ast.SelectorExpr{
-		X:   ast.NewIdent(imports.Add("", "net/http")),
+		X:   ast.NewIdent(imports.Import("", "net/http")),
 		Sel: ast.NewIdent(ident),
 	}
 }

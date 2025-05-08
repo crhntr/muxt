@@ -57,7 +57,7 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		assert.Equal(t, "http", file.Add("http", "net/http"))
+		assert.Equal(t, "http", file.Import("http", "net/http"))
 		assert.Equal(t, genDecl(file), `import "net/http"`)
 	})
 	t.Run("initial with pkg ident", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		assert.Equal(t, "p", file.Add("p", "net/http"))
+		assert.Equal(t, "p", file.Import("p", "net/http"))
 		assert.Equal(t, genDecl(file), `import p "net/http"`)
 	})
 	t.Run("initial with empty ident", func(t *testing.T) {
@@ -83,7 +83,7 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		assert.Equal(t, "http", file.Add("", "net/http"))
+		assert.Equal(t, "http", file.Import("", "net/http"))
 		assert.Equal(t, genDecl(file), `import "net/http"`)
 	})
 	t.Run("initial with empty ident", func(t *testing.T) {
@@ -96,8 +96,8 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		_ = file.Add("", "net/http")
-		_ = file.Add("", "html/template")
+		_ = file.Import("", "net/http")
+		_ = file.Import("", "html/template")
 		assert.Equal(t, genDecl(file), `import (
 	"html/template"
 	"net/http"
@@ -113,8 +113,8 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		_ = file.Add("", "html/template")
-		_ = file.Add("", "net/http")
+		_ = file.Import("", "html/template")
+		_ = file.Import("", "net/http")
 		assert.Equal(t, genDecl(file), `import (
 	"html/template"
 	"net/http"
@@ -130,8 +130,8 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		_ = file.Add("t", "html/template")
-		assert.Equal(t, "t", file.Add("", "html/template"))
+		_ = file.Import("t", "html/template")
+		assert.Equal(t, "t", file.Import("", "html/template"))
 	})
 	t.Run("it returns the package path base", func(t *testing.T) {
 		pl, err := loadPkg()
@@ -143,7 +143,7 @@ func TestImports(t *testing.T) {
 
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
-		_ = file.Add("", "html/template")
-		assert.Equal(t, "template", file.Add("", "html/template"))
+		_ = file.Import("", "html/template")
+		assert.Equal(t, "template", file.Import("", "html/template"))
 	})
 }
