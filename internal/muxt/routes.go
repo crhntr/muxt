@@ -1253,12 +1253,12 @@ func executeFuncDecl(file *source.File, t Template, resultType types.Type, templ
 
 	initialVars := []ast.Spec{
 		&ast.ValueSpec{
-			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
-			Values: []ast.Expr{file.BytesNewBuffer(source.Nil())},
-		},
-		&ast.ValueSpec{
 			Names:  []*ast.Ident{ast.NewIdent(resultDataIdent)},
 			Values: []ast.Expr{result},
+		},
+		&ast.ValueSpec{
+			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
+			Values: []ast.Expr{file.BytesNewBuffer(source.Nil())},
 		},
 	}
 

@@ -42,8 +42,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		result := receiver.SubmitFormEditRow(id, form)
 		var (
-			buf        = bytes.NewBuffer(nil)
 			rd         = newTemplateData(response, request, result, true, nil)
+			buf        = bytes.NewBuffer(nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
@@ -70,8 +70,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		id := idParsed
 		result := receiver.GetFormEditRow(id)
 		var (
-			buf        = bytes.NewBuffer(nil)
 			rd         = newTemplateData(response, request, result, true, nil)
+			buf        = bytes.NewBuffer(nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
@@ -93,8 +93,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		var result = struct {
 		}{}
 		var (
-			buf        = bytes.NewBuffer(nil)
 			rd         = newTemplateData(response, request, result, true, nil)
+			buf        = bytes.NewBuffer(nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
@@ -116,8 +116,8 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		ctx := request.Context()
 		result := receiver.List(ctx)
 		var (
-			buf        = bytes.NewBuffer(nil)
 			rd         = newTemplateData(response, request, result, true, nil)
+			buf        = bytes.NewBuffer(nil)
 			statusCode = http.StatusOK
 		)
 		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
