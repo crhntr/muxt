@@ -255,11 +255,19 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	file.SortImports()
+	is := file.ImportSpecs()
+	importSpecs := make([]ast.Spec, 0, len(is))
+	for _, s := range is {
+		importSpecs = append(importSpecs, s)
+	}
 	outputFile := &ast.File{
 		Name: ast.NewIdent(config.PackageName),
 		Decls: append([]ast.Decl{
 			// import
-			file.GenDecl,
+			&ast.GenDecl{
+				Tok:   token.IMPORT,
+				Specs: importSpecs,
+			},
 
 			// type
 			&ast.GenDecl{

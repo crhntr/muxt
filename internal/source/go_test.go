@@ -53,5 +53,5 @@ func TestHTTPStatusCode(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, token.INT, lit.Kind)
 	require.Equal(t, "600", lit.Value)
-	require.Empty(t, file.GenDecl.Specs, "it should not add the import if it is not needed")
+	require.Empty(t, file.ImportSpecs(), "it should not add the import if it is not needed")
 }

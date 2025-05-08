@@ -16,13 +16,13 @@ import (
 )
 
 type File struct {
-	*ast.GenDecl
 	fileSet            *token.FileSet
 	typesCache         map[string]*types.Package
 	files              map[string]*ast.File
 	packages           []*packages.Package
 	outPkg             *packages.Package
 	packageIdentifiers map[string]string
+	importSpecs        []*ast.ImportSpec
 }
 
 func NewFile(filePath string, fileSet *token.FileSet, list []*packages.Package) (*File, error) {
@@ -30,7 +30,6 @@ func NewFile(filePath string, fileSet *token.FileSet, list []*packages.Package) 
 		fileSet = token.NewFileSet()
 	}
 	file := &File{
-		GenDecl:            &ast.GenDecl{Tok: token.IMPORT},
 		fileSet:            fileSet,
 		typesCache:         make(map[string]*types.Package),
 		files:              make(map[string]*ast.File),
@@ -135,20 +134,6 @@ func (file *File) Types(pkgPath string) (*types.Package, bool) {
 	return nil, false
 }
 
-func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package, bool) {
-	for _, pkg := range pt.Imports() {
-		if pkg.Path() == pkgPath {
-			return pkg, true
-		}
-	}
-	for _, pkg := range pt.Imports() {
-		if im, ok := recursivelySearchImports(pkg, pkgPath); ok {
-			return im, true
-		}
-	}
-	return nil, false
-}
-
 func (file *File) Add(pkgIdent, pkgPath string) string {
 	if pkgPath == file.OutputPackage().PkgPath {
 		return ""
@@ -156,16 +141,11 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 	if ident, ok := file.packageIdentifiers[pkgPath]; ok {
 		return ident
 	}
-	if file.GenDecl == nil {
-		file.GenDecl = new(ast.GenDecl)
-		file.GenDecl.Tok = token.IMPORT
-	}
 	if pkgIdent == "" {
 		pkgIdent = path.Base(pkgPath)
 	}
 	if pkgPath != file.outPkg.PkgPath {
-		for _, s := range file.GenDecl.Specs {
-			spec := s.(*ast.ImportSpec)
+		for _, spec := range file.importSpecs {
 			pp, _ := strconv.Unquote(spec.Path.Value)
 			if pp == pkgPath {
 				if spec.Name != nil && spec.Name.Name != "" && spec.Name.Name != pkgIdent {
@@ -182,12 +162,12 @@ func (file *File) Add(pkgIdent, pkgPath string) string {
 		if path.Base(pkgPath) != pkgIdent {
 			pi = ast.NewIdent(pkgIdent)
 		}
-		file.GenDecl.Specs = append(file.GenDecl.Specs, &ast.ImportSpec{
+		file.importSpecs = append(file.importSpecs, &ast.ImportSpec{
 			Path: String(pkgPath),
 			Name: pi,
 		})
-		slices.SortFunc(file.GenDecl.Specs, func(a, b ast.Spec) int {
-			return strings.Compare(a.(*ast.ImportSpec).Path.Value, b.(*ast.ImportSpec).Path.Value)
+		slices.SortFunc(file.importSpecs, func(a, b *ast.ImportSpec) int {
+			return strings.Compare(a.Path.Value, b.Path.Value)
 		})
 	}
 	n := pkgIdent
@@ -206,20 +186,20 @@ func (file *File) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast
 }
 
 func (file *File) ImportSpecs() []*ast.ImportSpec {
-	result := make([]*ast.ImportSpec, 0, len(file.GenDecl.Specs))
-	for _, spec := range file.GenDecl.Specs {
-		result = append(result, spec.(*ast.ImportSpec))
+	result := make([]*ast.ImportSpec, 0, len(file.importSpecs))
+	for _, spec := range file.importSpecs {
+		result = append(result, spec)
 	}
 	slices.SortFunc(result, func(a, b *ast.ImportSpec) int { return strings.Compare(a.Path.Value, b.Path.Value) })
 	return slices.CompactFunc(result, func(a, b *ast.ImportSpec) bool { return a.Path.Value == b.Path.Value })
 }
 
 func (file *File) SortImports() {
-	sorted := file.GenDecl.Specs[:0]
+	sorted := file.importSpecs[:0]
 	for _, spec := range file.ImportSpecs() {
 		sorted = append(sorted, spec)
 	}
-	file.GenDecl.Specs = sorted
+	file.importSpecs = sorted
 }
 
 func (file *File) AddNetHTTP() string      { return file.Add("", "net/http") }
@@ -448,6 +428,20 @@ func packageAtFilepath(list []*packages.Package, dir string) (*packages.Package,
 	for _, pkg := range list {
 		if len(pkg.GoFiles) > 0 && filepath.Dir(pkg.GoFiles[0]) == d {
 			return pkg, true
+		}
+	}
+	return nil, false
+}
+
+func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package, bool) {
+	for _, pkg := range pt.Imports() {
+		if pkg.Path() == pkgPath {
+			return pkg, true
+		}
+	}
+	for _, pkg := range pt.Imports() {
+		if im, ok := recursivelySearchImports(pkg, pkgPath); ok {
+			return im, true
 		}
 	}
 	return nil, false

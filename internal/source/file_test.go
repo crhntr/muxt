@@ -1,6 +1,7 @@
 package source_test
 
 import (
+	"go/ast"
 	"go/token"
 	"os"
 	"path/filepath"
@@ -39,6 +40,13 @@ func loadPackages(wd string, patterns []string) ([]*packages.Package, error) {
 }
 
 func TestImports(t *testing.T) {
+	genDecl := func(file *source.File) string {
+		decl := &ast.GenDecl{Tok: token.IMPORT}
+		for _, spec := range file.ImportSpecs() {
+			decl.Specs = append(decl.Specs, spec)
+		}
+		return source.Format(decl)
+	}
 	t.Run("initial add", func(t *testing.T) {
 		pl, err := loadPkg()
 		require.NoError(t, err)
@@ -50,7 +58,7 @@ func TestImports(t *testing.T) {
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
 		assert.Equal(t, "http", file.Add("http", "net/http"))
-		assert.Equal(t, source.Format(file.GenDecl), `import "net/http"`)
+		assert.Equal(t, genDecl(file), `import "net/http"`)
 	})
 	t.Run("initial with pkg ident", func(t *testing.T) {
 		pl, err := loadPkg()
@@ -63,7 +71,7 @@ func TestImports(t *testing.T) {
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
 		assert.Equal(t, "p", file.Add("p", "net/http"))
-		assert.Equal(t, source.Format(file.GenDecl), `import p "net/http"`)
+		assert.Equal(t, genDecl(file), `import p "net/http"`)
 	})
 	t.Run("initial with empty ident", func(t *testing.T) {
 		pl, err := loadPkg()
@@ -76,7 +84,7 @@ func TestImports(t *testing.T) {
 		file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 		require.NoError(t, err)
 		assert.Equal(t, "http", file.Add("", "net/http"))
-		assert.Equal(t, source.Format(file.GenDecl), `import "net/http"`)
+		assert.Equal(t, genDecl(file), `import "net/http"`)
 	})
 	t.Run("initial with empty ident", func(t *testing.T) {
 		pl, err := loadPkg()
@@ -90,7 +98,7 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		_ = file.Add("", "net/http")
 		_ = file.Add("", "html/template")
-		assert.Equal(t, source.Format(file.GenDecl), `import (
+		assert.Equal(t, genDecl(file), `import (
 	"html/template"
 	"net/http"
 )`)
@@ -107,7 +115,7 @@ func TestImports(t *testing.T) {
 		require.NoError(t, err)
 		_ = file.Add("", "html/template")
 		_ = file.Add("", "net/http")
-		assert.Equal(t, source.Format(file.GenDecl), `import (
+		assert.Equal(t, genDecl(file), `import (
 	"html/template"
 	"net/http"
 )`)
