@@ -5,7 +5,9 @@ package hypertext
 
 import (
 	"bytes"
+	"cmp"
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"path"
@@ -19,6 +21,21 @@ type RoutesReceiver interface {
 }
 
 func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
+	executeTemplateAndWriteHeaders := func(response http.ResponseWriter, request *http.Request, execute func(io.Writer) (int, error)) {
+		buf := bytes.NewBuffer(nil)
+		statusCode, err := execute(buf)
+		if err != nil {
+			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("pattern", request.Pattern), slog.String("error", err.Error()))
+			http.Error(response, "failed to render page", http.StatusInternalServerError)
+			return
+		}
+		if contentType := response.Header().Get("content-type"); contentType == "" {
+			response.Header().Set("content-type", "text/html; charset=utf-8")
+		}
+		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
+		response.WriteHeader(statusCode)
+		_, _ = buf.WriteTo(response)
+	}
 	mux.HandleFunc("PATCH /fruits/{id}", func(response http.ResponseWriter, request *http.Request) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
@@ -41,25 +58,12 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			form.Value = value
 		}
 		result := receiver.SubmitFormEditRow(id, form)
-		var (
-			rd         = newTemplateData(response, request, result, true, nil)
-			buf        = bytes.NewBuffer(nil)
-			statusCode = http.StatusOK
-		)
-		if err := templates.ExecuteTemplate(buf, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd); err != nil {
-			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "PATCH /fruits/{id} SubmitFormEditRow(id, form)"), slog.String("pattern", "PATCH /fruits/{id}"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
-			http.Error(response, "failed to render page", http.StatusInternalServerError)
-			return
-		}
-		if contentType := response.Header().Get("content-type"); contentType == "" {
-			response.Header().Set("content-type", "text/html; charset=utf-8")
-		}
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		if rd.statusCode != 0 {
-			statusCode = rd.statusCode
-		}
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
+			rd := newTemplateData(response, request, result, true, nil)
+			err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
+			sc := cmp.Or(rd.statusCode, http.StatusOK)
+			return sc, err
+		})
 	})
 	mux.HandleFunc("GET /fruits/{id}/edit", func(response http.ResponseWriter, request *http.Request) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
@@ -69,71 +73,32 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		id := idParsed
 		result := receiver.GetFormEditRow(id)
-		var (
-			rd         = newTemplateData(response, request, result, true, nil)
-			buf        = bytes.NewBuffer(nil)
-			statusCode = http.StatusOK
-		)
-		if err := templates.ExecuteTemplate(buf, "GET /fruits/{id}/edit GetFormEditRow(id)", rd); err != nil {
-			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /fruits/{id}/edit GetFormEditRow(id)"), slog.String("pattern", "GET /fruits/{id}/edit"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
-			http.Error(response, "failed to render page", http.StatusInternalServerError)
-			return
-		}
-		if contentType := response.Header().Get("content-type"); contentType == "" {
-			response.Header().Set("content-type", "text/html; charset=utf-8")
-		}
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		if rd.statusCode != 0 {
-			statusCode = rd.statusCode
-		}
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
+			rd := newTemplateData(response, request, result, true, nil)
+			err := templates.ExecuteTemplate(w, "GET /fruits/{id}/edit GetFormEditRow(id)", rd)
+			sc := cmp.Or(rd.statusCode, http.StatusOK)
+			return sc, err
+		})
 	})
 	mux.HandleFunc("GET /help", func(response http.ResponseWriter, request *http.Request) {
 		var result = struct {
 		}{}
-		var (
-			rd         = newTemplateData(response, request, result, true, nil)
-			buf        = bytes.NewBuffer(nil)
-			statusCode = http.StatusOK
-		)
-		if err := templates.ExecuteTemplate(buf, "GET /help", rd); err != nil {
-			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /help"), slog.String("pattern", "GET /help"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
-			http.Error(response, "failed to render page", http.StatusInternalServerError)
-			return
-		}
-		if contentType := response.Header().Get("content-type"); contentType == "" {
-			response.Header().Set("content-type", "text/html; charset=utf-8")
-		}
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		if rd.statusCode != 0 {
-			statusCode = rd.statusCode
-		}
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
+			rd := newTemplateData(response, request, result, true, nil)
+			err := templates.ExecuteTemplate(w, "GET /help", rd)
+			sc := cmp.Or(rd.statusCode, http.StatusOK)
+			return sc, err
+		})
 	})
 	mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		ctx := request.Context()
 		result := receiver.List(ctx)
-		var (
-			rd         = newTemplateData(response, request, result, true, nil)
-			buf        = bytes.NewBuffer(nil)
-			statusCode = http.StatusOK
-		)
-		if err := templates.ExecuteTemplate(buf, "GET /{$} List(ctx)", rd); err != nil {
-			slog.ErrorContext(request.Context(), "failed to render page", slog.String("path", request.URL.Path), slog.String("template", "GET /{$} List(ctx)"), slog.String("pattern", "GET /{$}"), slog.String("error", err.Error()), slog.String("file", "index.gohtml"))
-			http.Error(response, "failed to render page", http.StatusInternalServerError)
-			return
-		}
-		if contentType := response.Header().Get("content-type"); contentType == "" {
-			response.Header().Set("content-type", "text/html; charset=utf-8")
-		}
-		response.Header().Set("content-length", strconv.Itoa(buf.Len()))
-		if rd.statusCode != 0 {
-			statusCode = rd.statusCode
-		}
-		response.WriteHeader(statusCode)
-		_, _ = buf.WriteTo(response)
+		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
+			rd := newTemplateData(response, request, result, true, nil)
+			err := templates.ExecuteTemplate(w, "GET /{$} List(ctx)", rd)
+			sc := cmp.Or(rd.statusCode, http.StatusOK)
+			return sc, err
+		})
 	})
 }
 

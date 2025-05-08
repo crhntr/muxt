@@ -51,7 +51,8 @@ const (
 
 	errIdent = "err"
 
-	templateDataTypeName = "TemplateData"
+	templateDataTypeName        = "TemplateData"
+	templateDataFieldStatusCode = "statusCode"
 
 	executeTemplateErrorMessage = "failed to render page"
 )
@@ -140,6 +141,11 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Methods: new(ast.FieldList),
 	}
 
+	const (
+		executeTemplateAndWriteHeadersFuncIdent = "executeTemplateAndWriteHeaders"
+		executeTemplateFuncIdent                = "executeTemplate"
+	)
+
 	routesFunc := &ast.FuncDecl{
 		Name: ast.NewIdent(config.RoutesFunction),
 		Type: &ast.FuncType{
@@ -153,7 +159,33 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 				},
 			},
 		},
-		Body: new(ast.BlockStmt),
+		Body: &ast.BlockStmt{List: []ast.Stmt{}},
+	}
+
+	var (
+		hasResponseWriterArg     = false
+		onlyHasResponseWriterArg = true
+	)
+	for _, t := range templates {
+		if t.hasResponseWriterArg {
+			hasResponseWriterArg = true
+		} else {
+			onlyHasResponseWriterArg = false
+		}
+	}
+	if !onlyHasResponseWriterArg {
+		routesFunc.Body.List = append(routesFunc.Body.List, &ast.AssignStmt{
+			Lhs: []ast.Expr{ast.NewIdent(executeTemplateAndWriteHeadersFuncIdent)},
+			Tok: token.DEFINE,
+			Rhs: []ast.Expr{executeTemplateAndWriteHeadersFunc(file)},
+		})
+	}
+	if hasResponseWriterArg {
+		routesFunc.Body.List = append(routesFunc.Body.List, &ast.AssignStmt{
+			Lhs: []ast.Expr{ast.NewIdent(executeTemplateFuncIdent)},
+			Tok: token.DEFINE,
+			Rhs: []ast.Expr{executeTemplateFunc(file)},
+		})
 	}
 
 	const newResponseDataFuncIdent = "new" + templateDataTypeName
@@ -180,7 +212,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 					},
 				},
 			}
-			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, config.TemplatesVariable, &ast.CallExpr{
+			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
 				Fun: ast.NewIdent(newResponseDataFuncIdent),
 				Args: []ast.Expr{
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -236,7 +268,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			return "", err
 		}
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, &ast.CallExpr{
+		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
 			Fun: ast.NewIdent(newResponseDataFuncIdent),
 			Args: []ast.Expr{
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -297,6 +329,164 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), outputFile)
+}
+
+func executeFuncType(file *source.File, executeIdent string, closureType *ast.FuncType) *ast.FuncType {
+	return &ast.FuncType{
+		Params: &ast.FieldList{
+			List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}, Type: file.HTTPResponseWriter()},
+				{Names: []*ast.Ident{ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}, Type: file.HTTPRequestPtr()},
+				{Names: []*ast.Ident{ast.NewIdent(executeIdent)}, Type: closureType},
+			},
+		},
+	}
+}
+
+func executeTemplateWithStatusCodeResultLiteralType(file *source.File, writerIdent string) *ast.FuncType {
+	var wNames []*ast.Ident
+	if writerIdent != "" {
+		wNames = []*ast.Ident{ast.NewIdent(writerIdent)}
+	}
+	return &ast.FuncType{
+		Params: &ast.FieldList{List: []*ast.Field{{
+			Names: wNames,
+			Type: &ast.SelectorExpr{
+				X:   ast.NewIdent(file.Import("", "io")),
+				Sel: ast.NewIdent("Writer"),
+			}}},
+		},
+		Results: &ast.FieldList{
+			List: []*ast.Field{
+				{Type: ast.NewIdent("int")},
+				{Type: ast.NewIdent("error")},
+			},
+		},
+	}
+}
+
+func executeTemplateLiteralType(file *source.File, writerIdent string) *ast.FuncType {
+	var wNames []*ast.Ident
+	if writerIdent != "" {
+		wNames = []*ast.Ident{ast.NewIdent(writerIdent)}
+	}
+	return &ast.FuncType{
+		Params: &ast.FieldList{List: []*ast.Field{{
+			Names: wNames,
+			Type: &ast.SelectorExpr{
+				X:   ast.NewIdent(file.Import("", "io")),
+				Sel: ast.NewIdent("Writer"),
+			}}},
+		},
+		Results: &ast.FieldList{
+			List: []*ast.Field{
+				{Type: ast.NewIdent("error")},
+			},
+		},
+	}
+}
+
+func executeTemplateAndWriteHeadersFunc(file *source.File) *ast.FuncLit {
+	const (
+		bufIdent        = "buf"
+		statusCodeIdent = "statusCode"
+		executeIdent    = "execute"
+	)
+	return &ast.FuncLit{
+		Type: executeFuncType(file, executeIdent, executeTemplateWithStatusCodeResultLiteralType(file, "")),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				defineBytesBuffer(file, bufIdent),
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent(statusCodeIdent),
+						ast.NewIdent(errIdent),
+					},
+					Tok: token.DEFINE,
+					Rhs: []ast.Expr{&ast.CallExpr{
+						Fun:  ast.NewIdent(executeIdent),
+						Args: []ast.Expr{ast.NewIdent(bufIdent)},
+					}},
+				},
+				checkExecuteTemplateError(file),
+				setContentTypeHeaderSetOnTemplateData(),
+				&ast.ExprStmt{X: &ast.CallExpr{
+					Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
+					Args: []ast.Expr{source.String("content-length"), file.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(bufIdent), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
+				}},
+				callWriteHeader(ast.NewIdent(statusCodeIdent)),
+				callWriteOnResponse(bufIdent),
+			},
+		},
+	}
+}
+
+func executeTemplateFunc(file *source.File) *ast.FuncLit {
+	const (
+		bufIdent     = "buf"
+		executeIdent = "execute"
+	)
+	return &ast.FuncLit{
+		Type: executeFuncType(file, executeIdent, executeTemplateLiteralType(file, "")),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				defineBytesBuffer(file, bufIdent),
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent(errIdent),
+					},
+					Tok: token.DEFINE,
+					Rhs: []ast.Expr{&ast.CallExpr{
+						Fun:  ast.NewIdent(executeIdent),
+						Args: []ast.Expr{ast.NewIdent(bufIdent)},
+					}},
+				},
+				checkExecuteTemplateError(file),
+				callWriteOnResponse(bufIdent),
+			},
+		},
+	}
+}
+
+func callWriteHeader(statusCode ast.Expr) *ast.ExprStmt {
+	return &ast.ExprStmt{X: &ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("WriteHeader")},
+		Args: []ast.Expr{statusCode},
+	}}
+}
+
+func checkExecuteTemplateError(file *source.File) *ast.IfStmt {
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ExprStmt{X: executeTemplateSlogLine(file)},
+				&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.String(executeTemplateErrorMessage), http.StatusInternalServerError)},
+				&ast.ReturnStmt{},
+			},
+		},
+	}
+}
+
+func defineBytesBuffer(file *source.File, bufIdent string) *ast.AssignStmt {
+	return &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(bufIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{&ast.CallExpr{
+		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "bytes")), Sel: ast.NewIdent("NewBuffer")},
+		Args: []ast.Expr{ast.NewIdent("nil")},
+	}}}
+}
+
+func callWriteOnResponse(bufferIdent string) *ast.AssignStmt {
+	return &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
+		Tok: token.ASSIGN,
+		Rhs: []ast.Expr{&ast.CallExpr{
+			Fun: &ast.SelectorExpr{
+				X:   ast.NewIdent(bufferIdent),
+				Sel: ast.NewIdent("WriteTo"),
+			},
+			Args: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
+		}},
+	}
 }
 
 func templateDataType(file *source.File) *ast.GenDecl {
@@ -573,7 +763,7 @@ func templateDataHeaderMethod() *ast.FuncDecl {
 	}
 }
 
-func checkIfContentTypeHeaderSetOnTemplateData() *ast.IfStmt {
+func setContentTypeHeaderSetOnTemplateData() *ast.IfStmt {
 	const (
 		ctIdent  = "contentType"
 		ctHeader = "content-type"
@@ -1244,141 +1434,93 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func executeFuncDecl(file *source.File, t Template, resultType types.Type, templatesVariableIdent string, result ast.Expr) []ast.Stmt {
-	const (
-		statusCodeIdent = "statusCode"
-		bufferIdent     = "buf"
-		resultDataIdent = "rd"
-	)
-
-	initialVars := []ast.Spec{
-		&ast.ValueSpec{
-			Names:  []*ast.Ident{ast.NewIdent(resultDataIdent)},
-			Values: []ast.Expr{result},
-		},
-		&ast.ValueSpec{
-			Names:  []*ast.Ident{ast.NewIdent(bufferIdent)},
-			Values: []ast.Expr{file.BytesNewBuffer(source.Nil())},
-		},
-	}
-
-	if !t.hasResponseWriterArg {
-		initialVars = append(initialVars, &ast.ValueSpec{
-			Names:  []*ast.Ident{ast.NewIdent(statusCodeIdent)},
-			Values: []ast.Expr{source.HTTPStatusCode(file, t.defaultStatusCode)},
-		})
+func executeFuncDecl(file *source.File, t Template, resultType types.Type, templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent string, result ast.Expr) []ast.Stmt {
+	executeArgs := []ast.Expr{
+		ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+		ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+		executeTemplateClosureLiteral(file, &t, resultType, templatesVariableIdent, result),
 	}
 
 	var statements []ast.Stmt
-	statements = append(statements,
-		&ast.DeclStmt{
-			Decl: &ast.GenDecl{
-				Tok:   token.VAR,
-				Specs: initialVars,
-			},
-		},
-		&ast.IfStmt{
-			Init: &ast.AssignStmt{
-				Lhs: []ast.Expr{ast.NewIdent(errIdent)},
-				Tok: token.DEFINE,
-				Rhs: []ast.Expr{&ast.CallExpr{
-					Fun: &ast.SelectorExpr{
-						X:   ast.NewIdent(templatesVariableIdent),
-						Sel: ast.NewIdent("ExecuteTemplate"),
-					},
-					Args: []ast.Expr{ast.NewIdent(bufferIdent), &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(t.name)}, ast.NewIdent(resultDataIdent)},
-				}},
-			},
-			Cond: &ast.BinaryExpr{
-				X:  ast.NewIdent(errIdent),
-				Op: token.NEQ,
-				Y:  source.Nil(),
-			},
-			Body: &ast.BlockStmt{
-				List: []ast.Stmt{
-					&ast.ExprStmt{X: executeTemplateSlogLine(file, &t)},
-					&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.String(executeTemplateErrorMessage), http.StatusInternalServerError)},
-					&ast.ReturnStmt{},
-				},
-			},
-		},
-	)
 
 	if !t.hasResponseWriterArg {
-		statements = append(statements, checkIfContentTypeHeaderSetOnTemplateData())
 		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("Header")}, Args: []ast.Expr{}}, Sel: ast.NewIdent("Set")},
-			Args: []ast.Expr{source.String("content-length"), file.StrconvItoaCall(&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(bufferIdent), Sel: ast.NewIdent("Len")}, Args: []ast.Expr{}})},
+			Fun:  ast.NewIdent(executeTemplateAndWriteHeadersFuncIdent),
+			Args: executeArgs,
 		}})
-
-		if resultType != nil {
-			const (
-				tmpStatusCodeIdent = "sc"
-			)
-			statusCoder := statusCoderInterface()
-			if types.Implements(resultType, statusCoder) {
-				statements = append(statements, &ast.IfStmt{
-					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
-					Init: &ast.AssignStmt{
-						Lhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
-						Tok: token.DEFINE,
-						Rhs: []ast.Expr{&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}}},
-					},
-					Body: &ast.BlockStmt{
-						List: []ast.Stmt{
-							&ast.AssignStmt{
-								Lhs: []ast.Expr{ast.NewIdent(statusCodeIdent)},
-								Tok: token.ASSIGN,
-								Rhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
-							},
-						},
-					},
-				})
-			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackage().Types, "StatusCode"); obj != nil {
-				statements = append(statements, &ast.IfStmt{
-					Cond: &ast.BinaryExpr{X: ast.NewIdent(tmpStatusCodeIdent), Op: token.NEQ, Y: source.Int(0)},
-					Init: &ast.AssignStmt{
-						Lhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
-						Tok: token.DEFINE,
-						Rhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}},
-					},
-					Body: &ast.BlockStmt{
-						List: []ast.Stmt{
-							&ast.AssignStmt{
-								Lhs: []ast.Expr{ast.NewIdent(statusCodeIdent)},
-								Tok: token.ASSIGN,
-								Rhs: []ast.Expr{ast.NewIdent(tmpStatusCodeIdent)},
-							},
-						},
-					},
-				})
-			}
-		}
-
-		statements = append(statements, useTemplateDataStatusCodeField(resultDataIdent, statusCodeIdent))
-
+	} else {
 		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-			Fun:  &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Sel: ast.NewIdent("WriteHeader")},
-			Args: []ast.Expr{ast.NewIdent(statusCodeIdent)},
+			Fun:  ast.NewIdent(executeTemplateFuncIdent),
+			Args: executeArgs,
 		}})
 	}
-
-	statements = append(statements, &ast.AssignStmt{
-		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
-		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{&ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   ast.NewIdent(bufferIdent),
-				Sel: ast.NewIdent("WriteTo"),
-			},
-			Args: []ast.Expr{ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
-		}},
-	})
 
 	return statements
 }
 
-func executeTemplateSlogLine(file *source.File, t *Template) *ast.CallExpr {
+var statusCoder = statusCoderInterface()
+
+func executeTemplateClosureLiteral(file *source.File, t *Template, resultType types.Type, templatesVariableIdent string, result ast.Expr) *ast.FuncLit {
+	const (
+		writerIdent     = "w"
+		resultDataIdent = "rd"
+	)
+	var closureType *ast.FuncType
+
+	body := &ast.BlockStmt{
+		List: []ast.Stmt{
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{ast.NewIdent(resultDataIdent)},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{result},
+			},
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{ast.NewIdent(errIdent)},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{
+					&ast.CallExpr{
+						Fun:  &ast.SelectorExpr{X: ast.NewIdent(templatesVariableIdent), Sel: ast.NewIdent("ExecuteTemplate")},
+						Args: []ast.Expr{ast.NewIdent(writerIdent), &ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(t.name)}, ast.NewIdent(resultDataIdent)},
+					}},
+			},
+		},
+	}
+
+	if t.hasResponseWriterArg {
+		closureType = executeTemplateLiteralType(file, writerIdent)
+		body.List = append(body.List, &ast.ReturnStmt{Results: []ast.Expr{ast.NewIdent(errIdent)}})
+	} else {
+		const statusCode = "sc"
+		statusCodePriorityList := []ast.Expr{
+			&ast.SelectorExpr{X: ast.NewIdent(resultDataIdent), Sel: ast.NewIdent(templateDataFieldStatusCode)},
+		}
+		if resultType != nil {
+			if types.Implements(resultType, statusCoder) {
+				statusCodePriorityList = append(statusCodePriorityList, &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")}})
+			} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackage().Types, "StatusCode"); obj != nil {
+				statusCodePriorityList = append(statusCodePriorityList, &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")})
+			}
+		}
+		statusCodePriorityList = append(statusCodePriorityList, source.HTTPStatusCode(file, t.defaultStatusCode))
+		closureType = executeTemplateWithStatusCodeResultLiteralType(file, writerIdent)
+		body.List = append(body.List,
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{ast.NewIdent(statusCode)},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{
+					file.Call("", "cmp", "Or", statusCodePriorityList),
+				},
+			},
+			&ast.ReturnStmt{Results: []ast.Expr{ast.NewIdent(statusCode), ast.NewIdent(errIdent)}},
+		)
+	}
+	return &ast.FuncLit{
+		Type: closureType,
+		Body: body,
+	}
+}
+
+func executeTemplateSlogLine(file *source.File) *ast.CallExpr {
 	args := []ast.Expr{
 		&ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("Context")}},
 		source.String(executeTemplateErrorMessage),
@@ -1387,13 +1529,8 @@ func executeTemplateSlogLine(file *source.File, t *Template) *ast.CallExpr {
 			X:   &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("URL")},
 			Sel: ast.NewIdent("Path"),
 		}),
-
-		file.SlogString("template", source.String(t.name)),
-		file.SlogString("pattern", source.String(t.pattern)),
+		file.SlogString("pattern", &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("Pattern")}),
 		file.SlogString("error", source.CallError(errIdent)),
-	}
-	if n := t.template.Tree.ParseName; n != "" {
-		args = append(args, file.SlogString("file", source.String(t.template.Tree.ParseName)))
 	}
 	return file.Call("", "log/slog", "ErrorContext", args)
 }
