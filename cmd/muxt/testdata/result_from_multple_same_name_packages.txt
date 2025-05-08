@@ -1,0 +1,142 @@
+muxt -C internal/hypertext generate --receiver-type=Endpoints --routes-func=Routes
+muxt -C internal/hypertext check
+
+exec go test ./...
+
+-- go.mod --
+module crhntr.com/muxt-test
+
+go 1.23
+-- main_test.go --
+package main_test
+
+import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+
+	"crhntr.com/muxt-test/internal/hypertext"
+)
+
+func Test(t *testing.T) {
+	mux := http.NewServeMux()
+	var endpoints hypertext.Endpoints
+
+	hypertext.Routes(mux, endpoints)
+
+	t.Run("create support document", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/support/article", strings.NewReader(url.Values{
+			"Title": []string{"hello"},
+		}.Encode()))
+		req.Header.Add("content-type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fail()
+		}
+		body, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(body), `<input name="Title" value="HELLO">`) {
+			t.Error(string(body))
+		}
+	})
+
+	t.Run("create blog post", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/blog/article", strings.NewReader(url.Values{
+			"Title": []string{"hello"},
+		}.Encode()))
+		req.Header.Add("content-type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		res := rec.Result()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fail()
+		}
+		body, _ := io.ReadAll(res.Body)
+		if !strings.Contains(string(body), `<input name="Title" value="HELLO">`) {
+			t.Error(string(body))
+		}
+	})
+}
+-- internal/blog/database/article.go --
+package database
+
+type Article struct {
+	Title string
+}
+-- internal/support/database/article.go --
+package database
+
+type Article struct {
+	Title string
+}
+-- internal/hypertext/article.go --
+package hypertext
+
+import (
+	"context"
+	"strings"
+
+	"crhntr.com/muxt-test/internal/blog/database"
+)
+
+func (Endpoints) CreatBlogArticle(ctx context.Context, form Form) database.Article {
+	return database.Article{Title: strings.ToUpper(form.Title)}
+}
+-- internal/hypertext/blog.go --
+package hypertext
+
+import (
+	"context"
+	"strings"
+
+	"crhntr.com/muxt-test/internal/support/database"
+)
+
+func (Endpoints) CreatSupportDocument(ctx context.Context, form Form) database.Article {
+	return database.Article{Title: strings.ToUpper(form.Title)}
+}
+-- internal/hypertext/endpoint.go --
+package hypertext
+
+type Endpoints struct{}
+
+type Form struct {
+	Title string
+}
+-- internal/hypertext/generate.go --
+package hypertext
+
+import (
+	"embed"
+	"html/template"
+)
+
+var (
+	//go:embed *.gohtml
+	templateFiles embed.FS
+
+	templates = template.Must(template.ParseFS(templateFiles, "*"))
+)
+-- internal/hypertext/form.gohtml --
+{{- define "POST /blog/article CreatBlogArticle(ctx, form)" -}}
+	<form method="POST" action="/article">
+  	<input name="Title" value="{{if .}}{{.Result.Title}}{{end}}">
+  </form>
+{{- end -}}
+
+{{- define "POST /support/article CreatSupportDocument(ctx, form)" -}}
+	<form method="POST" action="/article">
+  	<input name="Title" value="{{if .}}{{.Result.Title}}{{end}}">
+  </form>
+{{- end -}}
+

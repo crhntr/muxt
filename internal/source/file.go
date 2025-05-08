@@ -1,15 +1,18 @@
 package source
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"go/types"
+	"log"
+	"maps"
 	"path"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -75,10 +78,16 @@ func (file *File) SyntaxFile(pos token.Pos) (*ast.File, *token.FileSet, error) {
 }
 
 func (file *File) TypeASTExpression(tp types.Type) (ast.Expr, error) {
-	s := types.TypeString(tp, func(pkg *types.Package) string {
-		return file.Import("", pkg.Path())
-	})
+	s := types.TypeString(tp, file.pkgQualifier)
 	return parser.ParseExpr(s)
+}
+
+// pkgQualifier implements types.Qualifier
+func (file *File) pkgQualifier(pkg *types.Package) string {
+	if pkg.Path() == file.outPkg.PkgPath {
+		return ""
+	}
+	return file.Import("", pkg.Path())
 }
 
 func (file *File) StructField(pos token.Pos) (*ast.Field, error) {
@@ -135,44 +144,11 @@ func (file *File) Types(pkgPath string) (*types.Package, bool) {
 }
 
 func (file *File) Import(pkgIdent, pkgPath string) string {
-	if pkgPath == file.OutputPackage().PkgPath {
+	if pkgPath == file.outPkg.PkgPath {
+		log.Fatal("package path cannot be the same as the output package")
 		return ""
 	}
-	if ident, ok := file.packageIdentifiers[pkgPath]; ok {
-		return ident
-	}
-	if pkgIdent == "" {
-		pkgIdent = path.Base(pkgPath)
-	}
-	if pkgPath != file.outPkg.PkgPath {
-		for _, spec := range file.importSpecs {
-			pp, _ := strconv.Unquote(spec.Path.Value)
-			if pp == pkgPath {
-				if spec.Name != nil && spec.Name.Name != "" && spec.Name.Name != pkgIdent {
-					n := spec.Name.Name
-					file.packageIdentifiers[pkgPath] = n
-					return n
-				}
-				n := path.Base(pp)
-				file.packageIdentifiers[pkgPath] = n
-				return n
-			}
-		}
-		var pi *ast.Ident
-		if path.Base(pkgPath) != pkgIdent {
-			pi = ast.NewIdent(pkgIdent)
-		}
-		file.importSpecs = append(file.importSpecs, &ast.ImportSpec{
-			Path: String(pkgPath),
-			Name: pi,
-		})
-		slices.SortFunc(file.importSpecs, func(a, b *ast.ImportSpec) int {
-			return strings.Compare(a.Path.Value, b.Path.Value)
-		})
-	}
-	n := pkgIdent
-	file.packageIdentifiers[pkgPath] = n
-	return n
+	return packageImportName(&file.importSpecs, file.packageIdentifiers, pkgPath, pkgIdent)
 }
 
 func (file *File) Call(pkgName, pkgPath, funcIdent string, args []ast.Expr) *ast.CallExpr {
@@ -202,10 +178,7 @@ func (file *File) SortImports() {
 	file.importSpecs = sorted
 }
 
-func (file *File) AddNetHTTP() string      { return file.Import("", "net/http") }
-func (file *File) AddPath() string         { return file.Import("", "path") }
-func (file *File) AddHTMLTemplate() string { return file.Import("", "html/template") }
-func (file *File) AddContext() string      { return file.Import("", "context") }
+func (file *File) AddNetHTTP() string { return file.Import("", "net/http") }
 
 func (file *File) HTTPErrorCall(response, message ast.Expr, code int) *ast.CallExpr {
 	return file.Call("", "net/http", "Error", []ast.Expr{
@@ -445,4 +418,35 @@ func recursivelySearchImports(pt *types.Package, pkgPath string) (*types.Package
 		}
 	}
 	return nil, false
+}
+
+func packageImportName(importSpecs *[]*ast.ImportSpec, packageIdentifiers map[string]string, pkgPath, pkgIdent string) string {
+	if ident, ok := packageIdentifiers[pkgPath]; ok {
+		return ident
+	}
+	if pkgIdent == "" {
+		pkgIdent = path.Base(pkgPath)
+	}
+	for existing := range maps.Values(packageIdentifiers) {
+		if existing == pkgIdent {
+			sum := sha1.New()
+			sum.Write([]byte(pkgPath))
+			pkgIdent = strings.Join([]string{pkgIdent, hex.EncodeToString(sum.Sum(nil))[:12]}, "")
+			break
+		}
+	}
+	var pi *ast.Ident
+	if pkgIdent != path.Base(pkgPath) {
+		pi = ast.NewIdent(pkgIdent)
+	}
+	*importSpecs = append(*importSpecs, &ast.ImportSpec{
+		Path: String(pkgPath),
+		Name: pi,
+	})
+	slices.SortFunc(*importSpecs, func(a, b *ast.ImportSpec) int {
+		return strings.Compare(a.Path.Value, b.Path.Value)
+	})
+	n := pkgIdent
+	packageIdentifiers[pkgPath] = n
+	return n
 }
