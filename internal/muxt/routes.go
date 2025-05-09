@@ -248,7 +248,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		}, routePathDecls...),
 	}
 
-	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), outputFile)
+	return source.FormatFile(filepath.Join(wd, config.OutputFileName), outputFile)
 }
 
 func noMethoHandlerFunc(file *source.File, t *Template, templatesVarIdent, dataVarIdent string) *ast.FuncLit {
