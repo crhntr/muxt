@@ -190,7 +190,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 	const newResponseDataFuncIdent = "new" + templateDataTypeName
 
-	for i, t := range templates {
+	for i := range templates {
+		t := &templates[i]
 		const dataVarIdent = "result"
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
@@ -199,7 +200,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		}
 
 		sigs := make(map[string]*types.Signature)
-		if err := ensureMethodSignature(file, sigs, &templates[i], receiver, receiverInterface, t.call, routesPkg.Types); err != nil {
+		if err := ensureMethodSignature(file, sigs, t, receiver, receiverInterface, t.call, routesPkg.Types); err != nil {
 			return "", err
 		}
 		sig, ok := sigs[t.fun.Name]
@@ -228,7 +229,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			},
 		}
 
-		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, &templates[i], file, sigs, nil, receiver, t.call); err != nil {
+		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, sigs, nil, receiver, t.call); err != nil {
 			return "", err
 		}
 
@@ -240,7 +241,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			return "", err
 		}
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, &t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
 			Fun: ast.NewIdent(newResponseDataFuncIdent),
 			Args: []ast.Expr{
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
