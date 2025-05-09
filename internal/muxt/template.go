@@ -306,6 +306,12 @@ const (
 	TemplateNameScopeIdentifierHTTPResponse = "response"
 	TemplateNameScopeIdentifierContext      = "ctx"
 	TemplateNameScopeIdentifierForm         = "form"
+
+	TemplateDataFieldIdentifierResult     = "result"
+	TemplateDataFieldIdentifierOkay       = "okay"
+	TemplateDataFieldIdentifierError      = "err"
+	TemplateDataFieldIdentifierReceiver   = "receiver"
+	TemplateDataFieldIdentifierStatusCode = "statusCode"
 )
 
 func patternScope() []string {

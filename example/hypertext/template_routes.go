@@ -59,7 +59,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		}
 		result := receiver.SubmitFormEditRow(id, form)
 		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
-			rd := newTemplateData(response, request, result, true, nil)
+			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
 			sc := cmp.Or(rd.statusCode, http.StatusOK)
 			return sc, err
@@ -74,7 +74,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		id := idParsed
 		result := receiver.GetFormEditRow(id)
 		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
-			rd := newTemplateData(response, request, result, true, nil)
+			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "GET /fruits/{id}/edit GetFormEditRow(id)", rd)
 			sc := cmp.Or(rd.statusCode, http.StatusOK)
 			return sc, err
@@ -84,7 +84,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		var result = struct {
 		}{}
 		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
-			rd := newTemplateData(response, request, result, true, nil)
+			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "GET /help", rd)
 			sc := cmp.Or(rd.statusCode, http.StatusOK)
 			return sc, err
@@ -94,7 +94,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		ctx := request.Context()
 		result := receiver.List(ctx)
 		executeTemplateAndWriteHeaders(response, request, func(w io.Writer) (int, error) {
-			rd := newTemplateData(response, request, result, true, nil)
+			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "GET /{$} List(ctx)", rd)
 			sc := cmp.Or(rd.statusCode, http.StatusOK)
 			return sc, err
@@ -103,16 +103,17 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 }
 
 type TemplateData[T any] struct {
+	receiver   RoutesReceiver
 	response   http.ResponseWriter
 	request    *http.Request
 	result     T
 	statusCode int
 	okay       bool
-	error      error
+	err        error
 }
 
-func newTemplateData[T any](response http.ResponseWriter, request *http.Request, result T, okay bool, err error) *TemplateData[T] {
-	return &TemplateData[T]{response: response, request: request, result: result, okay: okay, error: err}
+func newTemplateData[T any](receiver RoutesReceiver, response http.ResponseWriter, request *http.Request, result T, okay bool, err error) *TemplateData[T] {
+	return &TemplateData[T]{receiver: receiver, response: response, request: request, result: result, okay: okay, err: err}
 }
 
 func (data *TemplateData[T]) Path() TemplateRoutePaths {
@@ -142,7 +143,11 @@ func (data *TemplateData[T]) Ok() bool {
 }
 
 func (data *TemplateData[T]) Err() error {
-	return data.error
+	return data.err
+}
+
+func (data *TemplateData[T]) Receiver() RoutesReceiver {
+	return data.receiver
 }
 
 type TemplateRoutePaths struct {

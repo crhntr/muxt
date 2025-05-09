@@ -378,10 +378,6 @@ func relativeFilePaths(wd string, abs ...string) ([]string, error) {
 
 type Functions map[string]*types.Signature
 
-func NewFunctions(m map[string]*types.Signature) Functions {
-	return Functions(m)
-}
-
 func DefaultFunctions(pkg *types.Package) Functions {
 	funcTypeMap := make(Functions)
 	fmtPkg, ok := findPackage(pkg, "fmt")
