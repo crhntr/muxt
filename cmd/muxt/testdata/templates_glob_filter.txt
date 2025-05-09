@@ -1,5 +1,5 @@
 muxt generate
-! stdout 'routes has route for GET /example'
+! stdout 'generating handler for pattern GET /example'
 
 exec go test
 

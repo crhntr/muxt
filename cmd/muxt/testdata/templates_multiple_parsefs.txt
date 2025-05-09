@@ -1,7 +1,7 @@
 muxt generate
-stdout 'routes has route for GET /'
-stdout 'routes has route for GET /form'
-stdout 'routes has route for POST /form'
+stdout 'generating handler for pattern GET /'
+stdout 'generating handler for pattern GET /form'
+stdout 'generating handler for pattern POST /form'
 
 muxt check
 stderr 'checking endpoint GET /'

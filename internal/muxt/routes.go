@@ -190,7 +190,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	for i := range templates {
 		t := &templates[i]
 		const dataVarIdent = "result"
-		logger.Printf("routes has route for %s", t.pattern)
+		logger.Printf("generating handler for pattern %s", t.pattern)
 		if t.fun == nil {
 			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(noMethoHandlerFunc(file, t, config.TemplatesVariable, dataVarIdent)))
 			continue
