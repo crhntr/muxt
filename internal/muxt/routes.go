@@ -697,28 +697,6 @@ func templateDataStatusCodeMethod() *ast.FuncDecl {
 	}
 }
 
-func useTemplateDataStatusCodeField(templateDataVar, statusCodeVarIdent string) *ast.IfStmt {
-	const (
-		scIdent = "statusCode"
-	)
-	return &ast.IfStmt{
-		Cond: &ast.BinaryExpr{X: &ast.SelectorExpr{
-			X:   ast.NewIdent(templateDataVar),
-			Sel: ast.NewIdent(scIdent),
-		}, Op: token.NEQ, Y: source.Int(0)},
-		Body: &ast.BlockStmt{List: []ast.Stmt{
-			&ast.AssignStmt{
-				Lhs: []ast.Expr{ast.NewIdent(statusCodeVarIdent)},
-				Tok: token.ASSIGN,
-				Rhs: []ast.Expr{&ast.SelectorExpr{
-					X:   ast.NewIdent(templateDataVar),
-					Sel: ast.NewIdent(scIdent),
-				}},
-			},
-		}},
-	}
-}
-
 func templateDataHeaderMethod() *ast.FuncDecl {
 	const (
 		this       = "data"
