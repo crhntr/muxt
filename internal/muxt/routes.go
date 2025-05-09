@@ -194,35 +194,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		const dataVarIdent = "result"
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
-			handlerFunc := &ast.FuncLit{
-				Type: httpHandlerFuncType(file),
-				Body: &ast.BlockStmt{
-					List: []ast.Stmt{
-						&ast.DeclStmt{
-							Decl: &ast.GenDecl{
-								Tok: token.VAR,
-								Specs: []ast.Spec{
-									&ast.ValueSpec{
-										Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
-										Values: []ast.Expr{&ast.CompositeLit{Type: source.EmptyStructType()}},
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-			handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
-				Fun: ast.NewIdent(newResponseDataFuncIdent),
-				Args: []ast.Expr{
-					ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
-					ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-					ast.NewIdent(dataVarIdent),
-					ast.NewIdent("true"),
-					ast.NewIdent("nil"),
-				},
-			})...)
-			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
+			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(noMethoHandlerFunc(file, &t, config.TemplatesVariable, dataVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, newResponseDataFuncIdent)))
 			continue
 		}
 
@@ -268,7 +240,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			return "", err
 		}
 		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, &t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
 			Fun: ast.NewIdent(newResponseDataFuncIdent),
 			Args: []ast.Expr{
 				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -418,6 +390,38 @@ func executeTemplateAndWriteHeadersFunc(file *source.File) *ast.FuncLit {
 			},
 		},
 	}
+}
+
+func noMethoHandlerFunc(file *source.File, t *Template, templatesVarIdent, dataVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, newResponseDataFuncIdent string) *ast.FuncLit {
+	handlerFunc := &ast.FuncLit{
+		Type: httpHandlerFuncType(file),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.DeclStmt{
+					Decl: &ast.GenDecl{
+						Tok: token.VAR,
+						Specs: []ast.Spec{
+							&ast.ValueSpec{
+								Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
+								Values: []ast.Expr{&ast.CompositeLit{Type: source.EmptyStructType()}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, templatesVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+		Fun: ast.NewIdent(newResponseDataFuncIdent),
+		Args: []ast.Expr{
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+			ast.NewIdent(dataVarIdent),
+			ast.NewIdent("true"),
+			ast.NewIdent("nil"),
+		},
+	})...)
+	return handlerFunc
 }
 
 func executeTemplateFunc(file *source.File) *ast.FuncLit {
@@ -1411,11 +1415,11 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func executeFuncDecl(file *source.File, t Template, resultType types.Type, templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent string, result ast.Expr) []ast.Stmt {
+func executeFuncDecl(file *source.File, t *Template, resultType types.Type, templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent string, result ast.Expr) []ast.Stmt {
 	executeArgs := []ast.Expr{
 		ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 		ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-		executeTemplateClosureLiteral(file, &t, resultType, templatesVariableIdent, result),
+		executeTemplateClosureLiteral(file, t, resultType, templatesVariableIdent, result),
 	}
 
 	var statements []ast.Stmt
