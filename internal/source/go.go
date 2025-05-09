@@ -42,9 +42,9 @@ func IterateValueSpecs(files []*ast.File) func(func(*ast.File, *ast.ValueSpec) b
 	}
 }
 
-func FormatFile(filePath string, node ast.Node) (string, error) {
+func FormatFile(filePath string, f *ast.File) (string, error) {
 	var buf bytes.Buffer
-	if err := printer.Fprint(&buf, token.NewFileSet(), node); err != nil {
+	if err := printer.Fprint(&buf, token.NewFileSet(), f); err != nil {
 		return "", fmt.Errorf("formatting error: %v", err)
 	}
 	out, err := imports.Process(filePath, buf.Bytes(), &imports.Options{
