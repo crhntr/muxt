@@ -55,6 +55,10 @@ const (
 	templateDataFieldStatusCode = "statusCode"
 
 	executeTemplateErrorMessage = "failed to render page"
+
+	executeTemplateAndWriteHeadersFuncIdent = "executeTemplateAndWriteHeaders"
+	executeTemplateFuncIdent                = "executeTemplate"
+	newResponseDataFuncIdent                = "new" + templateDataTypeName
 )
 
 type RoutesFileConfiguration struct {
@@ -141,11 +145,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		Methods: new(ast.FieldList),
 	}
 
-	const (
-		executeTemplateAndWriteHeadersFuncIdent = "executeTemplateAndWriteHeaders"
-		executeTemplateFuncIdent                = "executeTemplate"
-	)
-
 	routesFunc := &ast.FuncDecl{
 		Name: ast.NewIdent(config.RoutesFunction),
 		Type: &ast.FuncType{
@@ -188,69 +187,18 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		})
 	}
 
-	const newResponseDataFuncIdent = "new" + templateDataTypeName
-
 	for i := range templates {
 		t := &templates[i]
 		const dataVarIdent = "result"
 		logger.Printf("routes has route for %s", t.pattern)
 		if t.fun == nil {
-			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(noMethoHandlerFunc(file, &t, config.TemplatesVariable, dataVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, newResponseDataFuncIdent)))
+			routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(noMethoHandlerFunc(file, t, config.TemplatesVariable, dataVarIdent)))
 			continue
 		}
-
-		sigs := make(map[string]*types.Signature)
-		if err := ensureMethodSignature(file, sigs, t, receiver, receiverInterface, t.call, routesPkg.Types); err != nil {
-			return "", err
-		}
-		sig, ok := sigs[t.fun.Name]
-		if !ok {
-			return "", fmt.Errorf("failed to determine call signature %s", t.fun.Name)
-		}
-		if sig.Results().Len() == 0 {
-			return "", fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
-		}
-		var callFun ast.Expr
-		obj, _, _ := types.LookupFieldOrMethod(receiver, true, receiver.Obj().Pkg(), t.fun.Name)
-		isMethodCall := obj != nil
-		if isMethodCall {
-			callFun = &ast.SelectorExpr{
-				X:   ast.NewIdent(receiverIdent),
-				Sel: t.fun,
-			}
-		} else {
-			callFun = ast.NewIdent(t.fun.Name)
-		}
-
-		handlerFunc := &ast.FuncLit{
-			Type: httpHandlerFuncType(file),
-			Body: &ast.BlockStmt{
-				List: []ast.Stmt{},
-			},
-		}
-
-		if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, sigs, nil, receiver, t.call); err != nil {
-			return "", err
-		}
-
-		receiverCallStatements, err := callReceiverMethod(file, dataVarIdent, sig, &ast.CallExpr{
-			Fun:  callFun,
-			Args: slices.Clone(t.call.Args),
-		})
+		handlerFunc, err := methodHandlerFunc(file, t, receiver, receiverInterface, routesPkg.Types, config.TemplatesVariable, dataVarIdent)
 		if err != nil {
 			return "", err
 		}
-		handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-		handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), config.TemplatesVariable, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
-			Fun: ast.NewIdent(newResponseDataFuncIdent),
-			Args: []ast.Expr{
-				ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
-				ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-				ast.NewIdent(dataVarIdent),
-				ast.NewIdent("true"),
-				ast.NewIdent("nil"),
-			},
-		})...)
 		routesFunc.Body.List = append(routesFunc.Body.List, t.callHandleFunc(handlerFunc))
 	}
 
@@ -301,6 +249,95 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	return source.FormatFile(filepath.Join(wd, DefaultOutputFileName), outputFile)
+}
+
+func noMethoHandlerFunc(file *source.File, t *Template, templatesVarIdent, dataVarIdent string) *ast.FuncLit {
+	handlerFunc := &ast.FuncLit{
+		Type: httpHandlerFuncType(file),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.DeclStmt{
+					Decl: &ast.GenDecl{
+						Tok: token.VAR,
+						Specs: []ast.Spec{
+							&ast.ValueSpec{
+								Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
+								Values: []ast.Expr{&ast.CompositeLit{Type: source.EmptyStructType()}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, templatesVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+		Fun: ast.NewIdent(newResponseDataFuncIdent),
+		Args: []ast.Expr{
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+			ast.NewIdent(dataVarIdent),
+			ast.NewIdent("true"),
+			ast.NewIdent("nil"),
+		},
+	})...)
+	return handlerFunc
+}
+
+func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, outputPkg *types.Package, templatesVariableIdent, dataVarIdent string) (*ast.FuncLit, error) {
+	sigs := make(map[string]*types.Signature)
+	if err := ensureMethodSignature(file, sigs, t, receiver, receiverInterface, t.call, outputPkg); err != nil {
+		return nil, err
+	}
+	sig, ok := sigs[t.fun.Name]
+	if !ok {
+		return nil, fmt.Errorf("failed to determine call signature %s", t.fun.Name)
+	}
+	if sig.Results().Len() == 0 {
+		return nil, fmt.Errorf("method for pattern %q has no results it should have one or two", t.name)
+	}
+	var callFun ast.Expr
+	obj, _, _ := types.LookupFieldOrMethod(receiver, true, receiver.Obj().Pkg(), t.fun.Name)
+	isMethodCall := obj != nil
+	if isMethodCall {
+		callFun = &ast.SelectorExpr{
+			X:   ast.NewIdent(receiverIdent),
+			Sel: t.fun,
+		}
+	} else {
+		callFun = ast.NewIdent(t.fun.Name)
+	}
+
+	handlerFunc := &ast.FuncLit{
+		Type: httpHandlerFuncType(file),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{},
+		},
+	}
+
+	var err error
+	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, sigs, nil, receiver, t.call); err != nil {
+		return nil, err
+	}
+
+	receiverCallStatements, err := callReceiverMethod(file, dataVarIdent, sig, &ast.CallExpr{
+		Fun:  callFun,
+		Args: slices.Clone(t.call.Args),
+	})
+	if err != nil {
+		return nil, err
+	}
+	handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
+	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+		Fun: ast.NewIdent(newResponseDataFuncIdent),
+		Args: []ast.Expr{
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+			ast.NewIdent(dataVarIdent),
+			ast.NewIdent("true"),
+			ast.NewIdent("nil"),
+		},
+	})...)
+	return handlerFunc, nil
 }
 
 func executeFuncType(file *source.File, executeIdent string, closureType *ast.FuncType) *ast.FuncType {
@@ -391,38 +428,6 @@ func executeTemplateAndWriteHeadersFunc(file *source.File) *ast.FuncLit {
 			},
 		},
 	}
-}
-
-func noMethoHandlerFunc(file *source.File, t *Template, templatesVarIdent, dataVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, newResponseDataFuncIdent string) *ast.FuncLit {
-	handlerFunc := &ast.FuncLit{
-		Type: httpHandlerFuncType(file),
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				&ast.DeclStmt{
-					Decl: &ast.GenDecl{
-						Tok: token.VAR,
-						Specs: []ast.Spec{
-							&ast.ValueSpec{
-								Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
-								Values: []ast.Expr{&ast.CompositeLit{Type: source.EmptyStructType()}},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, templatesVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
-		Fun: ast.NewIdent(newResponseDataFuncIdent),
-		Args: []ast.Expr{
-			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
-			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
-			ast.NewIdent(dataVarIdent),
-			ast.NewIdent("true"),
-			ast.NewIdent("nil"),
-		},
-	})...)
-	return handlerFunc
 }
 
 func executeTemplateFunc(file *source.File) *ast.FuncLit {
