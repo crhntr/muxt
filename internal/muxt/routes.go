@@ -204,7 +204,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 								Specs: []ast.Spec{
 									&ast.ValueSpec{
 										Names:  []*ast.Ident{ast.NewIdent(dataVarIdent)},
-										Values: []ast.Expr{&ast.CompositeLit{Type: &ast.StructType{Fields: &ast.FieldList{}}}},
+										Values: []ast.Expr{&ast.CompositeLit{Type: source.EmptyStructType()}},
 									},
 								},
 							},

@@ -272,3 +272,7 @@ func basicLiteralString(node ast.Node) (string, bool) {
 	}
 	return templateName, true
 }
+
+func EmptyStructType() *ast.StructType {
+	return &ast.StructType{Fields: &ast.FieldList{}}
+}
