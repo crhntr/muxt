@@ -116,6 +116,10 @@ func newTemplateData[T any](receiver RoutesReceiver, response http.ResponseWrite
 	return &TemplateData[T]{receiver: receiver, response: response, request: request, result: result, okay: okay, err: err}
 }
 
+func ChangeTemplateDataResult[NewResultType, PrevResultType any](td *TemplateData[PrevResultType], result NewResultType, okay bool, err error) *TemplateData[NewResultType] {
+	return &TemplateData[NewResultType]{receiver: td.receiver, response: td.response, request: td.request, statusCode: 0, result: result, okay: okay, err: err}
+}
+
 func (data *TemplateData[T]) Path() TemplateRoutePaths {
 	return TemplateRoutePaths{}
 }

@@ -59,6 +59,7 @@ const (
 	executeTemplateAndWriteHeadersFuncIdent = "executeTemplateAndWriteHeaders"
 	executeTemplateFuncIdent                = "executeTemplate"
 	newResponseDataFuncIdent                = "new" + templateDataTypeName
+	changeTemplateDataResultIdent           = "Change" + templateDataTypeName + "Result"
 )
 
 type RoutesFileConfiguration struct {
@@ -238,7 +239,8 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			routesFunc,
 
 			templateDataType(file, ast.NewIdent(config.ReceiverInterface)),
-			newTemplateData(file, newResponseDataFuncIdent, resultParamName, ast.NewIdent(config.ReceiverInterface)),
+			newTemplateData(file, ast.NewIdent(config.ReceiverInterface)),
+			changeTemplateDataResult(file),
 			templateDataPathMethod(),
 			templateDataResultMethod(),
 			templateDataRequestMethod(file),
@@ -531,9 +533,10 @@ func templateDataType(file *source.File, receiverType ast.Expr) *ast.GenDecl {
 	}
 }
 
-func newTemplateData(file *source.File, newResponseDataFuncIdent, resultParamName string, receiverType ast.Expr) *ast.FuncDecl {
+func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 	const (
-		okayIdent = "okay"
+		okayIdent       = "okay"
+		resultParamName = "result"
 	)
 	return &ast.FuncDecl{
 		Name: ast.NewIdent(newResponseDataFuncIdent),
@@ -575,6 +578,78 @@ func newTemplateData(file *source.File, newResponseDataFuncIdent, resultParamNam
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierReceiver), Value: ast.NewIdent(TemplateDataFieldIdentifierReceiver)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierResult), Value: ast.NewIdent(resultParamName)},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
+							},
+						}},
+					},
+				},
+			},
+		},
+	}
+}
+
+/*
+	func ChangeTemplateDataResult[NewResultType, PrevResultType any](data *TemplateData[PrevResultType], result NewResultType, ok bool, err error) *TemplateData[NewResultType] {
+		return &TemplateData[NewResultType]{
+			receiver:   data.receiver,
+			response:   data.response,
+			request:    data.request,
+			statusCode: data.statusCode,
+
+			result: result,
+			okay:   ok,
+			err:    err,
+		}
+	}
+*/
+func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
+	const (
+		resultParamName = "result"
+		errIdent        = "err"
+		okayIdent       = "okay"
+		prevTDIdent     = "td"
+
+		newResultTypeIdent  = "NewResultType"
+		prevResultTypeIdent = "PrevResultType"
+	)
+	return &ast.FuncDecl{
+		Name: ast.NewIdent(changeTemplateDataResultIdent),
+		Type: &ast.FuncType{
+			TypeParams: &ast.FieldList{
+				List: []*ast.Field{
+					{Names: []*ast.Ident{ast.NewIdent(newResultTypeIdent), ast.NewIdent(prevResultTypeIdent)}, Type: ast.NewIdent("any")},
+				},
+			},
+			Params: &ast.FieldList{
+				List: []*ast.Field{
+					{Names: []*ast.Ident{ast.NewIdent(prevTDIdent)}, Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(prevResultTypeIdent), X: ast.NewIdent(templateDataTypeName)}}},
+					{Names: []*ast.Ident{ast.NewIdent(resultParamName)}, Type: ast.NewIdent(newResultTypeIdent)},
+					{Names: []*ast.Ident{ast.NewIdent(okayIdent)}, Type: ast.NewIdent("bool")},
+					{Names: []*ast.Ident{ast.NewIdent(errIdent)}, Type: ast.NewIdent("error")},
+				},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{
+					{Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(newResultTypeIdent), X: ast.NewIdent(templateDataTypeName)}}},
+				},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.ReturnStmt{
+					Results: []ast.Expr{
+						&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
+							Type: &ast.IndexExpr{
+								X:     ast.NewIdent(templateDataTypeName),
+								Index: ast.NewIdent(newResultTypeIdent),
+							},
+							Elts: []ast.Expr{
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierReceiver), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierReceiver)}},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierStatusCode), Value: source.Int(0)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierResult), Value: ast.NewIdent(resultParamName)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
