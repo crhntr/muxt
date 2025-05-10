@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -49,7 +50,13 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 				return
 			}
 			if value < 0 {
-				http.Error(response, "count must not be less than 0", http.StatusBadRequest)
+				writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
+					var zv EditRowPage
+					rd := newTemplateData(receiver, response, request, zv, false, errors.New("count must not be less than 0"))
+					err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
+					sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
+					return sc, err
+				})
 				return
 			}
 			form.Value = value

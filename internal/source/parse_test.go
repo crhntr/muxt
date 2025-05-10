@@ -309,7 +309,19 @@ func Test_inputValidations(t *testing.T) {
 			file, err := source.NewFile(filepath.Join(wd, "tr.go"), fSet, pl)
 			require.NoError(t, err)
 
-			statements, err, ok := source.GenerateValidations(file, v, tt.Type, `[name="field"]`, "field", "response", fragment)
+			statements, err, ok := source.GenerateValidations(file, v, tt.Type, `[name="field"]`, "field", "response", fragment, func(s string) *ast.BlockStmt {
+				return &ast.BlockStmt{List: []ast.Stmt{
+					&ast.ExprStmt{X: &ast.CallExpr{
+						Fun: &ast.SelectorExpr{X: ast.NewIdent("http"), Sel: ast.NewIdent("Error")},
+						Args: []ast.Expr{
+							ast.NewIdent("response"),
+							source.String(s),
+							&ast.SelectorExpr{X: ast.NewIdent("http"), Sel: ast.NewIdent("StatusBadRequest")},
+						},
+					}},
+					&ast.ReturnStmt{},
+				}}
+			})
 			require.True(t, ok)
 			if tt.Error != "" {
 				require.Error(t, err)

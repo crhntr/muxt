@@ -307,7 +307,16 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 	resultType := sig.Results().At(0).Type()
 
 	var err error
-	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, resultType, sigs, nil, receiver, templatesVariableIdent, t.call); err != nil {
+	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, resultType, sigs, nil, receiver, templatesVariableIdent, t.call, func(s string) *ast.BlockStmt {
+		errBlock, err := badRequestErrorBlock(file, t, resultType, templatesVariableIdent, &ast.CallExpr{
+			Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "errors")), Sel: ast.NewIdent("New")},
+			Args: []ast.Expr{source.String(s)},
+		})
+		if err != nil {
+			panic(err)
+		}
+		return errBlock
+	}); err != nil {
 		return nil, err
 	}
 
@@ -890,7 +899,7 @@ func setContentTypeHeaderSetOnTemplateData() *ast.IfStmt {
 	}
 }
 
-func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, templatesVariableIdent string, call *ast.CallExpr) ([]ast.Stmt, error) {
+func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, templatesVariableIdent string, call *ast.CallExpr, validationFailureBlock source.ValidationErrorBlock) ([]ast.Stmt, error) {
 	fun, ok := call.Fun.(*ast.Ident)
 	if !ok {
 		return nil, fmt.Errorf("expected function to be identifier")
@@ -915,7 +924,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 		default:
 			// TODO: add error case
 		case *ast.CallExpr:
-			parseArgStatements, err := appendParseArgumentStatements(statements, t, file, resultType, sigs, parsed, receiver, templatesVariableIdent, arg)
+			parseArgStatements, err := appendParseArgumentStatements(statements, t, file, resultType, sigs, parsed, receiver, templatesVariableIdent, arg, validationFailureBlock)
 			if err != nil {
 				return nil, err
 			}
@@ -999,7 +1008,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 				statements = append(statements, s...)
 				t.pathValueTypes[arg.Name] = param.Type()
 			case arg.Name == TemplateNameScopeIdentifierForm:
-				s, err := appendParseFormToStructStatements(statements, t, file, resultType, arg, param, templatesVariableIdent)
+				s, err := appendParseFormToStructStatements(statements, t, file, resultType, arg, param, validationFailureBlock, templatesVariableIdent)
 				if err != nil {
 					return nil, err
 				}
@@ -1014,7 +1023,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 	return statements, nil
 }
 
-func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, arg *ast.Ident, param types.Object, templatesVariableIdent string) ([]ast.Stmt, error) {
+func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, arg *ast.Ident, param types.Object, validationBlock source.ValidationErrorBlock, templatesVariableIdent string) ([]ast.Stmt, error) {
 	const parsedVariableName = "value"
 	statements = append(statements, callParseForm())
 
@@ -1066,7 +1075,7 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file 
 			}
 			str = ast.NewIdent("val")
 			elemType = ft.Elem()
-			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes), validationBlock)
 			if ok && err != nil {
 				return nil, err
 			}
@@ -1091,7 +1100,7 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file 
 			}
 			str = &ast.CallExpr{Fun: &ast.SelectorExpr{X: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Sel: ast.NewIdent("FormValue")}, Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: strconv.Quote(inputName)}}}
 			elemType = field.Type()
-			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes))
+			validations, err, ok := source.GenerateValidations(file, ast.NewIdent(parsedVariableName), elemType, fmt.Sprintf("[name=%q]", inputName), inputName, httpResponseField(file).Names[0].Name, dom.NewDocumentFragment(templateNodes), validationBlock)
 			if ok && err != nil {
 				return nil, err
 			}
@@ -1161,7 +1170,7 @@ func httpServeMuxField(file *source.File) *ast.Field {
 	}
 }
 
-func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type, templatesVariableIdent string) (*ast.BlockStmt, error) {
+func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type, templatesVariableIdent string, errExp ast.Expr) (*ast.BlockStmt, error) {
 	const (
 		statusCodeIdent = "sc"
 		errIdent        = "err"
@@ -1212,7 +1221,7 @@ func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type,
 									ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 									ast.NewIdent(zeroValueIdent),
 									ast.NewIdent("false"),
-									ast.NewIdent(errIdent),
+									errExp,
 								},
 							}},
 						},
@@ -1243,7 +1252,7 @@ func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type,
 }
 
 func generateParseValueFromStringStatements(file *source.File, t *Template, tmp string, resultType types.Type, str ast.Expr, valueType types.Type, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt, templatesVariableIdent string) ([]ast.Stmt, error) {
-	errBlock, err := badRequestErrorBlock(file, t, resultType, templatesVariableIdent)
+	errBlock, err := badRequestErrorBlock(file, t, resultType, templatesVariableIdent, ast.NewIdent(errIdent))
 	if err != nil {
 		return nil, err
 	}
