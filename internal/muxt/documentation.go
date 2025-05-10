@@ -86,17 +86,24 @@ func writeOutput(w io.Writer, functions source.Functions, templates []Template, 
 		_, _ = fmt.Fprintf(w, "  - func %s%s\n", name, s)
 	}
 
-	_, _ = fmt.Fprintf(w, "routes:\n")
+	_, _ = fmt.Fprintf(w, "\nTemplate Routes:\n\n")
 	for _, t := range templates {
-		_, _ = fmt.Fprintf(w, "  - %s\n", t.String())
+		_, _ = fmt.Fprintf(w, "%s\n", t.String())
+
+		const prefix = "<!DOCTYPE"
+		if src := t.template.Tree.Root.String(); len(src) >= len(prefix) && strings.EqualFold(src[:len(prefix)], "<!DOCTYPE") {
+			_, _ = fmt.Fprintf(w, "%s\n%s\n%s\n\n\n", strings.Repeat("=", 40), src, strings.Repeat("-", 40))
+		} else {
+			_, _ = fmt.Fprintf(w, "%s\n%s\n%s\n\n\n", strings.Repeat("=", 40), src, strings.Repeat("-", 40))
+		}
 	}
 
-	_, _ = fmt.Fprintf(w, "reciever: %s\n", receiver.String())
+	_, _ = fmt.Fprintf(w, "\nReciever Type: %s\n", receiver.String())
 	if receiver.NumMethods() > 0 {
-		_, _ = fmt.Fprintf(w, "reciever_methods:\n")
+		_, _ = fmt.Fprintf(w, "\nReciever Methods:\n")
 	}
 	for i := 0; i < receiver.NumMethods(); i++ {
 		m := receiver.Method(i)
-		_, _ = fmt.Fprintf(w, "  - func %s%s\n", m.Name(), strings.TrimPrefix(m.Signature().String(), "func"))
+		_, _ = fmt.Fprintf(w, "  - func (%s) %s%s\n", m.Name(), receiver.String(), strings.TrimPrefix(m.Signature().String(), "func"))
 	}
 }
