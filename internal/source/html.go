@@ -15,9 +15,12 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-type ValidationGenerator interface {
-	GenerateValidation(imports *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt
-}
+type (
+	ValidationErrorBlock func(string) *ast.BlockStmt
+	ValidationGenerator  interface {
+		GenerateValidation(imports *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt
+	}
+)
 
 func ParseInputValidations(name string, input spec.Element, tp types.Type) ([]ValidationGenerator, error) {
 	if tag := strings.ToLower(input.TagName()); tag != atom.Input.String() {

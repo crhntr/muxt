@@ -5,14 +5,12 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"net/http"
 	"regexp"
-	"strconv"
 
 	"github.com/crhntr/dom/spec"
 )
 
-func GenerateValidations(imports *File, variable ast.Expr, variableType types.Type, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment) ([]ast.Stmt, error, bool) {
+func GenerateValidations(imports *File, variable ast.Expr, variableType types.Type, inputQuery, inputName, responseIdent string, fragment spec.DocumentFragment, validationFailureBlock ValidationErrorBlock) ([]ast.Stmt, error, bool) {
 	input := fragment.QuerySelector(inputQuery)
 	if input == nil {
 		return nil, nil, false
@@ -25,12 +23,7 @@ func GenerateValidations(imports *File, variable ast.Expr, variableType types.Ty
 
 	var statements []ast.Stmt
 	for _, validation := range validations {
-		statements = append(statements, validation.GenerateValidation(imports, variable, func(message string) ast.Stmt {
-			return &ast.ExprStmt{X: imports.HTTPErrorCall(ast.NewIdent(responseIdent), &ast.BasicLit{
-				Kind:  token.STRING,
-				Value: strconv.Quote(message),
-			}, http.StatusBadRequest)}
-		}))
+		statements = append(statements, validation.GenerateValidation(imports, variable, validationFailureBlock))
 	}
 	return statements, nil, true
 }
@@ -40,19 +33,14 @@ type MinValidation struct {
 	MinExp ast.Expr
 }
 
-func (val MinValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MinValidation) GenerateValidation(_ *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  variable,
 			Op: token.LSS, // value < 13
 			Y:  val.MinExp,
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				handleError(fmt.Sprintf("%s must not be less than %s", val.Name, Format(val.MinExp))),
-				&ast.ReturnStmt{},
-			},
-		},
+		Body: handleError(fmt.Sprintf("%s must not be less than %s", val.Name, Format(val.MinExp))),
 	}
 }
 
@@ -61,19 +49,14 @@ type MaxValidation struct {
 	MinExp ast.Expr
 }
 
-func (val MaxValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MaxValidation) GenerateValidation(_ *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  variable,
 			Op: token.GTR, // value > 13
 			Y:  val.MinExp,
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				handleError(fmt.Sprintf("%s must not be more than %s", val.Name, Format(val.MinExp))),
-				&ast.ReturnStmt{},
-			},
-		},
+		Body: handleError(fmt.Sprintf("%s must not be more than %s", val.Name, Format(val.MinExp))),
 	}
 }
 
@@ -82,7 +65,7 @@ type PatternValidation struct {
 	Exp  *regexp.Regexp
 }
 
-func (val PatternValidation) GenerateValidation(imports *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val PatternValidation) GenerateValidation(imports *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.UnaryExpr{
 			Op: token.NOT,
@@ -94,12 +77,7 @@ func (val PatternValidation) GenerateValidation(imports *File, variable ast.Expr
 				Args: []ast.Expr{variable},
 			},
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				handleError(fmt.Sprintf("%s must match %q", val.Name, val.Exp.String())),
-				&ast.ReturnStmt{},
-			},
-		},
+		Body: handleError(fmt.Sprintf("%s must match %q", val.Name, val.Exp.String())),
 	}
 }
 
@@ -108,19 +86,14 @@ type MaxLengthValidation struct {
 	MaxLength int
 }
 
-func (val MaxLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MaxLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
 			Op: token.GTR,
 			Y:  Int(val.MaxLength),
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				handleError(fmt.Sprintf("%s is too long (the max length is %d)", val.Name, val.MaxLength)),
-				&ast.ReturnStmt{},
-			},
-		},
+		Body: handleError(fmt.Sprintf("%s is too long (the max length is %d)", val.Name, val.MaxLength)),
 	}
 }
 
@@ -129,18 +102,13 @@ type MinLengthValidation struct {
 	MinLength int
 }
 
-func (val MinLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError func(string) ast.Stmt) ast.Stmt {
+func (val MinLengthValidation) GenerateValidation(_ *File, variable ast.Expr, handleError ValidationErrorBlock) ast.Stmt {
 	return &ast.IfStmt{
 		Cond: &ast.BinaryExpr{
 			X:  &ast.CallExpr{Fun: ast.NewIdent("len"), Args: []ast.Expr{variable}},
 			Op: token.LSS,
 			Y:  Int(val.MinLength),
 		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				handleError(fmt.Sprintf("%s is too short (the min length is %d)", val.Name, val.MinLength)),
-				&ast.ReturnStmt{},
-			},
-		},
+		Body: handleError(fmt.Sprintf("%s is too short (the min length is %d)", val.Name, val.MinLength)),
 	}
 }
