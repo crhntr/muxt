@@ -209,13 +209,6 @@ func String(s string) *ast.BasicLit {
 
 func Nil() *ast.Ident { return ast.NewIdent("nil") }
 
-func ErrorCheckReturn(errVarIdent string, body ...ast.Stmt) *ast.IfStmt {
-	return &ast.IfStmt{
-		Cond: &ast.BinaryExpr{X: ast.NewIdent(errVarIdent), Op: token.NEQ, Y: Nil()},
-		Body: &ast.BlockStmt{List: append(body, &ast.ReturnStmt{})},
-	}
-}
-
 func FieldIndex(fields []*ast.Field, i int) (*ast.Ident, ast.Expr, bool) {
 	n := 0
 	for _, field := range fields {
