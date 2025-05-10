@@ -121,14 +121,15 @@ func newTemplate(in string) (Template, error, bool) {
 	if err := checkPathValueNames(pathValueNames); err != nil {
 		return Template{}, err, true
 	}
+	p.pathValueNames = pathValueNames
 
-	err := parseHandler(p.fileSet, &p, pathValueNames)
+	err := parseHandler(p.fileSet, &p, p.pathValueNames)
 	if err != nil {
 		return p, err, true
 	}
 
 	if p.fun == nil {
-		for _, name := range pathValueNames {
+		for _, name := range p.pathValueNames {
 			p.pathValueTypes[name] = types.Universe.Lookup("string").Type()
 		}
 	}
