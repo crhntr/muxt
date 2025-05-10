@@ -56,10 +56,10 @@ const (
 
 	executeTemplateErrorMessage = "failed to render page"
 
-	executeTemplateAndWriteHeadersFuncIdent = "executeTemplateAndWriteHeaders"
-	executeTemplateFuncIdent                = "executeTemplate"
-	newResponseDataFuncIdent                = "new" + templateDataTypeName
-	changeTemplateDataResultIdent           = "Change" + templateDataTypeName + "Result"
+	writeBodyAndHeadersFuncIdent  = "writeBodyAndHeaders"
+	writeBody                     = "writeBody"
+	newResponseDataFuncIdent      = "new" + templateDataTypeName
+	changeTemplateDataResultIdent = "Change" + templateDataTypeName + "Result"
 )
 
 type RoutesFileConfiguration struct {
@@ -175,14 +175,14 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 	if !onlyHasResponseWriterArg {
 		routesFunc.Body.List = append(routesFunc.Body.List, &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(executeTemplateAndWriteHeadersFuncIdent)},
+			Lhs: []ast.Expr{ast.NewIdent(writeBodyAndHeadersFuncIdent)},
 			Tok: token.DEFINE,
-			Rhs: []ast.Expr{executeTemplateAndWriteHeadersFunc(file)},
+			Rhs: []ast.Expr{writeBodyAndWriteHeadersFunc(file)},
 		})
 	}
 	if hasResponseWriterArg {
 		routesFunc.Body.List = append(routesFunc.Body.List, &ast.AssignStmt{
-			Lhs: []ast.Expr{ast.NewIdent(executeTemplateFuncIdent)},
+			Lhs: []ast.Expr{ast.NewIdent(writeBody)},
 			Tok: token.DEFINE,
 			Rhs: []ast.Expr{executeTemplateFunc(file)},
 		})
@@ -276,7 +276,7 @@ func noMethoHandlerFunc(file *source.File, t *Template, templatesVarIdent, dataV
 			},
 		},
 	}
-	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, templatesVarIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, nil, templatesVarIdent, writeBodyAndHeadersFuncIdent, writeBody, &ast.CallExpr{
 		Fun: ast.NewIdent(newResponseDataFuncIdent),
 		Args: []ast.Expr{
 			ast.NewIdent(receiverIdent),
@@ -334,7 +334,7 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 		return nil, err
 	}
 	handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
-	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent, &ast.CallExpr{
+	handlerFunc.Body.List = append(handlerFunc.Body.List, executeFuncDecl(file, t, sig.Results().At(0).Type(), templatesVariableIdent, writeBodyAndHeadersFuncIdent, writeBody, &ast.CallExpr{
 		Fun: ast.NewIdent(newResponseDataFuncIdent),
 		Args: []ast.Expr{
 			ast.NewIdent(receiverIdent),
@@ -403,7 +403,7 @@ func executeTemplateLiteralType(file *source.File, writerIdent string) *ast.Func
 	}
 }
 
-func executeTemplateAndWriteHeadersFunc(file *source.File) *ast.FuncLit {
+func writeBodyAndWriteHeadersFunc(file *source.File) *ast.FuncLit {
 	const (
 		bufIdent        = "buf"
 		statusCodeIdent = "statusCode"
@@ -1520,7 +1520,7 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 	}
 }
 
-func executeFuncDecl(file *source.File, t *Template, resultType types.Type, templatesVariableIdent, executeTemplateAndWriteHeadersFuncIdent, executeTemplateFuncIdent string, result ast.Expr) []ast.Stmt {
+func executeFuncDecl(file *source.File, t *Template, resultType types.Type, templatesVariableIdent, writeBodyAndHeadersFuncIdent, executeTemplateFuncIdent string, result ast.Expr) []ast.Stmt {
 	executeArgs := []ast.Expr{
 		ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 		ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
@@ -1531,7 +1531,7 @@ func executeFuncDecl(file *source.File, t *Template, resultType types.Type, temp
 
 	if !t.hasResponseWriterArg {
 		statements = append(statements, &ast.ExprStmt{X: &ast.CallExpr{
-			Fun:  ast.NewIdent(executeTemplateAndWriteHeadersFuncIdent),
+			Fun:  ast.NewIdent(writeBodyAndHeadersFuncIdent),
 			Args: executeArgs,
 		}})
 	} else {
