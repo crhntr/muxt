@@ -224,6 +224,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			templateDataOkay(),
 			templateDataError(),
 			templateDataReceiver(ast.NewIdent(config.ReceiverInterface)),
+			templateRedirect(file),
 
 			// func newResultData
 		}, routePathDecls...),
@@ -543,6 +544,7 @@ func templateDataType(file *source.File, receiverType ast.Expr) *ast.GenDecl {
 							{Names: []*ast.Ident{ast.NewIdent(TemplateDataFieldIdentifierStatusCode)}, Type: ast.NewIdent("int")},
 							{Names: []*ast.Ident{ast.NewIdent(TemplateDataFieldIdentifierOkay)}, Type: ast.NewIdent("bool")},
 							{Names: []*ast.Ident{ast.NewIdent(TemplateDataFieldIdentifierError)}, Type: ast.NewIdent("error")},
+							{Names: []*ast.Ident{ast.NewIdent(TemplateDataFieldIdentifierRedirectURL)}, Type: ast.NewIdent("string")},
 						},
 					},
 				},
@@ -599,6 +601,7 @@ func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierResult), Value: ast.NewIdent(resultParamName)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL), Value: source.String("")},
 							},
 						}},
 					},
@@ -608,20 +611,6 @@ func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 	}
 }
 
-/*
-	func ChangeTemplateDataResult[NewResultType, PrevResultType any](data *TemplateData[PrevResultType], result NewResultType, ok bool, err error) *TemplateData[NewResultType] {
-		return &TemplateData[NewResultType]{
-			receiver:   data.receiver,
-			response:   data.response,
-			request:    data.request,
-			statusCode: data.statusCode,
-
-			result: result,
-			okay:   ok,
-			err:    err,
-		}
-	}
-*/
 func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 	const (
 		resultParamName = "result"
@@ -667,7 +656,8 @@ func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierReceiver), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierReceiver)}},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierStatusCode), Value: source.Int(0)},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL)}},
+								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierStatusCode), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierStatusCode)}},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierResult), Value: ast.NewIdent(resultParamName)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
@@ -734,6 +724,71 @@ func templateDataReceiver(receiverType ast.Expr) *ast.FuncDecl {
 			List: []ast.Stmt{
 				&ast.ReturnStmt{
 					Results: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent("receiver")}}},
+			},
+		},
+	}
+}
+
+func templateRedirect(file *source.File) *ast.FuncDecl {
+	const (
+		codeParamIdent = "code"
+		urlParamIdent  = "url"
+	)
+	return &ast.FuncDecl{
+		Recv: templateDataMethodReceiver(),
+		Name: ast.NewIdent("Redirect"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent(urlParamIdent)}, Type: ast.NewIdent("string")},
+				{Names: []*ast.Ident{ast.NewIdent(codeParamIdent)}, Type: ast.NewIdent("int")},
+			}},
+			Results: &ast.FieldList{
+				List: []*ast.Field{
+					{Type: &ast.StarExpr{X: &ast.IndexExpr{X: ast.NewIdent(templateDataTypeName), Index: ast.NewIdent("T")}}},
+					{Type: ast.NewIdent("error")},
+				},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.IfStmt{
+					Cond: &ast.BinaryExpr{
+						X: &ast.BinaryExpr{
+							X:  ast.NewIdent(codeParamIdent),
+							Op: token.LSS,
+							Y:  source.Int(300),
+						},
+						Op: token.LOR,
+						Y: &ast.BinaryExpr{
+							X:  ast.NewIdent(codeParamIdent),
+							Op: token.GEQ,
+							Y:  source.Int(400),
+						},
+					},
+					Body: &ast.BlockStmt{
+						List: []ast.Stmt{
+							&ast.ReturnStmt{Results: []ast.Expr{
+								ast.NewIdent(templateDataReceiverName),
+								file.Call("", "fmt", "Errorf", []ast.Expr{source.String("invalid status code %d for redirect"), ast.NewIdent("code")}),
+							}},
+						},
+					},
+				},
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent(templateDataReceiverName), Sel: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL)}},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{ast.NewIdent("url")},
+				},
+				&ast.ReturnStmt{Results: []ast.Expr{
+					&ast.CallExpr{
+						Fun: &ast.SelectorExpr{
+							X:   ast.NewIdent(templateDataReceiverName),
+							Sel: ast.NewIdent("StatusCode"),
+						},
+						Args: []ast.Expr{ast.NewIdent(codeParamIdent)},
+					},
+					source.Nil(),
+				}},
 			},
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -140,21 +141,22 @@ func writeResponseBody(response http.ResponseWriter, request *http.Request, exec
 }
 
 type TemplateData[T any] struct {
-	receiver   RoutesReceiver
-	response   http.ResponseWriter
-	request    *http.Request
-	result     T
-	statusCode int
-	okay       bool
-	err        error
+	receiver    RoutesReceiver
+	response    http.ResponseWriter
+	request     *http.Request
+	result      T
+	statusCode  int
+	okay        bool
+	err         error
+	redirectURL string
 }
 
 func newTemplateData[T any](receiver RoutesReceiver, response http.ResponseWriter, request *http.Request, result T, okay bool, err error) *TemplateData[T] {
-	return &TemplateData[T]{receiver: receiver, response: response, request: request, result: result, okay: okay, err: err}
+	return &TemplateData[T]{receiver: receiver, response: response, request: request, result: result, okay: okay, err: err, redirectURL: ""}
 }
 
 func ChangeTemplateDataResult[NewResultType, PrevResultType any](td *TemplateData[PrevResultType], result NewResultType, okay bool, err error) *TemplateData[NewResultType] {
-	return &TemplateData[NewResultType]{receiver: td.receiver, response: td.response, request: td.request, statusCode: 0, result: result, okay: okay, err: err}
+	return &TemplateData[NewResultType]{receiver: td.receiver, response: td.response, request: td.request, redirectURL: td.redirectURL, statusCode: td.statusCode, result: result, okay: okay, err: err}
 }
 
 func (data *TemplateData[T]) Path() TemplateRoutePaths {
@@ -189,6 +191,14 @@ func (data *TemplateData[T]) Err() error {
 
 func (data *TemplateData[T]) Receiver() RoutesReceiver {
 	return data.receiver
+}
+
+func (data *TemplateData[T]) Redirect(url string, code int) (*TemplateData[T], error) {
+	if code < 300 || code >= 400 {
+		return data, fmt.Errorf("invalid status code %d for redirect", code)
+	}
+	data.redirectURL = url
+	return data.StatusCode(code), nil
 }
 
 type TemplateRoutePaths struct {
