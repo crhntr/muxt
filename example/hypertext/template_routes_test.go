@@ -22,7 +22,7 @@ func TestRoutes(t *testing.T) {
 		{
 			Name: "when the row edit form is submitted",
 			Given: domtest.GivenPtr(func(t *testing.T, f *fake.Backend) {
-				f.SubmitFormEditRowReturns(hypertext.EditRowPage{Row: hypertext.Row{ID: 1, Name: "a", Value: 97}, Error: nil})
+				f.SubmitFormEditRowReturns(hypertext.Row{ID: 1, Name: "a", Value: 97}, nil)
 			}),
 			When: func(t *testing.T) *http.Request {
 				req := httptest.NewRequest(http.MethodPatch, hypertext.TemplateRoutePath().SubmitFormEditRow(1), strings.NewReader(url.Values{"count": []string{"5"}}.Encode()))
@@ -50,7 +50,7 @@ func TestRoutes(t *testing.T) {
 		{
 			Name: "when the row edit form is requested",
 			Given: domtest.GivenPtr(func(t *testing.T, f *fake.Backend) {
-				f.GetFormEditRowReturns(hypertext.EditRowPage{Row: hypertext.Row{ID: 1, Name: "a", Value: 97}, Error: nil})
+				f.GetFormEditRowReturns(hypertext.Row{ID: 1, Name: "a", Value: 97}, nil)
 			}),
 			When: func(t *testing.T) *http.Request {
 				return httptest.NewRequest(http.MethodGet, hypertext.TemplateRoutePath().GetFormEditRow(1), nil)

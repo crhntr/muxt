@@ -309,7 +309,7 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 
 	var err error
 	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, resultType, sigs, nil, receiver, templatesVariableIdent, t.call, func(s string) *ast.BlockStmt {
-		errBlock, err := badRequestErrorBlock(file, t, resultType, templatesVariableIdent, &ast.CallExpr{
+		errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templatesVariableIdent, &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "errors")), Sel: ast.NewIdent("New")},
 			Args: []ast.Expr{source.String(s)},
 		})
@@ -321,7 +321,7 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 		return nil, err
 	}
 
-	receiverCallStatements, err := callReceiverMethod(file, dataVarIdent, sig, &ast.CallExpr{
+	receiverCallStatements, err := callReceiverMethod(file, t, templatesVariableIdent, dataVarIdent, sig, &ast.CallExpr{
 		Fun:  callFun,
 		Args: slices.Clone(t.call.Args),
 	})
@@ -998,11 +998,6 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 				log.Panicf("unexpected signature mismatch %s != %s", callSig, obj.Type())
 			}
 
-			callSigExpr, err := file.TypeASTExpression(callSig)
-			if err != nil {
-				return nil, err
-			}
-
 			if isMethodCall {
 				arg.Fun = &ast.SelectorExpr{
 					X:   ast.NewIdent(receiverIdent),
@@ -1012,7 +1007,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 				arg.Fun = ast.NewIdent(arg.Fun.(*ast.Ident).Name)
 			}
 
-			callMethodStatements, err := t.callReceiverMethod(file, resultVarIdent, callSigExpr.(*ast.FuncType), arg)
+			callMethodStatements, err := callReceiverMethod(file, t, templatesVariableIdent, resultVarIdent, callSig, arg)
 			if err != nil {
 				return nil, err
 			}
@@ -1225,7 +1220,7 @@ func httpServeMuxField(file *source.File) *ast.Field {
 	}
 }
 
-func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type, templatesVariableIdent string, errExp ast.Expr) (*ast.BlockStmt, error) {
+func errorResultBlock(file *source.File, t *Template, resultType types.Type, fallbackStatusCode int, templatesVariableIdent string, errExp ast.Expr) (*ast.BlockStmt, error) {
 	const (
 		statusCodeIdent = "sc"
 		errIdent        = "err"
@@ -1247,7 +1242,7 @@ func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type,
 	} else if obj, _, _ := types.LookupFieldOrMethod(resultType, true, file.OutputPackage().Types, "StatusCode"); obj != nil {
 		statusCodePriorityList = append(statusCodePriorityList, &ast.SelectorExpr{X: ast.NewIdent("result"), Sel: ast.NewIdent("StatusCode")})
 	}
-	statusCodePriorityList = append(statusCodePriorityList, source.HTTPStatusCode(file, http.StatusBadRequest))
+	statusCodePriorityList = append(statusCodePriorityList, source.HTTPStatusCode(file, fallbackStatusCode))
 
 	block := &ast.BlockStmt{List: []ast.Stmt{
 		&ast.ExprStmt{X: &ast.CallExpr{
@@ -1275,7 +1270,7 @@ func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type,
 									ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 									ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 									ast.NewIdent(zeroValueIdent),
-									ast.NewIdent("false"),
+									source.Bool(false),
 									errExp,
 								},
 							}},
@@ -1307,7 +1302,7 @@ func badRequestErrorBlock(file *source.File, t *Template, resultType types.Type,
 }
 
 func generateParseValueFromStringStatements(file *source.File, t *Template, tmp string, resultType types.Type, str ast.Expr, valueType types.Type, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt, templatesVariableIdent string) ([]ast.Stmt, error) {
-	errBlock, err := badRequestErrorBlock(file, t, resultType, templatesVariableIdent, ast.NewIdent(errIdent))
+	errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templatesVariableIdent, ast.NewIdent(errIdent))
 	if err != nil {
 		return nil, err
 	}
@@ -1423,36 +1418,40 @@ func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, err
 	return block.List
 }
 
-func callReceiverMethod(file *source.File, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
+func callReceiverMethod(file *source.File, t *Template, templatesVariableIdent, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
 	const (
 		okIdent = "ok"
 	)
-	if method.Results().Len() == 0 {
+	switch method.Results().Len() {
+	default:
 		mathodIdent := call.Fun.(*ast.Ident)
 		assert.NotNil(assertion, mathodIdent)
 		return nil, fmt.Errorf("method %s has no results it should have one or two", mathodIdent.Name)
-	} else if method.Results().Len() > 1 {
-		lastResult := method.Results().At(method.Results().Len() - 1)
+	case 1:
+		return []ast.Stmt{&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}}}, nil
+	case 2:
+		firstResult := method.Results().At(0).Type()
+		lastResult := method.Results().At(method.Results().Len() - 1).Type()
 
 		errorType := types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
 		assert.NotNil(assertion, errorType)
 
-		if types.Implements(lastResult.Type(), errorType) {
+		if types.Implements(lastResult, errorType) {
+			errBlock, err := errorResultBlock(file, t, firstResult, http.StatusInternalServerError, templatesVariableIdent, ast.NewIdent(errIdent))
+			if err != nil {
+				return nil, err
+			}
+
 			return []ast.Stmt{
 				&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(errIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
 				&ast.IfStmt{
 					Cond: &ast.BinaryExpr{X: ast.NewIdent(errIdent), Op: token.NEQ, Y: source.Nil()},
-					Body: &ast.BlockStmt{
-						List: []ast.Stmt{
-							&ast.ExprStmt{X: file.HTTPErrorCall(ast.NewIdent(httpResponseField(file).Names[0].Name), source.CallError(errIdent), http.StatusInternalServerError)},
-							&ast.ReturnStmt{},
-						},
-					},
+					Body: errBlock,
 				},
 			}, nil
 		}
 
-		if basic, ok := lastResult.Type().(*types.Basic); ok && basic.Kind() == types.Bool {
+		if basic, ok := lastResult.(*types.Basic); ok && basic.Kind() == types.Bool {
 			return []ast.Stmt{
 				&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent), ast.NewIdent(okIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}},
 				&ast.IfStmt{
@@ -1467,8 +1466,6 @@ func callReceiverMethod(file *source.File, dataVarIdent string, method *types.Si
 		}
 
 		return nil, fmt.Errorf("expected last result to be either an error or a bool")
-	} else {
-		return []ast.Stmt{&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}}}, nil
 	}
 }
 

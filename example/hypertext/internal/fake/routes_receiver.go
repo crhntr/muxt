@@ -9,16 +9,18 @@ import (
 )
 
 type Backend struct {
-	GetFormEditRowStub        func(int) hypertext.EditRowPage
+	GetFormEditRowStub        func(int) (hypertext.Row, error)
 	getFormEditRowMutex       sync.RWMutex
 	getFormEditRowArgsForCall []struct {
 		arg1 int
 	}
 	getFormEditRowReturns struct {
-		result1 hypertext.EditRowPage
+		result1 hypertext.Row
+		result2 error
 	}
 	getFormEditRowReturnsOnCall map[int]struct {
-		result1 hypertext.EditRowPage
+		result1 hypertext.Row
+		result2 error
 	}
 	ListStub        func(context.Context) []hypertext.Row
 	listMutex       sync.RWMutex
@@ -31,23 +33,25 @@ type Backend struct {
 	listReturnsOnCall map[int]struct {
 		result1 []hypertext.Row
 	}
-	SubmitFormEditRowStub        func(int, hypertext.EditRow) hypertext.EditRowPage
+	SubmitFormEditRowStub        func(int, hypertext.EditRow) (hypertext.Row, error)
 	submitFormEditRowMutex       sync.RWMutex
 	submitFormEditRowArgsForCall []struct {
 		arg1 int
 		arg2 hypertext.EditRow
 	}
 	submitFormEditRowReturns struct {
-		result1 hypertext.EditRowPage
+		result1 hypertext.Row
+		result2 error
 	}
 	submitFormEditRowReturnsOnCall map[int]struct {
-		result1 hypertext.EditRowPage
+		result1 hypertext.Row
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *Backend) GetFormEditRow(arg1 int) hypertext.EditRowPage {
+func (fake *Backend) GetFormEditRow(arg1 int) (hypertext.Row, error) {
 	fake.getFormEditRowMutex.Lock()
 	ret, specificReturn := fake.getFormEditRowReturnsOnCall[len(fake.getFormEditRowArgsForCall)]
 	fake.getFormEditRowArgsForCall = append(fake.getFormEditRowArgsForCall, struct {
@@ -61,9 +65,9 @@ func (fake *Backend) GetFormEditRow(arg1 int) hypertext.EditRowPage {
 		return stub(arg1)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *Backend) GetFormEditRowCallCount() int {
@@ -72,7 +76,7 @@ func (fake *Backend) GetFormEditRowCallCount() int {
 	return len(fake.getFormEditRowArgsForCall)
 }
 
-func (fake *Backend) GetFormEditRowCalls(stub func(int) hypertext.EditRowPage) {
+func (fake *Backend) GetFormEditRowCalls(stub func(int) (hypertext.Row, error)) {
 	fake.getFormEditRowMutex.Lock()
 	defer fake.getFormEditRowMutex.Unlock()
 	fake.GetFormEditRowStub = stub
@@ -85,27 +89,30 @@ func (fake *Backend) GetFormEditRowArgsForCall(i int) int {
 	return argsForCall.arg1
 }
 
-func (fake *Backend) GetFormEditRowReturns(result1 hypertext.EditRowPage) {
+func (fake *Backend) GetFormEditRowReturns(result1 hypertext.Row, result2 error) {
 	fake.getFormEditRowMutex.Lock()
 	defer fake.getFormEditRowMutex.Unlock()
 	fake.GetFormEditRowStub = nil
 	fake.getFormEditRowReturns = struct {
-		result1 hypertext.EditRowPage
-	}{result1}
+		result1 hypertext.Row
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *Backend) GetFormEditRowReturnsOnCall(i int, result1 hypertext.EditRowPage) {
+func (fake *Backend) GetFormEditRowReturnsOnCall(i int, result1 hypertext.Row, result2 error) {
 	fake.getFormEditRowMutex.Lock()
 	defer fake.getFormEditRowMutex.Unlock()
 	fake.GetFormEditRowStub = nil
 	if fake.getFormEditRowReturnsOnCall == nil {
 		fake.getFormEditRowReturnsOnCall = make(map[int]struct {
-			result1 hypertext.EditRowPage
+			result1 hypertext.Row
+			result2 error
 		})
 	}
 	fake.getFormEditRowReturnsOnCall[i] = struct {
-		result1 hypertext.EditRowPage
-	}{result1}
+		result1 hypertext.Row
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *Backend) List(arg1 context.Context) []hypertext.Row {
@@ -169,7 +176,7 @@ func (fake *Backend) ListReturnsOnCall(i int, result1 []hypertext.Row) {
 	}{result1}
 }
 
-func (fake *Backend) SubmitFormEditRow(arg1 int, arg2 hypertext.EditRow) hypertext.EditRowPage {
+func (fake *Backend) SubmitFormEditRow(arg1 int, arg2 hypertext.EditRow) (hypertext.Row, error) {
 	fake.submitFormEditRowMutex.Lock()
 	ret, specificReturn := fake.submitFormEditRowReturnsOnCall[len(fake.submitFormEditRowArgsForCall)]
 	fake.submitFormEditRowArgsForCall = append(fake.submitFormEditRowArgsForCall, struct {
@@ -184,9 +191,9 @@ func (fake *Backend) SubmitFormEditRow(arg1 int, arg2 hypertext.EditRow) hyperte
 		return stub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *Backend) SubmitFormEditRowCallCount() int {
@@ -195,7 +202,7 @@ func (fake *Backend) SubmitFormEditRowCallCount() int {
 	return len(fake.submitFormEditRowArgsForCall)
 }
 
-func (fake *Backend) SubmitFormEditRowCalls(stub func(int, hypertext.EditRow) hypertext.EditRowPage) {
+func (fake *Backend) SubmitFormEditRowCalls(stub func(int, hypertext.EditRow) (hypertext.Row, error)) {
 	fake.submitFormEditRowMutex.Lock()
 	defer fake.submitFormEditRowMutex.Unlock()
 	fake.SubmitFormEditRowStub = stub
@@ -208,27 +215,30 @@ func (fake *Backend) SubmitFormEditRowArgsForCall(i int) (int, hypertext.EditRow
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *Backend) SubmitFormEditRowReturns(result1 hypertext.EditRowPage) {
+func (fake *Backend) SubmitFormEditRowReturns(result1 hypertext.Row, result2 error) {
 	fake.submitFormEditRowMutex.Lock()
 	defer fake.submitFormEditRowMutex.Unlock()
 	fake.SubmitFormEditRowStub = nil
 	fake.submitFormEditRowReturns = struct {
-		result1 hypertext.EditRowPage
-	}{result1}
+		result1 hypertext.Row
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *Backend) SubmitFormEditRowReturnsOnCall(i int, result1 hypertext.EditRowPage) {
+func (fake *Backend) SubmitFormEditRowReturnsOnCall(i int, result1 hypertext.Row, result2 error) {
 	fake.submitFormEditRowMutex.Lock()
 	defer fake.submitFormEditRowMutex.Unlock()
 	fake.SubmitFormEditRowStub = nil
 	if fake.submitFormEditRowReturnsOnCall == nil {
 		fake.submitFormEditRowReturnsOnCall = make(map[int]struct {
-			result1 hypertext.EditRowPage
+			result1 hypertext.Row
+			result2 error
 		})
 	}
 	fake.submitFormEditRowReturnsOnCall[i] = struct {
-		result1 hypertext.EditRowPage
-	}{result1}
+		result1 hypertext.Row
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *Backend) Invocations() map[string][][]interface{} {

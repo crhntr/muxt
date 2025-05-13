@@ -17,8 +17,8 @@ import (
 )
 
 type RoutesReceiver interface {
-	SubmitFormEditRow(fruitID int, form EditRow) EditRowPage
-	GetFormEditRow(fruitID int) EditRowPage
+	SubmitFormEditRow(fruitID int, form EditRow) (Row, error)
+	GetFormEditRow(fruitID int) (Row, error)
 	List(_ context.Context) []Row
 }
 
@@ -27,7 +27,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
-				var zv EditRowPage
+				var zv Row
 				rd := newTemplateData(receiver, response, request, zv, false, err)
 				err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
 				sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
@@ -42,7 +42,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			value, err := strconv.Atoi(request.FormValue("count"))
 			if err != nil {
 				writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
-					var zv EditRowPage
+					var zv Row
 					rd := newTemplateData(receiver, response, request, zv, false, err)
 					err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
 					sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
@@ -52,7 +52,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			}
 			if value < 0 {
 				writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
-					var zv EditRowPage
+					var zv Row
 					rd := newTemplateData(receiver, response, request, zv, false, errors.New("count must not be less than 0"))
 					err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
 					sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
@@ -62,7 +62,17 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			}
 			form.Value = value
 		}
-		result := receiver.SubmitFormEditRow(id, form)
+		result, err := receiver.SubmitFormEditRow(id, form)
+		if err != nil {
+			writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
+				var zv Row
+				rd := newTemplateData(receiver, response, request, zv, false, err)
+				err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
+				sc := cmp.Or(rd.statusCode, http.StatusInternalServerError)
+				return sc, err
+			})
+			return
+		}
 		writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
 			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "PATCH /fruits/{id} SubmitFormEditRow(id, form)", rd)
@@ -74,7 +84,7 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 		idParsed, err := strconv.Atoi(request.PathValue("id"))
 		if err != nil {
 			writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
-				var zv EditRowPage
+				var zv Row
 				rd := newTemplateData(receiver, response, request, zv, false, err)
 				err := templates.ExecuteTemplate(w, "GET /fruits/{id}/edit GetFormEditRow(id)", rd)
 				sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
@@ -83,7 +93,17 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		id := idParsed
-		result := receiver.GetFormEditRow(id)
+		result, err := receiver.GetFormEditRow(id)
+		if err != nil {
+			writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
+				var zv Row
+				rd := newTemplateData(receiver, response, request, zv, false, err)
+				err := templates.ExecuteTemplate(w, "GET /fruits/{id}/edit GetFormEditRow(id)", rd)
+				sc := cmp.Or(rd.statusCode, http.StatusInternalServerError)
+				return sc, err
+			})
+			return
+		}
 		writeResponseHeaderStatusCodeAndBody(response, request, func(w io.Writer) (int, error) {
 			rd := newTemplateData(receiver, response, request, result, true, nil)
 			err := templates.ExecuteTemplate(w, "GET /fruits/{id}/edit GetFormEditRow(id)", rd)

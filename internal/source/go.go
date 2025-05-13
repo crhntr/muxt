@@ -207,6 +207,13 @@ func String(s string) *ast.BasicLit {
 	return &ast.BasicLit{Value: strconv.Quote(s), Kind: token.STRING}
 }
 
+func Bool(b bool) *ast.Ident {
+	if b {
+		return ast.NewIdent("true")
+	}
+	return ast.NewIdent("false")
+}
+
 func Nil() *ast.Ident { return ast.NewIdent("nil") }
 
 func FieldIndex(fields []*ast.Field, i int) (*ast.Ident, ast.Expr, bool) {

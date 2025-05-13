@@ -21,12 +21,12 @@
         </thead>
         <tbody hx-target="closest tr" hx-swap="outerHTML">
 
-        {{- define "view-row" -}}
+        {{define "view-row" -}}
             <tr>
                 <td>{{ .Name }}</td>
                 <td id="count" hx-get='/fruits/{{.ID}}/edit'>{{ .Value }}</td>
             </tr>
-        {{- end -}}
+        {{end -}}
 
         {{range .}}
           {{template "view-row" .}}
@@ -34,33 +34,33 @@
 
         {{define "edit-row" -}}
             <tr>
-                <td>{{ .Row.Name }}</td>
+                <td>{{ .Result.Name }}</td>
                 <td>
-                    <form hx-patch='/fruits/{{.Row.ID}}'>
+                    <form hx-patch='/fruits/{{.Result.ID}}'>
                         {{block "count-input" . -}}
-                            <input aria-label='Count' type='number' name='count' value='{{ .Row.Value }}' step='1' min='0'>
+                            <input aria-label='Count' type='number' name='count' value='{{ .Result.Value }}' step='1' min='0'>
                         {{- end}}
                         <input type='submit' value='Update'>
                     </form>
-                    <p id='error'>{{.Error}}</p>
+                    {{with .Err}}<p id='error'>{{.Error}}</p>{{end}}
                 </td>
             </tr>
         {{- end}}
 
-        {{- define "GET /{$} List(ctx)" -}}
-          {{template "index.gohtml" .Result}}
-        {{- end -}}
+        {{- define "GET /{$} List(ctx)"}}
+          {{- template "index.gohtml" .Result}}
+        {{- end}}
 
-        {{- define "GET /fruits/{id}/edit GetFormEditRow(id)" -}}
-          {{template "edit-row" .Result}}
-        {{- end -}}
+        {{- define "GET /fruits/{id}/edit GetFormEditRow(id)"}}
+          {{- template "edit-row" .}}
+        {{- end}}
 
-        {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)" }}
-            {{- if .Result.Error -}}
-                {{template "edit-row" .Result}}
-            {{- else -}}
-                {{template "view-row" .Result.Row}}
-            {{- end -}}
+        {{- define "PATCH /fruits/{id} SubmitFormEditRow(id, form)"}}
+            {{- if .Err}}
+                {{- template "edit-row" .}}
+            {{- else}}
+                {{- template "view-row" .Result}}
+            {{- end}}
         {{ end -}}
 
         </tbody>
@@ -69,7 +69,7 @@
 </body>
 </html>
 
-{{- define "GET /help" -}}
+{{define "GET /help" -}}
 <!DOCTYPE html>
 <html lang='us-en'>
 {{template "head" "Help"}}
