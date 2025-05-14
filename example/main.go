@@ -1,10 +1,12 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"slices"
 	"sync"
 
@@ -53,5 +55,5 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	hypertext.TemplateRoutes(mux, backend)
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":"+cmp.Or(os.Getenv("PORT"), "8080"), mux))
 }
