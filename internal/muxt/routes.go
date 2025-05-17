@@ -113,24 +113,9 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 	config.PackagePath = routesPkg.PkgPath
 	config.PackageName = routesPkg.Name
-	var receiver *types.Named
-	if config.ReceiverType != "" {
-		receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
-		receiverPkg, ok := file.Package(receiverPkgPath)
-		if !ok {
-			return "", fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
-		}
-		obj := receiverPkg.Types.Scope().Lookup(config.ReceiverType)
-		if config.ReceiverType != "" && obj == nil {
-			return "", fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkg.PkgPath)
-		}
-		named, ok := obj.Type().(*types.Named)
-		if !ok {
-			return "", fmt.Errorf("expected receiver %s to be a named type", config.ReceiverType)
-		}
-		receiver = named
-	} else {
-		receiver = types.NewNamed(types.NewTypeName(0, routesPkg.Types, "Receiver", nil), types.NewStruct(nil, nil), nil)
+	receiver, err := resolveReceiver(config, file, routesPkg)
+	if err != nil {
+		return "", err
 	}
 
 	ts, _, err := source.Templates(wd, config.TemplatesVariable, routesPkg)
@@ -231,6 +216,29 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	}
 
 	return source.FormatFile(filepath.Join(wd, config.OutputFileName), outputFile)
+}
+
+func resolveReceiver(config RoutesFileConfiguration, file *source.File, routesPkg *packages.Package) (*types.Named, error) {
+	if config.ReceiverType == "" {
+		receiver := types.NewNamed(types.NewTypeName(0, routesPkg.Types, "Receiver", nil), types.NewStruct(nil, nil), nil)
+		return receiver, nil
+	}
+
+	receiverPkgPath := cmp.Or(config.ReceiverPackage, config.PackagePath)
+	receiverPkg, ok := file.Package(receiverPkgPath)
+	if !ok {
+		return nil, fmt.Errorf("could not determine receiver package %s", receiverPkgPath)
+	}
+	obj := receiverPkg.Types.Scope().Lookup(config.ReceiverType)
+	if config.ReceiverType != "" && obj == nil {
+		return nil, fmt.Errorf("could not find receiver type %s in %s", config.ReceiverType, receiverPkg.PkgPath)
+	}
+	named, ok := obj.Type().(*types.Named)
+	if !ok {
+		return nil, fmt.Errorf("expected receiver %s to be a named type", config.ReceiverType)
+	}
+
+	return named, nil
 }
 
 func noReceiverMethodCall(file *source.File, t *Template, templatesVarIdent, dataVarIdent string) *ast.FuncLit {
