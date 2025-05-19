@@ -51,16 +51,22 @@ const (
 
 	errIdent = "err"
 
-	templateDataTypeName        = "TemplateData"
+	DefaultTemplateDataTypeName = "TemplateData"
 	templateDataFieldStatusCode = "statusCode"
 
 	executeTemplateErrorMessage = "failed to render page"
 
-	writeBodyAndHeadersFuncIdent  = "writeResponseHeaderStatusCodeAndBody"
-	writeBody                     = "writeResponseBody"
-	newResponseDataFuncIdent      = "new" + templateDataTypeName
-	changeTemplateDataResultIdent = "Change" + templateDataTypeName + "Result"
+	writeBodyAndHeadersFuncIdent = "writeResponseHeaderStatusCodeAndBody"
+	writeBody                    = "writeResponseBody"
 )
+
+func newResponseDataFuncIdent(templateDataTypeName string) string {
+	return "new" + templateDataTypeName
+}
+
+func changeTemplateDataResultIdent(templateDataTypeName string) string {
+	return "Change" + templateDataTypeName + "Result"
+}
 
 type RoutesFileConfiguration struct {
 	PackageName,
@@ -70,6 +76,7 @@ type RoutesFileConfiguration struct {
 	ReceiverType,
 	ReceiverPackage,
 	ReceiverInterface,
+	TemplateDataType,
 	OutputFileName string
 }
 
@@ -78,6 +85,7 @@ func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
 	config.TemplatesVariable = cmp.Or(config.TemplatesVariable, DefaultTemplatesVariableName)
 	config.RoutesFunction = cmp.Or(config.RoutesFunction, DefaultRoutesFunctionName)
 	config.ReceiverInterface = cmp.Or(config.ReceiverInterface, DefaultReceiverInterfaceName)
+	config.TemplateDataType = cmp.Or(config.TemplateDataType, DefaultTemplateDataTypeName)
 	return config
 }
 
@@ -85,6 +93,9 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	config = config.applyDefaults()
 	if !token.IsIdentifier(config.PackageName) {
 		return "", fmt.Errorf("package name %q is not an identifier", config.PackageName)
+	}
+	if !token.IsIdentifier(config.TemplateDataType) {
+		return "", fmt.Errorf("template data type name %q is not an identifier", config.TemplateDataType)
 	}
 
 	patterns := []string{
@@ -152,12 +163,12 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		const dataVarIdent = "result"
 		logger.Printf("generating handler for pattern %s", t.pattern)
 		if t.fun == nil {
-			handlerFunc := noReceiverMethodCall(file, t, config.TemplatesVariable, dataVarIdent)
+			handlerFunc := noReceiverMethodCall(file, t, config.TemplateDataType, config.TemplatesVariable, dataVarIdent)
 			call := t.callHandleFunc(handlerFunc)
 			routesFunc.Body.List = append(routesFunc.Body.List, call)
 			continue
 		}
-		handlerFunc, err := methodHandlerFunc(file, t, receiver, receiverInterface, routesPkg.Types, config.TemplatesVariable, dataVarIdent)
+		handlerFunc, err := methodHandlerFunc(file, t, receiver, receiverInterface, routesPkg.Types, config.TemplateDataType, config.TemplatesVariable, dataVarIdent)
 		if err != nil {
 			return "", err
 		}
@@ -198,18 +209,18 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			writeBodyAndWriteHeadersFunc(file),
 			executeTemplateFunc(file),
 
-			templateDataType(file, ast.NewIdent(config.ReceiverInterface)),
-			newTemplateData(file, ast.NewIdent(config.ReceiverInterface)),
-			changeTemplateDataResult(file),
-			templateDataPathMethod(),
-			templateDataResultMethod(),
-			templateDataRequestMethod(file),
-			templateDataStatusCodeMethod(),
-			templateDataHeaderMethod(),
-			templateDataOkay(),
-			templateDataError(),
-			templateDataReceiver(ast.NewIdent(config.ReceiverInterface)),
-			templateRedirect(file),
+			templateDataType(file, config.TemplateDataType, ast.NewIdent(config.ReceiverInterface)),
+			newTemplateData(file, ast.NewIdent(config.ReceiverInterface), config.TemplateDataType),
+			changeTemplateDataResult(file, config.TemplateDataType),
+			templateDataPathMethod(config.TemplateDataType),
+			templateDataResultMethod(config.TemplateDataType),
+			templateDataRequestMethod(file, config.TemplateDataType),
+			templateDataStatusCodeMethod(config.TemplateDataType),
+			templateDataHeaderMethod(config.TemplateDataType),
+			templateDataOkay(config.TemplateDataType),
+			templateDataError(config.TemplateDataType),
+			templateDataReceiver(ast.NewIdent(config.ReceiverInterface), config.TemplateDataType),
+			templateRedirect(file, config.TemplateDataType),
 
 			// func newResultData
 		}, routePathDecls...),
@@ -241,7 +252,7 @@ func resolveReceiver(config RoutesFileConfiguration, file *source.File, routesPk
 	return named, nil
 }
 
-func noReceiverMethodCall(file *source.File, t *Template, templatesVarIdent, dataVarIdent string) *ast.FuncLit {
+func noReceiverMethodCall(file *source.File, t *Template, templateDataTypeIdent, templatesVarIdent, dataVarIdent string) *ast.FuncLit {
 	handlerFunc := &ast.FuncLit{
 		Type: httpHandlerFuncType(file),
 		Body: &ast.BlockStmt{
@@ -267,7 +278,7 @@ func noReceiverMethodCall(file *source.File, t *Template, templatesVarIdent, dat
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
 			executeTemplateClosureLiteral(file, t, types.NewStruct(nil, nil), templatesVarIdent, &ast.CallExpr{
-				Fun: ast.NewIdent(newResponseDataFuncIdent),
+				Fun: ast.NewIdent(newResponseDataFuncIdent(templateDataTypeIdent)),
 				Args: []ast.Expr{
 					ast.NewIdent(receiverIdent),
 					ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -282,7 +293,7 @@ func noReceiverMethodCall(file *source.File, t *Template, templatesVarIdent, dat
 	return handlerFunc
 }
 
-func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, outputPkg *types.Package, templatesVariableIdent, dataVarIdent string) (*ast.FuncLit, error) {
+func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, receiverInterface *ast.InterfaceType, outputPkg *types.Package, templateDataTypeIdent, templatesVariableIdent, dataVarIdent string) (*ast.FuncLit, error) {
 	sigs := make(map[string]*types.Signature)
 	if err := ensureMethodSignature(file, sigs, t, receiver, receiverInterface, t.call, outputPkg); err != nil {
 		return nil, err
@@ -316,8 +327,8 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 	resultType := sig.Results().At(0).Type()
 
 	var err error
-	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, resultType, sigs, nil, receiver, templatesVariableIdent, t.call, func(s string) *ast.BlockStmt {
-		errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templatesVariableIdent, &ast.CallExpr{
+	if handlerFunc.Body.List, err = appendParseArgumentStatements(handlerFunc.Body.List, t, file, resultType, sigs, nil, receiver, templateDataTypeIdent, templatesVariableIdent, t.call, func(s string) *ast.BlockStmt {
+		errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templateDataTypeIdent, templatesVariableIdent, &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "errors")), Sel: ast.NewIdent("New")},
 			Args: []ast.Expr{source.String(s)},
 		})
@@ -329,7 +340,7 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 		return nil, err
 	}
 
-	receiverCallStatements, err := callReceiverMethod(file, t, templatesVariableIdent, dataVarIdent, sig, &ast.CallExpr{
+	receiverCallStatements, err := callReceiverMethod(file, t, templateDataTypeIdent, templatesVariableIdent, dataVarIdent, sig, &ast.CallExpr{
 		Fun:  callFun,
 		Args: slices.Clone(t.call.Args),
 	})
@@ -339,7 +350,7 @@ func methodHandlerFunc(file *source.File, t *Template, receiver *types.Named, re
 	handlerFunc.Body.List = append(handlerFunc.Body.List, receiverCallStatements...)
 
 	newTemplateDataCall := &ast.CallExpr{
-		Fun: ast.NewIdent(newResponseDataFuncIdent),
+		Fun: ast.NewIdent(newResponseDataFuncIdent(templateDataTypeIdent)),
 		Args: []ast.Expr{
 			ast.NewIdent(receiverIdent),
 			ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -533,12 +544,12 @@ func callWriteOnResponse(bufferIdent string) *ast.AssignStmt {
 	}
 }
 
-func templateDataType(file *source.File, receiverType ast.Expr) *ast.GenDecl {
+func templateDataType(file *source.File, templateTypeIdent string, receiverType ast.Expr) *ast.GenDecl {
 	return &ast.GenDecl{
 		Tok: token.TYPE,
 		Specs: []ast.Spec{
 			&ast.TypeSpec{
-				Name: ast.NewIdent(templateDataTypeName),
+				Name: ast.NewIdent(templateTypeIdent),
 				TypeParams: &ast.FieldList{
 					List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("T")}, Type: ast.NewIdent("any")}},
 				},
@@ -561,13 +572,13 @@ func templateDataType(file *source.File, receiverType ast.Expr) *ast.GenDecl {
 	}
 }
 
-func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
+func newTemplateData(file *source.File, receiverType ast.Expr, templateDataTypeIdent string) *ast.FuncDecl {
 	const (
 		okayIdent       = "okay"
 		resultParamName = "result"
 	)
 	return &ast.FuncDecl{
-		Name: ast.NewIdent(newResponseDataFuncIdent),
+		Name: ast.NewIdent(newResponseDataFuncIdent(templateDataTypeIdent)),
 		Type: &ast.FuncType{
 			TypeParams: &ast.FieldList{
 				List: []*ast.Field{
@@ -587,7 +598,7 @@ func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 			Results: &ast.FieldList{
 				List: []*ast.Field{
 					{Type: &ast.StarExpr{X: &ast.IndexExpr{
-						X:     ast.NewIdent(templateDataTypeName),
+						X:     ast.NewIdent(templateDataTypeIdent),
 						Index: ast.NewIdent("T"),
 					}}},
 				},
@@ -599,7 +610,7 @@ func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 					Results: []ast.Expr{
 						&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
 							Type: &ast.IndexExpr{
-								X:     ast.NewIdent(templateDataTypeName),
+								X:     ast.NewIdent(templateDataTypeIdent),
 								Index: ast.NewIdent("T"),
 							},
 							Elts: []ast.Expr{
@@ -619,7 +630,7 @@ func newTemplateData(file *source.File, receiverType ast.Expr) *ast.FuncDecl {
 	}
 }
 
-func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
+func changeTemplateDataResult(file *source.File, templateDataTypeIdent string) *ast.FuncDecl {
 	const (
 		resultParamName = "result"
 		errIdent        = "err"
@@ -630,7 +641,7 @@ func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 		prevResultTypeIdent = "PrevResultType"
 	)
 	return &ast.FuncDecl{
-		Name: ast.NewIdent(changeTemplateDataResultIdent),
+		Name: ast.NewIdent(changeTemplateDataResultIdent(templateDataTypeIdent)),
 		Type: &ast.FuncType{
 			TypeParams: &ast.FieldList{
 				List: []*ast.Field{
@@ -639,7 +650,7 @@ func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 			},
 			Params: &ast.FieldList{
 				List: []*ast.Field{
-					{Names: []*ast.Ident{ast.NewIdent(prevTDIdent)}, Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(prevResultTypeIdent), X: ast.NewIdent(templateDataTypeName)}}},
+					{Names: []*ast.Ident{ast.NewIdent(prevTDIdent)}, Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(prevResultTypeIdent), X: ast.NewIdent(templateDataTypeIdent)}}},
 					{Names: []*ast.Ident{ast.NewIdent(resultParamName)}, Type: ast.NewIdent(newResultTypeIdent)},
 					{Names: []*ast.Ident{ast.NewIdent(okayIdent)}, Type: ast.NewIdent("bool")},
 					{Names: []*ast.Ident{ast.NewIdent(errIdent)}, Type: ast.NewIdent("error")},
@@ -647,7 +658,7 @@ func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 			},
 			Results: &ast.FieldList{
 				List: []*ast.Field{
-					{Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(newResultTypeIdent), X: ast.NewIdent(templateDataTypeName)}}},
+					{Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(newResultTypeIdent), X: ast.NewIdent(templateDataTypeIdent)}}},
 				},
 			},
 		},
@@ -657,7 +668,7 @@ func changeTemplateDataResult(file *source.File) *ast.FuncDecl {
 					Results: []ast.Expr{
 						&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
 							Type: &ast.IndexExpr{
-								X:     ast.NewIdent(templateDataTypeName),
+								X:     ast.NewIdent(templateDataTypeIdent),
 								Index: ast.NewIdent(newResultTypeIdent),
 							},
 							Elts: []ast.Expr{
@@ -682,16 +693,16 @@ const (
 	templateDataReceiverName = "data"
 )
 
-func templateDataMethodReceiver() *ast.FieldList {
+func templateDataMethodReceiver(templateDataTypeIdent string) *ast.FieldList {
 	return &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent(templateDataReceiverName)}, Type: &ast.StarExpr{X: &ast.IndexExpr{
-		X:     ast.NewIdent(templateDataTypeName),
+		X:     ast.NewIdent(templateDataTypeIdent),
 		Index: ast.NewIdent("T"),
 	}}}}}
 }
 
-func templateDataOkay() *ast.FuncDecl {
+func templateDataOkay(templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Ok"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("bool")}}},
@@ -705,9 +716,9 @@ func templateDataOkay() *ast.FuncDecl {
 	}
 }
 
-func templateDataError() *ast.FuncDecl {
+func templateDataError(templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Err"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("error")}}},
@@ -721,9 +732,9 @@ func templateDataError() *ast.FuncDecl {
 	}
 }
 
-func templateDataReceiver(receiverType ast.Expr) *ast.FuncDecl {
+func templateDataReceiver(receiverType ast.Expr, templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Receiver"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Type: receiverType}}},
@@ -737,13 +748,13 @@ func templateDataReceiver(receiverType ast.Expr) *ast.FuncDecl {
 	}
 }
 
-func templateRedirect(file *source.File) *ast.FuncDecl {
+func templateRedirect(file *source.File, templateDataTypeIdent string) *ast.FuncDecl {
 	const (
 		codeParamIdent = "code"
 		urlParamIdent  = "url"
 	)
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Redirect"),
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{List: []*ast.Field{
@@ -752,7 +763,7 @@ func templateRedirect(file *source.File) *ast.FuncDecl {
 			}},
 			Results: &ast.FieldList{
 				List: []*ast.Field{
-					{Type: &ast.StarExpr{X: &ast.IndexExpr{X: ast.NewIdent(templateDataTypeName), Index: ast.NewIdent("T")}}},
+					{Type: &ast.StarExpr{X: &ast.IndexExpr{X: ast.NewIdent(templateDataTypeIdent), Index: ast.NewIdent("T")}}},
 					{Type: ast.NewIdent("error")},
 				},
 			},
@@ -802,9 +813,9 @@ func templateRedirect(file *source.File) *ast.FuncDecl {
 	}
 }
 
-func templateDataPathMethod() *ast.FuncDecl {
+func templateDataPathMethod(templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Path"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("")}, Type: ast.NewIdent(urlHelperTypeName)}}},
@@ -819,9 +830,9 @@ func templateDataPathMethod() *ast.FuncDecl {
 	}
 }
 
-func templateDataResultMethod() *ast.FuncDecl {
+func templateDataResultMethod(templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Result"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("T")}}},
@@ -836,9 +847,9 @@ func templateDataResultMethod() *ast.FuncDecl {
 	}
 }
 
-func templateDataRequestMethod(file *source.File) *ast.FuncDecl {
+func templateDataRequestMethod(file *source.File, templateDataTypeIdent string) *ast.FuncDecl {
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Request"),
 		Type: &ast.FuncType{
 			Results: &ast.FieldList{List: []*ast.Field{{Type: file.HTTPRequestPtr()}}},
@@ -853,12 +864,12 @@ func templateDataRequestMethod(file *source.File) *ast.FuncDecl {
 	}
 }
 
-func templateDataStatusCodeMethod() *ast.FuncDecl {
+func templateDataStatusCodeMethod(templateDataTypeIdent string) *ast.FuncDecl {
 	const (
 		scIdent = "statusCode"
 	)
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("StatusCode"),
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{List: []*ast.Field{{
@@ -867,7 +878,7 @@ func templateDataStatusCodeMethod() *ast.FuncDecl {
 			}}},
 			Results: &ast.FieldList{List: []*ast.Field{{
 				Type: &ast.StarExpr{X: &ast.IndexExpr{
-					X:     ast.NewIdent(templateDataTypeName),
+					X:     ast.NewIdent(templateDataTypeIdent),
 					Index: ast.NewIdent("T"),
 				}},
 			}}},
@@ -887,14 +898,14 @@ func templateDataStatusCodeMethod() *ast.FuncDecl {
 	}
 }
 
-func templateDataHeaderMethod() *ast.FuncDecl {
+func templateDataHeaderMethod(templateDataTypeIdent string) *ast.FuncDecl {
 	const (
 		this       = "data"
 		keyIdent   = "key"
 		valueIdent = "value"
 	)
 	return &ast.FuncDecl{
-		Recv: templateDataMethodReceiver(),
+		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Header"),
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{List: []*ast.Field{{
@@ -903,7 +914,7 @@ func templateDataHeaderMethod() *ast.FuncDecl {
 			}}},
 			Results: &ast.FieldList{List: []*ast.Field{{
 				Type: &ast.StarExpr{X: &ast.IndexExpr{
-					X:     ast.NewIdent(templateDataTypeName),
+					X:     ast.NewIdent(templateDataTypeIdent),
 					Index: ast.NewIdent("T"),
 				}},
 			}}},
@@ -962,7 +973,7 @@ func setContentTypeHeaderSetOnTemplateData() *ast.IfStmt {
 	}
 }
 
-func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, templatesVariableIdent string, call *ast.CallExpr, validationFailureBlock source.ValidationErrorBlock) ([]ast.Stmt, error) {
+func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, sigs map[string]*types.Signature, parsed map[string]struct{}, receiver *types.Named, templateDataTypeIdent, templatesVariableIdent string, call *ast.CallExpr, validationFailureBlock source.ValidationErrorBlock) ([]ast.Stmt, error) {
 	fun, ok := call.Fun.(*ast.Ident)
 	if !ok {
 		return nil, fmt.Errorf("expected function to be identifier")
@@ -987,7 +998,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 		default:
 			// TODO: add error case
 		case *ast.CallExpr:
-			parseArgStatements, err := appendParseArgumentStatements(statements, t, file, resultType, sigs, parsed, receiver, templatesVariableIdent, arg, validationFailureBlock)
+			parseArgStatements, err := appendParseArgumentStatements(statements, t, file, resultType, sigs, parsed, receiver, templateDataTypeIdent, templatesVariableIdent, arg, validationFailureBlock)
 			if err != nil {
 				return nil, err
 			}
@@ -1015,7 +1026,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 				arg.Fun = ast.NewIdent(arg.Fun.(*ast.Ident).Name)
 			}
 
-			callMethodStatements, err := callReceiverMethod(file, t, templatesVariableIdent, resultVarIdent, callSig, arg)
+			callMethodStatements, err := callReceiverMethod(file, t, templateDataTypeIdent, templatesVariableIdent, resultVarIdent, callSig, arg)
 			if err != nil {
 				return nil, err
 			}
@@ -1059,14 +1070,14 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 			switch {
 			case slices.Contains(t.parsePathValueNames(), arg.Name):
 				parsed[arg.Name] = struct{}{}
-				s, err := generateParseValueFromStringStatements(file, t, arg.Name+"Parsed", resultType, src, param.Type(), nil, singleAssignment(token.DEFINE, ast.NewIdent(arg.Name)), templatesVariableIdent)
+				s, err := generateParseValueFromStringStatements(file, t, arg.Name+"Parsed", resultType, src, param.Type(), nil, singleAssignment(token.DEFINE, ast.NewIdent(arg.Name)), templateDataTypeIdent, templatesVariableIdent)
 				if err != nil {
 					return nil, err
 				}
 				statements = append(statements, s...)
 				t.pathValueTypes[arg.Name] = param.Type()
 			case arg.Name == TemplateNameScopeIdentifierForm:
-				s, err := appendParseFormToStructStatements(statements, t, file, resultType, arg, param, validationFailureBlock, templatesVariableIdent)
+				s, err := appendParseFormToStructStatements(statements, t, file, resultType, arg, param, validationFailureBlock, templateDataTypeIdent, templatesVariableIdent)
 				if err != nil {
 					return nil, err
 				}
@@ -1081,7 +1092,7 @@ func appendParseArgumentStatements(statements []ast.Stmt, t *Template, file *sou
 	return statements, nil
 }
 
-func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, arg *ast.Ident, param types.Object, validationBlock source.ValidationErrorBlock, templatesVariableIdent string) ([]ast.Stmt, error) {
+func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file *source.File, resultType types.Type, arg *ast.Ident, param types.Object, validationBlock source.ValidationErrorBlock, templateDataTypeIdent, templatesVariableIdent string) ([]ast.Stmt, error) {
 	const parsedVariableName = "value"
 	statements = append(statements, callParseForm())
 
@@ -1137,7 +1148,7 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file 
 			if ok && err != nil {
 				return nil, err
 			}
-			parseStatements, err := generateParseValueFromStringStatements(file, t, parsedVariableName, resultType, str, elemType, validations, parseResult, templatesVariableIdent)
+			parseStatements, err := generateParseValueFromStringStatements(file, t, parsedVariableName, resultType, str, elemType, validations, parseResult, templateDataTypeIdent, templatesVariableIdent)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
 			}
@@ -1162,7 +1173,7 @@ func appendParseFormToStructStatements(statements []ast.Stmt, t *Template, file 
 			if ok && err != nil {
 				return nil, err
 			}
-			parseStatements, err := generateParseValueFromStringStatements(file, t, parsedVariableName, resultType, str, elemType, validations, parseResult, templatesVariableIdent)
+			parseStatements, err := generateParseValueFromStringStatements(file, t, parsedVariableName, resultType, str, elemType, validations, parseResult, templateDataTypeIdent, templatesVariableIdent)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate parse statements for form field %s: %w", field.Name(), err)
 			}
@@ -1228,7 +1239,7 @@ func httpServeMuxField(file *source.File) *ast.Field {
 	}
 }
 
-func errorResultBlock(file *source.File, t *Template, resultType types.Type, fallbackStatusCode int, templatesVariableIdent string, errExp ast.Expr) (*ast.BlockStmt, error) {
+func errorResultBlock(file *source.File, t *Template, resultType types.Type, fallbackStatusCode int, templateDataTypeIdent, templatesVariableIdent string, errExp ast.Expr) (*ast.BlockStmt, error) {
 	const (
 		statusCodeIdent = "sc"
 		errIdent        = "err"
@@ -1272,7 +1283,7 @@ func errorResultBlock(file *source.File, t *Template, resultType types.Type, fal
 							Lhs: []ast.Expr{ast.NewIdent(resultDataIdent)},
 							Tok: token.DEFINE,
 							Rhs: []ast.Expr{&ast.CallExpr{
-								Fun: ast.NewIdent(newResponseDataFuncIdent),
+								Fun: ast.NewIdent(newResponseDataFuncIdent(templateDataTypeIdent)),
 								Args: []ast.Expr{
 									ast.NewIdent(receiverIdent),
 									ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
@@ -1309,8 +1320,8 @@ func errorResultBlock(file *source.File, t *Template, resultType types.Type, fal
 	return block, nil
 }
 
-func generateParseValueFromStringStatements(file *source.File, t *Template, tmp string, resultType types.Type, str ast.Expr, valueType types.Type, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt, templatesVariableIdent string) ([]ast.Stmt, error) {
-	errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templatesVariableIdent, ast.NewIdent(errIdent))
+func generateParseValueFromStringStatements(file *source.File, t *Template, tmp string, resultType types.Type, str ast.Expr, valueType types.Type, validations []ast.Stmt, assignment func(ast.Expr) ast.Stmt, templateDataTypeIdent, templatesVariableIdent string) ([]ast.Stmt, error) {
+	errBlock, err := errorResultBlock(file, t, resultType, http.StatusBadRequest, templateDataTypeIdent, templatesVariableIdent, ast.NewIdent(errIdent))
 	if err != nil {
 		return nil, err
 	}
@@ -1426,7 +1437,7 @@ func parseBlock(tmpIdent string, parseCall ast.Expr, validations []ast.Stmt, err
 	return block.List
 }
 
-func callReceiverMethod(file *source.File, t *Template, templatesVariableIdent, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
+func callReceiverMethod(file *source.File, t *Template, templateDataTypeIdent, templatesVariableIdent, dataVarIdent string, method *types.Signature, call *ast.CallExpr) ([]ast.Stmt, error) {
 	const (
 		okIdent = "ok"
 	)
@@ -1445,7 +1456,7 @@ func callReceiverMethod(file *source.File, t *Template, templatesVariableIdent, 
 		assert.NotNil(assertion, errorType)
 
 		if types.Implements(lastResult, errorType) {
-			errBlock, err := errorResultBlock(file, t, firstResult, http.StatusInternalServerError, templatesVariableIdent, ast.NewIdent(errIdent))
+			errBlock, err := errorResultBlock(file, t, firstResult, http.StatusInternalServerError, templateDataTypeIdent, templatesVariableIdent, ast.NewIdent(errIdent))
 			if err != nil {
 				return nil, err
 			}

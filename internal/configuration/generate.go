@@ -17,6 +17,9 @@ const (
 	templatesVariableHelp = `the name of the global variable with type *"html/template".Template in the working directory package.`
 	templatesVariable     = "templates-variable"
 
+	templateDataType     = "template-data-type"
+	templateDataTypeHelp = `The type name for the template data passed to root route templates.`
+
 	routesFuncHelp = `The function name for the package registering handler functions on an *"net/http".ServeMux.
 This function also receives an argument with a type matching the name given by receiver-interface.`
 	routesFunc = "routes-func"
@@ -66,5 +69,6 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.ReceiverType, ReceiverStaticType, "", receiverStaticTypeHelp)
 	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
+	flagSet.StringVar(&g.TemplateDataType, templateDataType, muxt.DefaultTemplateDataTypeName, templateDataTypeHelp)
 	return flagSet
 }
