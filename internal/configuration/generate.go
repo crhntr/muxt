@@ -33,6 +33,9 @@ This function also receives an argument with a type matching the name given by r
 	receiverInterfaceNameHelp = `The interface name in the generated output-file listing the methods used by the handler routes in routes-func.`
 	receiverInterfaceName     = "receiver-interface"
 
+	templateRoutePathsType     = "template-route-paths-type"
+	templateRoutePathsTypeHelp = `The type name for the type with path constructor helper methods.`
+
 	errIdentSuffix = " value must be a well-formed Go identifier"
 )
 
@@ -55,6 +58,12 @@ func NewRoutesFileConfiguration(args []string, stderr io.Writer) (muxt.RoutesFil
 	if g.ReceiverInterface != "" && !token.IsIdentifier(g.ReceiverInterface) {
 		return muxt.RoutesFileConfiguration{}, fmt.Errorf(receiverInterfaceName + errIdentSuffix)
 	}
+	if g.TemplateDataType != "" && !token.IsIdentifier(g.TemplateDataType) {
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(templateDataType + errIdentSuffix)
+	}
+	if g.TemplateRoutePathsTypeName != "" && !token.IsIdentifier(g.TemplateRoutePathsTypeName) {
+		return muxt.RoutesFileConfiguration{}, fmt.Errorf(templateRoutePathsType + errIdentSuffix)
+	}
 	if g.OutputFileName != "" && filepath.Ext(g.OutputFileName) != ".go" {
 		return muxt.RoutesFileConfiguration{}, fmt.Errorf("output filename must use .go extension")
 	}
@@ -70,5 +79,6 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.ReceiverPackage, receiverStaticTypePackage, "", receiverStaticTypePackageHelp)
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
 	flagSet.StringVar(&g.TemplateDataType, templateDataType, muxt.DefaultTemplateDataTypeName, templateDataTypeHelp)
+	flagSet.StringVar(&g.TemplateRoutePathsTypeName, templateRoutePathsType, muxt.DefaultTemplateRoutePathsTypeName, templateRoutePathsTypeHelp)
 	return flagSet
 }

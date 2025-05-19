@@ -36,12 +36,12 @@ const (
 	httpRequestIdent         = "Request"
 	httpHandleFuncIdent      = "HandleFunc"
 
-	defaultPackageName           = "main"
-	DefaultTemplatesVariableName = "templates"
-	DefaultRoutesFunctionName    = "TemplateRoutes"
-	DefaultOutputFileName        = "template_routes.go"
-	DefaultReceiverInterfaceName = "RoutesReceiver"
-	urlHelperTypeName            = "TemplateRoutePaths"
+	defaultPackageName                = "main"
+	DefaultTemplatesVariableName      = "templates"
+	DefaultRoutesFunctionName         = "TemplateRoutes"
+	DefaultOutputFileName             = "template_routes.go"
+	DefaultReceiverInterfaceName      = "RoutesReceiver"
+	DefaultTemplateRoutePathsTypeName = "TemplateRoutePaths"
 
 	InputAttributeNameStructTag     = "name"
 	InputAttributeTemplateStructTag = "template"
@@ -76,6 +76,7 @@ type RoutesFileConfiguration struct {
 	ReceiverPackage,
 	ReceiverInterface,
 	TemplateDataType,
+	TemplateRoutePathsTypeName string
 	OutputFileName string
 }
 
@@ -85,6 +86,7 @@ func (config RoutesFileConfiguration) applyDefaults() RoutesFileConfiguration {
 	config.RoutesFunction = cmp.Or(config.RoutesFunction, DefaultRoutesFunctionName)
 	config.ReceiverInterface = cmp.Or(config.ReceiverInterface, DefaultReceiverInterfaceName)
 	config.TemplateDataType = cmp.Or(config.TemplateDataType, DefaultTemplateDataTypeName)
+	config.TemplateRoutePathsTypeName = cmp.Or(config.TemplateRoutePathsTypeName, DefaultTemplateRoutePathsTypeName)
 	return config
 }
 
@@ -92,9 +94,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 	config = config.applyDefaults()
 	if !token.IsIdentifier(config.PackageName) {
 		return "", fmt.Errorf("package name %q is not an identifier", config.PackageName)
-	}
-	if !token.IsIdentifier(config.TemplateDataType) {
-		return "", fmt.Errorf("template data type name %q is not an identifier", config.TemplateDataType)
 	}
 
 	patterns := []string{
@@ -175,7 +174,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 		routesFunc.Body.List = append(routesFunc.Body.List, call)
 	}
 
-	routePathDecls, err := routePathTypeAndMethods(file, templates)
+	routePathDecls, err := routePathTypeAndMethods(file, templates, config.TemplateRoutePathsTypeName)
 	if err != nil {
 		return "", err
 	}
@@ -208,7 +207,7 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 			templateDataType(file, config.TemplateDataType, ast.NewIdent(config.ReceiverInterface)),
 			newTemplateData(file, ast.NewIdent(config.ReceiverInterface), config.TemplateDataType),
 			changeTemplateDataResult(file, config.TemplateDataType),
-			templateDataPathMethod(config.TemplateDataType),
+			templateDataPathMethod(config.TemplateDataType, config.TemplateRoutePathsTypeName),
 			templateDataResultMethod(config.TemplateDataType),
 			templateDataRequestMethod(file, config.TemplateDataType),
 			templateDataStatusCodeMethod(config.TemplateDataType),
@@ -735,7 +734,7 @@ func templateRedirect(file *source.File, templateDataTypeIdent string) *ast.Func
 	}
 }
 
-func templateDataPathMethod(templateDataTypeIdent string) *ast.FuncDecl {
+func templateDataPathMethod(templateDataTypeIdent, urlHelperTypeName string) *ast.FuncDecl {
 	return &ast.FuncDecl{
 		Recv: templateDataMethodReceiver(templateDataTypeIdent),
 		Name: ast.NewIdent("Path"),

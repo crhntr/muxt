@@ -110,7 +110,7 @@ func calculateIdentifiers(in []Template) {
 	}
 }
 
-func routePathFunc(imports *source.File, t *Template) (*ast.FuncDecl, error) {
+func routePathFunc(imports *source.File, t *Template, urlHelperTypeName string) (*ast.FuncDecl, error) {
 	encodingPkg, ok := imports.Types("encoding")
 	if !ok {
 		return nil, fmt.Errorf(`the "encoding" package must be loaded`)
@@ -286,7 +286,7 @@ func routePathFunc(imports *source.File, t *Template) (*ast.FuncDecl, error) {
 	return method, nil
 }
 
-func routePathTypeAndMethods(imports *source.File, templates []Template) ([]ast.Decl, error) {
+func routePathTypeAndMethods(imports *source.File, templates []Template, urlHelperTypeName string) ([]ast.Decl, error) {
 	decls := []ast.Decl{
 		&ast.GenDecl{
 			Tok: token.TYPE,
@@ -294,20 +294,9 @@ func routePathTypeAndMethods(imports *source.File, templates []Template) ([]ast.
 				&ast.TypeSpec{Name: ast.NewIdent(urlHelperTypeName), Type: &ast.StructType{Fields: &ast.FieldList{}}},
 			},
 		},
-		&ast.FuncDecl{
-			Name: ast.NewIdent("TemplateRoutePath"),
-			Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("")}, Type: ast.NewIdent(urlHelperTypeName)}}}},
-			Body: &ast.BlockStmt{
-				List: []ast.Stmt{
-					&ast.ReturnStmt{
-						Results: []ast.Expr{&ast.CompositeLit{Type: ast.NewIdent(urlHelperTypeName)}},
-					},
-				},
-			},
-		},
 	}
 	for _, t := range templates {
-		decl, err := routePathFunc(imports, &t)
+		decl, err := routePathFunc(imports, &t, urlHelperTypeName)
 		if err != nil {
 			return nil, err
 		}
