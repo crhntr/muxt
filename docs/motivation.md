@@ -18,11 +18,5 @@ Yes, LLMs help write boilerplate, but I still prefer writing code that’s maint
 Code generation is just another productivity boost—if it helps me build more reliable apps faster, that’s a win.
 I get a real thrill tinkering with abstract syntax trees and regex solutions that generate clean, testable Go code.
 
-In short, Muxt is a product of my own development philosophy:
-
-- **Lean** on minimal dependencies.
-- **Leverage** Go’s simplicity.
-- **Integrate** server-side rendering with a dash of interactivity.
-
-I use Muxt because it supports the workflow I love—simple, direct, and powerful enough to let me write and understand
-code quickly so that I can get back to time with my family.
+I use Muxt because it supports the workflow I love; it is simple, direct, and powerful enough to let me write and understand
+code quickly so that I can touch grass.
