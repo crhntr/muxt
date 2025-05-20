@@ -1,16 +1,23 @@
 # Muxt [![Go Reference](https://pkg.go.dev/badge/github.com/crhntr/muxt.svg)](https://pkg.go.dev/github.com/crhntr/muxt) [![Go](https://github.com/crhntr/muxt/actions/workflows/go.yml/badge.svg)](https://github.com/crhntr/muxt/actions/workflows/go.yml)
 
-**Muxt** is a Go code generator that helps you build server-side rendered web apps with minimal overhead, leveraging Go
-1.22’s improved `http.ServeMux` and standard `html/template` features.
-No extra runtime dependencies are required—just plain Go code.
+**Muxt** generates and registers HTTP Handler functions specified in HTML templates.
+It increases locality of behavior when creating server side rendered hypermedia web applications.
 
-- It allows you to register HTTP routes from [HTML templates](https://pkg.go.dev/html/template)
-- It generates handler functions and registers them on an [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux)
-- It generates code in handler functions to parse path parameters and form fields
-- It generates a receiver interface to represent the boundary between your app code and HTTP/HTML
-	- Use this to mock out your server and test the view layer of your application
+Muxt looks for templates with names that match an extended version of the `http.ServeMux` pattern syntax.
 
-## Examples
+This is the standard `http.ServeMux` pattern syntax:
+
+> `[METHOD ][HOST]/[PATH]`
+
+Muxt extends this a little bit adding optional fields for an HTTP status and a call:
+
+> `[METHOD ][HOST]/[PATH][ HTTP_STATUS][ CALL]`
+
+### Route Registration Example
+
+You tell muxt how to generate the handler functions by defining templates like this `{{define "GET / F()" -}}.
+Muxt will generate a handler function that calls F and pass the result to the template.
+The template result will then be written to the HTTP response.
 
 ```html
 {{define "GET / F()" -}}
@@ -27,7 +34,23 @@ No extra runtime dependencies are required—just plain Go code.
 {{- end}}
 ```
 
+### Tiny Examples
+
+Muxt routes HTML templates to Go methods and handles common web plumbing:
+
+* `{{define "GET /{id} F(id)"}}{{end}}` — Parses `{id}` as `int` and passes to `F(int)`.
+* `{{define "GET / F(ctx)"}}{{end}}` — Injects `request.Context()` if `ctx` is used.
+* `{{define "GET / F(request)"}}{{end}}` — Injects the `*http.Request` when `request` is named.
+* `{{define "GET / F(response)"}}{{end}}` — Injects `http.ResponseWriter` if `response` is used.
+* `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct from `url.Values` if the `form` parameter is a struct.
+* `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct if the `form` parameter is a `url.Values`.
+
+The template data passed to `ExecuteTemplate` looks like `TemplateData[T]` where `T` is the type from the result of the call:
+
+### Bigger Examples
+
 For a small runnable, see: [./example/hypertext/index.gohtml](./example/hypertext/index.gohtml)
+The Go package documentation for the example shows what is generated `https://pkg.go.dev/github.com/crhntr/muxt/example/hypertext`.
 
 For larger complete examples, see:
 - [muxt-example-htmx-sortable](http://github.com/crhntr/muxt-example-htmx-sortable) _**(NEW)**_
