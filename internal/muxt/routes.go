@@ -55,16 +55,10 @@ const (
 	templateDataFieldStatusCode = "statusCode"
 
 	executeTemplateErrorMessage = "failed to render page"
-
-	writeBody = "writeResponseBody"
 )
 
 func newResponseDataFuncIdent(templateDataTypeName string) string {
 	return "new" + templateDataTypeName
-}
-
-func changeTemplateDataResultIdent(templateDataTypeName string) string {
-	return "Change" + templateDataTypeName + "Result"
 }
 
 type RoutesFileConfiguration struct {
@@ -206,7 +200,6 @@ func TemplateRoutesFile(wd string, logger *log.Logger, config RoutesFileConfigur
 
 			templateDataType(file, config.TemplateDataType, ast.NewIdent(config.ReceiverInterface)),
 			newTemplateData(file, ast.NewIdent(config.ReceiverInterface), config.TemplateDataType),
-			changeTemplateDataResult(file, config.TemplateDataType),
 			templateDataPathMethod(config.TemplateDataType, config.TemplateRoutePathsTypeName),
 			templateDataResultMethod(config.TemplateDataType),
 			templateDataRequestMethod(file, config.TemplateDataType),
@@ -444,13 +437,6 @@ func checkExecuteTemplateError(file *source.File) *ast.IfStmt {
 	}
 }
 
-func defineBytesBuffer(file *source.File, bufIdent string) *ast.AssignStmt {
-	return &ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(bufIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{&ast.CallExpr{
-		Fun:  &ast.SelectorExpr{X: ast.NewIdent(file.Import("", "bytes")), Sel: ast.NewIdent("NewBuffer")},
-		Args: []ast.Expr{ast.NewIdent("nil")},
-	}}}
-}
-
 func callWriteOnResponse(bufferIdent string) *ast.AssignStmt {
 	return &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent("_")},
@@ -542,65 +528,6 @@ func newTemplateData(file *source.File, receiverType ast.Expr, templateDataTypeI
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
 								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL), Value: source.String("")},
-							},
-						}},
-					},
-				},
-			},
-		},
-	}
-}
-
-func changeTemplateDataResult(file *source.File, templateDataTypeIdent string) *ast.FuncDecl {
-	const (
-		resultParamName = "result"
-		errIdent        = "err"
-		okayIdent       = "okay"
-		prevTDIdent     = "td"
-
-		newResultTypeIdent  = "NewResultType"
-		prevResultTypeIdent = "PrevResultType"
-	)
-	return &ast.FuncDecl{
-		Name: ast.NewIdent(changeTemplateDataResultIdent(templateDataTypeIdent)),
-		Type: &ast.FuncType{
-			TypeParams: &ast.FieldList{
-				List: []*ast.Field{
-					{Names: []*ast.Ident{ast.NewIdent(newResultTypeIdent), ast.NewIdent(prevResultTypeIdent)}, Type: ast.NewIdent("any")},
-				},
-			},
-			Params: &ast.FieldList{
-				List: []*ast.Field{
-					{Names: []*ast.Ident{ast.NewIdent(prevTDIdent)}, Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(prevResultTypeIdent), X: ast.NewIdent(templateDataTypeIdent)}}},
-					{Names: []*ast.Ident{ast.NewIdent(resultParamName)}, Type: ast.NewIdent(newResultTypeIdent)},
-					{Names: []*ast.Ident{ast.NewIdent(okayIdent)}, Type: ast.NewIdent("bool")},
-					{Names: []*ast.Ident{ast.NewIdent(errIdent)}, Type: ast.NewIdent("error")},
-				},
-			},
-			Results: &ast.FieldList{
-				List: []*ast.Field{
-					{Type: &ast.StarExpr{X: &ast.IndexExpr{Index: ast.NewIdent(newResultTypeIdent), X: ast.NewIdent(templateDataTypeIdent)}}},
-				},
-			},
-		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				&ast.ReturnStmt{
-					Results: []ast.Expr{
-						&ast.UnaryExpr{Op: token.AND, X: &ast.CompositeLit{
-							Type: &ast.IndexExpr{
-								X:     ast.NewIdent(templateDataTypeIdent),
-								Index: ast.NewIdent(newResultTypeIdent),
-							},
-							Elts: []ast.Expr{
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierReceiver), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierReceiver)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierStatusCode), Value: &ast.SelectorExpr{X: ast.NewIdent(prevTDIdent), Sel: ast.NewIdent(TemplateDataFieldIdentifierStatusCode)}},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierResult), Value: ast.NewIdent(resultParamName)},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierOkay), Value: ast.NewIdent(okayIdent)},
-								&ast.KeyValueExpr{Key: ast.NewIdent(TemplateDataFieldIdentifierError), Value: ast.NewIdent(TemplateDataFieldIdentifierError)},
 							},
 						}},
 					},
@@ -1346,9 +1273,9 @@ func callReceiverMethod(file *source.File, t *Template, templateDataTypeIdent, t
 	)
 	switch method.Results().Len() {
 	default:
-		mathodIdent := call.Fun.(*ast.Ident)
-		assert.NotNil(assertion, mathodIdent)
-		return nil, fmt.Errorf("method %s has no results it should have one or two", mathodIdent.Name)
+		methodIdent := call.Fun.(*ast.Ident)
+		assert.NotNil(assertion, methodIdent)
+		return nil, fmt.Errorf("method %s has no results it should have one or two", methodIdent.Name)
 	case 1:
 		return []ast.Stmt{&ast.AssignStmt{Lhs: []ast.Expr{ast.NewIdent(dataVarIdent)}, Tok: token.DEFINE, Rhs: []ast.Expr{call}}}, nil
 	case 2:
@@ -1571,7 +1498,7 @@ func singleAssignment(assignTok token.Token, result ast.Expr) func(exp ast.Expr)
 
 var statusCoder = statusCoderInterface()
 
-func writeStatusAndHeaders(file *source.File, t *Template, resultType types.Type, fallbackStatusCode int, statusCode, bufIdent, resultDataIdent string) []ast.Stmt {
+func writeStatusAndHeaders(file *source.File, _ *Template, resultType types.Type, fallbackStatusCode int, statusCode, bufIdent, resultDataIdent string) []ast.Stmt {
 	statusCodePriorityList := []ast.Expr{
 		&ast.SelectorExpr{X: ast.NewIdent(resultDataIdent), Sel: ast.NewIdent(templateDataFieldStatusCode)},
 	}
