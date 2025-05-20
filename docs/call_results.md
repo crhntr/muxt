@@ -1,8 +1,7 @@
 # Method Result Field Sets
 
 It's kinda similar to template functions.
-You *should* just return one struct value (including maybe one or more error fields).
-However, you can also return a value and an error or a boolean.
+You can also return a value and an error or an "ok" boolean.
 
 The following would be acceptable result sets.
 
@@ -16,9 +15,9 @@ type T struct {
 type Server struct{}
 
 func (Server) F1() T          { return T{} }
-func (Server) F2() (T, bool)  { return T{}, false }
+func (Server) F2() (T, bool)  { return T{}, false } // if the boolean is true, the handler will return without writing a response.
 func (Server) F3() (T, error) { return T{}, nil }
-func (Server) F4() error { return nil } // not sure why you'd do this
+func (Server) F4() error { return nil }
 
 ```
 
@@ -29,15 +28,11 @@ So in your template you will receive a struct like this and T will be the left m
 ```go
 package hypertext
 
-import "net/http"
-
-type TemplateData[T any] struct {
-	Request *http.Request
-	Result    T
-}
+type TemplateData[T any] struct {}
 ```
 
-### Roadmap Notes
+The `TemplateData` type will have accessors for
+- `Request` (the `*http.Request`)
+- `Result` (the left most return value from your method)
 
-I'd like to add methods on this type to generate URLs based on the template routes.
-This will make using URLs in your templates more type safe.   
+Other methods on TemplateData exist. These are in active development and are likely to change.

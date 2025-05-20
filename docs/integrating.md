@@ -2,7 +2,7 @@
 
 If you already have a Go application and want to introduce **Muxt** for server-rendered templates, consider placing your
 `.gohtml` files and hypermedia-related code into a dedicated package
-A convenient choice is something like `hypertext/`, which keeps template and routing logic isolated from the rest of
+A convenient choice is something like `./internal/hypertext/`, which keeps template and routing logic isolated from the rest of
 your application.
 Http routes and hypertext tend to be highly coupled in SSR sites (for example via anchor tags `<a href="/some-route">`
 and form actions `<form method="GET" action="/hello">`)

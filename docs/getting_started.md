@@ -21,9 +21,7 @@ a [dev tool dependency (when Go 1.24 comes out)](https://tip.golang.org/doc/modu
 For a global-install run:
 
 ```bash
-cd # go outside your current project directory, in this case
-  go install github.com/crhntr/muxt/cmd/muxt@latest
-cd - # go back to your repo
+go install github.com/crhntr/muxt/cmd/muxt@latest
 ```
 
 ## 3. Generating Your First Routes
