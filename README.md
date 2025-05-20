@@ -76,6 +76,7 @@ Muxt's authors disclaim all liability for any bugs, regressions, or defects in g
 
 - [Call Parameters](./docs/call_parameters.md)
 - [Call Results](./docs/call_results.md)
+- [Writing Receiver Methods](./docs/writing_receiver_methods.md)
 - [Templates Variable](./docs/templates_variable.md)
 - [Template Action Type-Checking](./docs/action_type_checking.md)
 - [Known Issues](./docs/known_issues.md)
@@ -83,7 +84,6 @@ Muxt's authors disclaim all liability for any bugs, regressions, or defects in g
 ### Testing
 
 - [Testing Hypertext](./docs/testing_hypertext.md)
-- [Testing the Receiver](./docs/testing_the_receiver.md)
 
 ### Philosophy & Vision
 
