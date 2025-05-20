@@ -45,7 +45,7 @@ Muxt routes HTML templates to Go methods and handles common web plumbing:
 * `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct from `url.Values` if the `form` parameter is a struct.
 * `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct if the `form` parameter is a `url.Values`.
 
-The template data passed to `ExecuteTemplate` looks like `TemplateData[T]` where `T` is the type from the result of the call:
+The result of the (optional) call is wrapped in a `TemplateData[T]` struct and passed to `ExecuteTemplate`.
 
 ### Bigger Examples
 
