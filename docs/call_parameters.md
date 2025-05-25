@@ -1,26 +1,17 @@
 # Method Parameter Field Sets
 
-This is the (wip) "argument" documentation.
+In template names, you may add a call expression.
+The names of these arguments and the parameter types for the method being called will be used to generate a handler func.
 
-## The Method Call Scope
-
-There are three parameters you can pass to a method that always generate the same code
-
-### Default Mapping
-
-If you don't provide a named type with `--receiver-type`, muxt will try use the following default types for the
-generated interface methods.
-
+## Default Argument Types
 - `ctx` -> `http.Request.Context`
 - `request` -> `*http.Request`
 - `response` -> `http.ResponseWriter`
 - `form` -> `url.Values`
-- (named path values) -> `string` (i.e. "/some/{value}" where the identifier "value" now a variable name in the call
-  scope)
+- `someID` with corresponding path identifier `/{someID}` -> `string`
 
-The method will return `any`.
-This result type does not play well with `muxt check`.
-You should set a `--receiver-type`.
+The types for `form` and `someID` can be overridden by providing a `--receiver-type` flag to `muxt generate`.
+When you do this, `muxt` will generate a method that finds the method parameter type and generates a parser from string to that type.
 
 #### Example without Receiver Type
 
@@ -36,10 +27,12 @@ type RoutesReceiver interface {
 }
 ```
 
+Note, the default result type is `any` if you do not provide a `--receiver-type` flag to `muxt generate`.
+
 ### Example with Receiver Type
 
-Now, say you provide `--receiver-type=Server`, muxt now will generate parsers in the handler and the generated interface
-will look like this
+Now, when you provide `--receiver-type=Server`, `muxt` now will generate parsers in the handler and the generated interface
+and use the method signature result in the generated interface method signature.
 
 ```go
 package server
@@ -69,9 +62,9 @@ type RoutesReceiver interface {
 }
 ```
 
-## Parsing
-
-Muxt can generate form field and path parameter parsers for most basic Go types.
+## String Parsing
+ 
+`muxt` can generate form field and path parameter string parsers for most basic Go types.
 
 ### Basic Kinds
 
@@ -89,5 +82,4 @@ Muxt can generate form field and path parameter parsers for most basic Go types.
 - `string` _(passed through with no parsing)_
 
 If a type implements [`encoding.TextUmarshaler`](https://pkg.go.dev/encoding#TextUnmarshaler),
-we will use that.
-
+`muxt` will use that.
