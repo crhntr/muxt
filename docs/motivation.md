@@ -4,19 +4,18 @@ I’m not a huge fan of TypeScript or modern frontend frameworks.
 Partly it’s a skill gap—I haven’t invested the time to learn them deeply.
 But I also want the benefits these tools provide: polished UIs without an entire extra layer in my stack.
 
-**Enter [HTMX](http://htmx.org/).** It brings me closer to the slickness of Vue or Svelte without forcing a massive
-front-end rewrite.
-Combined with Go, `sqlc`, PostgreSQL, and now Muxt, I get a powerful server-rendered workflow that bridges a datastore
-and user interface seamlessly.
+**Enter [HTMX](http://htmx.org/).** It brings me closer to the slickness of Vue or Svelte without forcing a massive front-end rewrite.
+Using `sqlc` and now `muxt`, I get a server-rendered workflow with helpful code generate that bridges my domain logic to a datastore and user interfaces with helpful seams.
 
 I **love** writing Go. It’s a joy to make useful tools in a straightforward language.
 
 I’m wary of overloading projects with dependencies—especially after years of dealing with regulated environments where
 every library bump *could be* a headache.
 
-Yes, LLMs help write boilerplate, but I still prefer writing code that’s maintainable for **humans**.
-Code generation is just another productivity boost—if it helps me build more reliable apps faster, that’s a win.
-I get a real thrill tinkering with abstract syntax trees and regex solutions that generate clean, testable Go code.
+[Initially `muxt` was written as a function to generate reflection-based handlers](https://github.com/crhntr/muxt/blob/33f2eb69d84d6bf2c2ad87c5ddfee9fb2e0fea31/handler.go).
+I decided to switch to code generation to make the behavior more readable because [reflection is never clear](https://youtu.be/PAAkCSZUG1c?si=gT_ga16SMOKNshqp&t=922).
 
-I use Muxt because it supports the workflow I love; it is simple, direct, and powerful enough to let me write and understand
-code quickly so that I can touch grass.
+Another alternative would be to lean on a large language model (LLM) to generate boilerplate.
+I have experimented with a few prompt templates to generate handler and HTML page boilerplate but this is hard to scale across a team over time.
+
+I use `muxt` because it is powerful enough to let me write and understand code quickly so I have more time to touch grass.
