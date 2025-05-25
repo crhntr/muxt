@@ -16,8 +16,8 @@ This guide walks you through installing Muxt and generating your first routes fr
 
 ## 2. Installation
 
-You do not need to import Muxt into your module unless you want it as
-a [dev tool dependency (when Go 1.24 comes out)](https://tip.golang.org/doc/modules/managing-dependencies#tools).
+You do not need to import `muxt` into your module unless you want it as a [dev tool dependency (when Go 1.24 comes out)](https://tip.golang.org/doc/modules/managing-dependencies#tools).
+
 For a global-install run:
 
 ```bash
@@ -26,8 +26,8 @@ go install github.com/crhntr/muxt/cmd/muxt@latest
 
 ## 3. Generating Your First Routes
 
-In this example, muxt will generate a function registering a handler for the HTTP request `GET /`
-It will return an html page with the text "Hello, world!".
+In this example, `muxt` will generate a function registering a handler for the HTTP request `GET /`
+It will return a response with the text "Hello, world!".
 
 ### Create the "html/template" entrypoint
 
