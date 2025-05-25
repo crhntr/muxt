@@ -1,8 +1,8 @@
 # Writing Receiver Methods
 
-When writing your Muxt receiver methods, **avoid** passing the raw `request *http.Request` or `response http.ResponseWriter` whenever you can.
+When writing your `muxt` receiver methods, **avoid** passing the raw `request *http.Request` or `response http.ResponseWriter` whenever you can.
 Instead, use on domain-oriented structs.
-This clarifies your application code and your tests easier to maintain.
+This guideline clarifies your application code and your tests easier to maintain.
 
 ```go
 func (MyReceiver) CreateUser(ctx context.Context, form CreateUserForm) (User, error) {
@@ -11,7 +11,7 @@ func (MyReceiver) CreateUser(ctx context.Context, form CreateUserForm) (User, er
 ```
 
 As a Go proverb says, `return static types`. Doing this will with `muxt check`.
-Muxt will try to generate new methods on the `RoutesReciever` interface and have them return `any` (I might change this initial result to `struct{}`).
+`muxt` will try to generate new methods on the `RoutesReciever` interface and have them return `any` (I might change this initial result to `struct{}`).
 Once you are updating the receiver method signatures, run `muxt generate` to get an updated interface.
 
 ## Handling Responses Without http.ResponseWriter

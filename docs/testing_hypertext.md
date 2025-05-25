@@ -1,18 +1,13 @@
 # Testing `muxt generate`d Hypertext Handlers with `domtest`
 
-When building server-side applications with **Muxt**-generated routes, you often want to verify both the
-**HTTP response** (e.g., status codes, headers)
+When building server-side applications with **`muxt`**-generated routes,
+you often want to verify both the **HTTP response** (e.g., status codes, headers)
 and the **HTML/DOM output** (e.g., specific elements, text content, or errors).
-The [`domtest`](https://github.com/crhntr/dom) package offers a convenient table-driven approach to do exactly
-that—asserting both HTTP and HTML-based outcomes in one cohesive flow.
+The [`domtest`](https://github.com/crhntr/dom) package offers a way to test hypertext in a way intuitive for web developers. 
 
-Below is an example test suite from the `blog_test` package, which illustrates how to integrate `domtest` with a Muxt
-route function named `Routes`.
-A typical BDD test pattern emerges. Each test case specifies `Given` (setup, optional), `When` (the request, required),
-and `Then` (assertions, optional).
+Below is an example test suite from the `blog_test` package, which illustrates how to integrate `domtest` with a `muxt` route function named `Routes`.
+A typical BDD test pattern emerges. Each test case specifies `Given` (setup, optional), `When` (the request, required), and `Then` (assertions, optional).
 By leveraging `domtest`’s various assertion helpers, you can check DOM structure and content directly.
-
----
 
 ## Example Usage
 
@@ -31,6 +26,7 @@ git clone git@github.com:crhntr/muxt.git
 cd muxt
 export TEST_TAR="${PWD}/cmd/muxt/testdata/blog.txt"
 mkdir -p /tmp/example.com
+cd /tmp/example.com/
 
 txtar --extract <"${TEST_TAR}"
 
