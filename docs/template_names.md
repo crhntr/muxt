@@ -1,10 +1,10 @@
 # Naming Templates
 
-`muxt generate` will read your embedded HTML templates and generate/register an [
+`muxt generate` will read your HTML templates and generate/register an [
 `http.HandlerFunc`](https://pkg.go.dev/net/http#HandlerFunc) for each template with a name that matches an expected
 patten.
 
-If the template name does not match the pattern, it is ignored by muxt.
+If a template name does not match an expected pattern, the template is ignored by `muxt`.
 
 Since Go 1.22, the standard library route **mu**ltiple**x**er can parse path parameters.
 
@@ -12,28 +12,17 @@ It has expects strings like this
 
 `[METHOD ][HOST]/[PATH]`
 
-Muxt extends this a little bit.
+Muxt extends this by adding optional fields for the status code and a method call.
 
 `[METHOD ][HOST]/[PATH ][HTTP_STATUS ][CALL]`
 
-A template name that muxt understands looks like this:
+A template name pattern that `muxt` understands looks like this:
 
 ```gotemplate
 {{define "GET /greet/{language} 200 Greeting(ctx, language)" }}
 <h1>{{.Hello}}</h1>
 {{end}}
 ```
-
-In this template name
-
-- Passed through to `http.ServeMux`
-    - we define the HTTP Method `GET`,
-    - the path prefix `/greet/`
-    - the path parameter called `language` (available in the call scope as `language`)
-- Used by muxt to generate a `http.HandlerFunc`
-    - the status code to use when muxt calls WriteHeader is `200` aka `http.StatusOK`
-    - the method name on the configured receiver to call is `Greeting`
-    - the parameters to pass to `Greeting` are `ctx` and `language`
 
 ## [`*http.ServeMux`](https://pkg.go.dev/net/http#ServeMux) Patterns
 
