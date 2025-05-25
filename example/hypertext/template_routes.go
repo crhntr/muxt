@@ -55,6 +55,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 				return
 			}
 			sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
+			if rd.redirectURL != "" {
+				http.Redirect(response, request, rd.redirectURL, sc)
+				return
+			}
 			if contentType := response.Header().Get("content-type"); contentType == "" {
 				response.Header().Set("content-type", "text/html; charset=utf-8")
 			}
@@ -78,6 +82,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 					return
 				}
 				sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
+				if rd.redirectURL != "" {
+					http.Redirect(response, request, rd.redirectURL, sc)
+					return
+				}
 				if contentType := response.Header().Get("content-type"); contentType == "" {
 					response.Header().Set("content-type", "text/html; charset=utf-8")
 				}
@@ -96,6 +104,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 					return
 				}
 				sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
+				if rd.redirectURL != "" {
+					http.Redirect(response, request, rd.redirectURL, sc)
+					return
+				}
 				if contentType := response.Header().Get("content-type"); contentType == "" {
 					response.Header().Set("content-type", "text/html; charset=utf-8")
 				}
@@ -117,6 +129,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 				return
 			}
 			sc := cmp.Or(rd.statusCode, http.StatusInternalServerError)
+			if rd.redirectURL != "" {
+				http.Redirect(response, request, rd.redirectURL, sc)
+				return
+			}
 			if contentType := response.Header().Get("content-type"); contentType == "" {
 				response.Header().Set("content-type", "text/html; charset=utf-8")
 			}
@@ -133,6 +149,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		statusCode := cmp.Or(td.statusCode, http.StatusOK)
+		if td.redirectURL != "" {
+			http.Redirect(response, request, td.redirectURL, statusCode)
+			return
+		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
 			response.Header().Set("content-type", "text/html; charset=utf-8")
 		}
@@ -152,6 +172,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 				return
 			}
 			sc := cmp.Or(rd.statusCode, http.StatusBadRequest)
+			if rd.redirectURL != "" {
+				http.Redirect(response, request, rd.redirectURL, sc)
+				return
+			}
 			if contentType := response.Header().Get("content-type"); contentType == "" {
 				response.Header().Set("content-type", "text/html; charset=utf-8")
 			}
@@ -172,6 +196,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 				return
 			}
 			sc := cmp.Or(rd.statusCode, http.StatusInternalServerError)
+			if rd.redirectURL != "" {
+				http.Redirect(response, request, rd.redirectURL, sc)
+				return
+			}
 			if contentType := response.Header().Get("content-type"); contentType == "" {
 				response.Header().Set("content-type", "text/html; charset=utf-8")
 			}
@@ -188,6 +216,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		statusCode := cmp.Or(td.statusCode, http.StatusOK)
+		if td.redirectURL != "" {
+			http.Redirect(response, request, td.redirectURL, statusCode)
+			return
+		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
 			response.Header().Set("content-type", "text/html; charset=utf-8")
 		}
@@ -206,6 +238,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		statusCode := cmp.Or(td.statusCode, http.StatusOK)
+		if td.redirectURL != "" {
+			http.Redirect(response, request, td.redirectURL, statusCode)
+			return
+		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
 			response.Header().Set("content-type", "text/html; charset=utf-8")
 		}
@@ -224,6 +260,10 @@ func TemplateRoutes(mux *http.ServeMux, receiver RoutesReceiver) {
 			return
 		}
 		statusCode := cmp.Or(td.statusCode, http.StatusOK)
+		if td.redirectURL != "" {
+			http.Redirect(response, request, td.redirectURL, statusCode)
+			return
+		}
 		if contentType := response.Header().Get("content-type"); contentType == "" {
 			response.Header().Set("content-type", "text/html; charset=utf-8")
 		}

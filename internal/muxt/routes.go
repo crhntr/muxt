@@ -1516,6 +1516,32 @@ func writeStatusAndHeaders(file *source.File, _ *Template, resultType types.Type
 				file.Call("", "cmp", "Or", statusCodePriorityList),
 			},
 		},
+		&ast.IfStmt{ // TODO: make this conditional on a redirect call in the template actions
+			Cond: &ast.BinaryExpr{
+				X: &ast.SelectorExpr{
+					X:   ast.NewIdent(resultDataIdent),
+					Sel: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL),
+				},
+				Op: token.NEQ,
+				Y:  source.String(""),
+			},
+			Body: &ast.BlockStmt{
+				List: []ast.Stmt{
+					&ast.ExprStmt{
+						X: file.Call("", "net/http", "Redirect", []ast.Expr{
+							ast.NewIdent(TemplateNameScopeIdentifierHTTPResponse),
+							ast.NewIdent(TemplateNameScopeIdentifierHTTPRequest),
+							&ast.SelectorExpr{
+								X:   ast.NewIdent(resultDataIdent),
+								Sel: ast.NewIdent(TemplateDataFieldIdentifierRedirectURL),
+							},
+							ast.NewIdent(statusCode),
+						}),
+					},
+					&ast.ReturnStmt{},
+				},
+			},
+		},
 	}
 	return append(list, writeBodyAndWriteHeadersFunc(file, bufIdent, statusCode)...)
 }
