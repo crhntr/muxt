@@ -1,9 +1,13 @@
 # Method Result Field Sets
 
-It's kinda similar to template functions.
-You can also return a value and an error or an "ok" boolean.
+How `muxt` handles the results of method calls, is similar to how template.ExecuteTemplate handles functions.
+You must not call a function without a result.
+You can return a single value, a value and an error, or a value and a boolean.
+When you return a single value, the error and boolean are assumed to be zero values.
+The type of the first result will be used as the type parameter for the `TemplateData[T]` struct.
+The struct will be passed to the template as the data argument.
 
-The following would be acceptable result sets.
+The following methods on T would be acceptable method result signatures.
 
 ```go
 package domain
@@ -23,7 +27,8 @@ func (Server) F4() error { return nil }
 
 Before the left most value is passed to the template, it is boxed in a struct that also includes the `*http.Request`.
 
-So in your template you will receive a struct like this and T will be the left most return from your method:
+So in your template you will receive a struct like this.
+T will be the left most return from your method:
 
 ```go
 package hypertext
