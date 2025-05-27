@@ -1,8 +1,18 @@
 # Making Template Source Files Discoverable
 
-`muxt` expects you to use a global variable and the embed package for your template source.
-Here is an example of how to do this:
+`muxt check` finds function calls and evaluates the template name and parameter type to do static analysis of your template actions.
+Generate HTTP handler functions comply with this expectation by using string literals in `ExecuteTemplate` calls.
+This heuristic to map template names to their data parameter only works for checking.
 
+To map template names to expected handler behavior, `muxt generate` needs to find an assignment expression where the templates are parsed.
+This configuration is much more brittle than the scanning heuristic used by `muxt check` so you may encounter problems when you deviate from the given example.
+Please file a GitHub issue if you encounter problems with your configuration.
+
+`muxt generate` expects you to use a global variable with type `*template.Template` initialized by an assignment expression.
+The assignment expression must call ParseFS with a variable of type `embed.FS` as the first argument.
+`muxt generate` will then parse the embedded files and find the templates that match the expected template name pattern.
+
+Here is a minimal example of a Go source file that `muxt generate` can use to find templates:
 ```go
 package server
 
@@ -12,16 +22,12 @@ import (
 )
 
 //go:embed *.gohtml
-var templatesSource embed.FS
+var goTemplateHypertextFiles embed.FS
 
-var templates = template.Must(template.ParseFS(templatesSource, "*"))
+var myTemplates = template.Must(template.ParseFS(goTemplateHypertextFiles, "*"))
 ```
 
-You need to add a globally scoped variable with type `embed.FS` (like `templatesSource` in the example).
-It should be passed into a call either the function `"html/template".ParseFS` or method `"html/template".Template.ParseFS`.
-Before it does so, it can call any of the following functions or methods in the right-hand side of the `templates` variable declaration.
-
-`muxt` will call any of the functions:
+The right-hand side of the assignment expression may include any of the following template function calls:
 
 - [`Must`](https://pkg.go.dev/html/template#Must)
 - [`Parse`](https://pkg.go.dev/html/template#Parse)
@@ -36,8 +42,6 @@ or methods:
 - [`Template.Delims`](https://pkg.go.dev/html/template#Template.Delims)
 - [`Template.Option`](https://pkg.go.dev/html/template#Template.Option)
 - [`Template.Funcs`](https://pkg.go.dev/html/template#Template.Option)
-
-`muxt` iterates over the resulting parsed templates to discover templates matching the template name pattern documented on the [Writing Template Names](./template_names.md) page.
 
 You can use a different variable name for the `*template.Template` just invoke `muxt generate` with the
 `--templates-variable=someOtherName` flag
