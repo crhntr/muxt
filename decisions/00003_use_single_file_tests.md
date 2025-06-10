@@ -4,7 +4,7 @@
 
 It was getting really expensive to maintain both the unit and high level code generation tests;
 The tests are coupled tightly to the implementation.
-Whenever changed code generation I would need to update all the tests.     
+Whenever I changed code generation, I would need to update all the tests.     
 [This change where I wrapped the result data in a struct is a good example of a huge test change required by a smaller generation change.](https://github.com/crhntr/muxt/commit/9306e6d4b37e343d4c84f3d70e04025c77e4c0db).
 
 ## Decision
