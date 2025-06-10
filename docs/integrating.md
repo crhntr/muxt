@@ -1,12 +1,27 @@
 # Integrating Muxt into an Existing Project
 
-If you already have a Go application and want to introduce **Muxt** for server-rendered templates, consider placing your
-`.gohtml` files and hypermedia-related code into a dedicated package
-A convenient choice is something like `./internal/hypertext/`, which keeps template and routing logic isolated from the rest of
-your application.
-Http routes and hypertext tend to be highly coupled in SSR sites (for example via anchor tags `<a href="/some-route">`
-and form actions `<form method="GET" action="/hello">`)
-This coupling increases when you use something epic like [htmx](https://htmx.org).
+`muxt` is designed bring value to existing projects quickly.
+
+If you are already using `"html/template"`, you can do a couple quick changes to get static analysis of that source.
+1. Make your `*template.Template` variable is a initialized as a global declaration and that the source is provided via embedded files
+  ```go
+  package server
+  
+  import (
+    "embed"
+    "html/template"
+  )
+  
+  //go:embed *.gohtml
+  var templateSource embed.FS
+  
+  var templates = template.Must(template.ParseFS(templateSource, "*"))
+  ```
+2. Make sure all your calls to `templates.ExecuteTemplate` use string literals for the name and static types for the data argument.
+That is all you need to do to have `muxt check` check your templates.
+This should make refactoring your templates safer.
+
+To have `muxt` map HTTP requests to method calls, you can now start integrating `muxt generate` 
 
 ## 1. Create a `hypertext` Package
 
