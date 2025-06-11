@@ -15,7 +15,7 @@ Muxt extends this by adding optional fields for an HTTP status and a call:
 
 ### Route Registration Example
 
-You tell `muxt` how to generate the handler functions by defining templates like this `{{define "GET / F()" -}}.
+You tell `muxt` how to generate the handler functions by defining templates like this `{{define "GET / F()" -}}`.
 `muxt` will generate a handler function that calls F and pass the result to the template.
 The template result will then be written to the HTTP response.
 
@@ -45,7 +45,7 @@ The template result will then be written to the HTTP response.
 * `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct from `url.Values` if the `form` parameter is a struct.
 * `{{define "POST / F(form)"}}{{end}}` — Parses form data into a struct if the `form` parameter is a `url.Values`.
 
-The result of the (optional) call is wrapped in a `TemplateData[T]` struct and passed to `ExecuteTemplate`.
+The result of the call is wrapped in a `TemplateData[T]` struct and passed to `ExecuteTemplate`.
 
 ### Bigger Examples
 
