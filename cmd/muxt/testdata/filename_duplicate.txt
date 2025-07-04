@@ -1,0 +1,88 @@
+muxt generate
+
+exec go test
+
+-- templates/head.gohtml --
+{{define "links" -}}
+<nav>
+	<ul>
+		<li><a href="en">English</a></li>
+		<li><a href="es">Spanish</a></li>
+	</ul>
+</nav>
+{{- end}}
+
+-- templates/en/index.gohtml --
+{{define "GET /en" }}
+	<h1>Hello, world!</h1>
+
+	{{template "links" .}}
+{{end}}
+
+-- templates/es/index.gohtml --
+{{define "GET /es" }}
+	<h1>¡Holla, mundo!</h1>
+
+	{{template "links" .}}
+{{end}}
+
+-- go.mod --
+module example
+
+go 1.24
+-- template.go --
+package server
+
+import (
+	"embed"
+	"html/template"
+)
+
+//go:embed templates
+var templateSource embed.FS
+
+var templates = template.Must(template.ParseFS(templateSource, "templates/*.gohtml", "templates/*/*.gohtml", ))
+
+-- template_test.go --
+package server
+
+import (
+	"testing"
+
+	"net/http"
+	"net/http/httptest"
+)
+
+func TestEnglish(t *testing.T) {
+	mux := http.NewServeMux()
+
+	TemplateRoutes(mux, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/en", nil)
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	res := rec.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Error("expected OK")
+	}
+}
+
+func TestSpanish(t *testing.T) {
+	mux := http.NewServeMux()
+
+	TemplateRoutes(mux, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/es", nil)
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	res := rec.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Error("expected OK")
+	}
+}
