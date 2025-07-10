@@ -36,4 +36,35 @@ Here is an excerpt from [the standard libary documentation.](https://pkg.go.dev/
 > - "/b/{bucket}/o/{objectname...}" matches paths whose first segment is "b" and whose third segment is "o". The name "
     bucket" denotes the second segment and "objectname" denotes the remainder of the path.
 
+## More Precise Template Name Specification
+
+```bnf
+<route> ::= [ <method> <space> ] [ <host> ] <path> [ <space> <http_status> ] [ <space> <call_expr> ]
+
+<method> ::= "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+
+<host> ::= <hostname> | <ip_address>
+
+<hostname> ::= <label> { "." <label> }
+<label> ::= <letter> { <letter> | <digit> | "-" }
+<ip_address> ::= <digit>+ "." <digit>+ "." <digit>+ "." <digit>+
+
+<path> ::= "/" [ <path_segment> { "/" <path_segment> } [ "/" ] ]
+<path_segment> ::= <unreserved_characters>+
+
+<http_status> ::= <integer> | <qualified_identifier>
+<integer> ::= <digit> { <digit> }
+<qualified_identifier> ::= <identifier> "." <identifier>
+
+<call_expr> ::= <identifier> "(" [ <identifier> { "," <identifier> } ] ")"
+
+<identifier> ::= <letter> { <letter> | <digit> | "_" }
+
+<space> ::= " "
+
+<letter> ::= "a" | ... | "z" | "A" | ... | "Z"
+<digit> ::= "0" | ... | "9"
+<unreserved_characters> ::= <letter> | <digit> | "-" | "_" | "." | "~"
+```
+
 _TODO add more documentation on form and typed arguments_
