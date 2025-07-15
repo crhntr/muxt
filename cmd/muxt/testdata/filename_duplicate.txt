@@ -41,8 +41,7 @@ import (
 //go:embed templates
 var templateSource embed.FS
 
-var templates = template.Must(template.ParseFS(templateSource, "templates/*.gohtml", "templates/*/*.gohtml", ))
-
+var templates = template.Must(template.ParseFS(templateSource, "templates/*.gohtml", "templates/*/*.gohtml"))
 -- template_test.go --
 package server
 
