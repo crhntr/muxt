@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"go/token"
 	"io"
+	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/crhntr/muxt/internal/muxt"
 )
@@ -35,6 +38,9 @@ This function also receives an argument with a type matching the name given by r
 
 	templateRoutePathsType     = "template-route-paths-type"
 	templateRoutePathsTypeHelp = `The type name for the type with path constructor helper methods.`
+
+	testsFlagName = "tests"
+	testsFlagHelp = "generate a test file for the routes function"
 
 	errIdentSuffix = " value must be a well-formed Go identifier"
 )
@@ -67,6 +73,11 @@ func NewRoutesFileConfiguration(args []string, stderr io.Writer) (muxt.RoutesFil
 	if g.OutputFileName != "" && filepath.Ext(g.OutputFileName) != ".go" {
 		return muxt.RoutesFileConfiguration{}, fmt.Errorf("output filename must use .go extension")
 	}
+
+	if g.Tests {
+		g.TestsFileName = strings.TrimSuffix(g.OutputFileName, ".go") + "_test.go"
+	}
+
 	return g, nil
 }
 
@@ -80,5 +91,10 @@ func RoutesFileConfigurationFlagSet(g *muxt.RoutesFileConfiguration) *flag.FlagS
 	flagSet.StringVar(&g.ReceiverInterface, receiverInterfaceName, muxt.DefaultReceiverInterfaceName, receiverInterfaceNameHelp)
 	flagSet.StringVar(&g.TemplateDataType, templateDataType, muxt.DefaultTemplateDataTypeName, templateDataTypeHelp)
 	flagSet.StringVar(&g.TemplateRoutePathsTypeName, templateRoutePathsType, muxt.DefaultTemplateRoutePathsTypeName, templateRoutePathsTypeHelp)
+
+	if features, ok := os.LookupEnv("MUXT_PRE_RELEASE_FEATURES"); ok && slices.Contains(strings.Fields(features), "generate-tests") {
+		flagSet.BoolVar(&g.Tests, testsFlagName, false, testsFlagHelp)
+	}
+
 	return flagSet
 }
