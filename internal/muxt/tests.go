@@ -27,9 +27,9 @@ type Case[F any] struct {
 }
 
 func generateTests(wd string, config RoutesFileConfiguration, templates []Template) (string, error) {
-	fileName := filepath.Join(wd, config.TestsFileName+"_test.go")
+	fileName := filepath.Join(wd, config.TestsFileName)
 	if config.PreviousTests == "" {
-		config.PreviousTests = fmt.Sprintf(defaultTestFile, config.PackageName)
+		config.PreviousTests = fmt.Sprintf(defaultTestFile, config.PackageName, config.RoutesFunction)
 	}
 	fileSet := token.NewFileSet()
 
@@ -64,7 +64,7 @@ func generateTests(wd string, config RoutesFileConfiguration, templates []Templa
 		}
 	}
 
-	return "", fmt.Errorf("function %s not found ", testFuncName)
+	return "", fmt.Errorf("function %s not found in %s", testFuncName, config.TestsFileName)
 }
 
 func existingCases(fileSet *token.FileSet, cl *ast.CompositeLit) []Case[*ast.FuncLit] {
@@ -322,7 +322,7 @@ func newCase(config RoutesFileConfiguration, template Template) Case[*ast.FuncLi
 	}
 }
 
-const defaultTestFile = `package %s
+const defaultTestFile = `package %[1]s
 
 import (
 	"net/http"
@@ -330,7 +330,7 @@ import (
 	"testing"
 )
 
-func TestTemplateRoutes(t *testing.T) {
+func Test%[2]s(t *testing.T) {
 	// The Given, When, Then, and Case structures and the runCase function are only generated once.
 	// You may add fields to any structure. Do not alter the signature of any Given, When, or Then function on Case.
 	// You may edit the body of runCase (and the for case loop body).
@@ -392,7 +392,7 @@ func TestTemplateRoutes(t *testing.T) {
 
 		var receiver RoutesReceiver = nil
 		mux := http.NewServeMux()
-		TemplateRoutes(mux, receiver)
+		%[2]s(mux, receiver)
 		if tc.Given != nil {
 			tc.Given(t, Given{})
 		}
