@@ -18,6 +18,8 @@ exec go test -cover
 {{- define "GET /uint32/{value} PassUint32(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
 {{- define "GET /uint64/{value} PassUint64(value)" -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
 {{- define "GET /uint8/{value}  PassUint8(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /id/{value}     PassID(value)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
+{{- define "GET /a/{id1}/b/{id2}/{id3} PassMultipleIDs(id1, id2, id3)"  -}} <p>{{- printf "%[1]#v %[1]T" .Result -}}</p> {{- end -}}
 
 -- go.mod --
 module server
@@ -28,7 +30,9 @@ package server
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
+	"strconv"
 )
 
 //go:embed *.gohtml
@@ -51,6 +55,28 @@ func (T) PassUint8(in uint8) uint8    { return in }
 func (T) PassBool(in bool) bool       { return in }
 func (T) PassByte(in byte) byte       { return in }
 func (T) PassRune(in rune) rune       { return in }
+func (T) PassID(in ID) string         { return fmt.Sprintf("%d", int(in)) }
+
+func (T) PassMultipleIDs(id1, id2, id3 ID) string {
+	return fmt.Sprintf("%d:%d:%d", int(id1), int(id2), int(id3))
+}
+
+const idBase = 16
+
+type ID uint64
+
+func (id ID) MarshalText() (text []byte, err error) {
+	return []byte(strconv.FormatUint(uint64(id), idBase)), nil
+}
+
+func (id *ID) UnmarshalText(text []byte) error {
+	n, err := strconv.ParseUint(string(text), idBase, 64)
+	if err != nil {
+		return err
+	}
+	*id = ID(n)
+	return nil
+}
 -- template_test.go --
 package server
 
@@ -157,6 +183,32 @@ func Test(t *testing.T) {
 	})
 	t.Run("bool", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/bool/true", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		res := rec.Result()
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected OK")
+		}
+	})
+	t.Run("id", func(t *testing.T) {
+		path, err := TemplateRoutePaths{}.PassID(7)
+		if err != nil {
+			t.Error("unexpected error when making the path", err)
+		}
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		res := rec.Result()
+		if res.StatusCode != http.StatusOK {
+			t.Error("expected OK")
+		}
+	})
+	t.Run("multipleIDs", func(t *testing.T) {
+		path, err := TemplateRoutePaths{}.PassMultipleIDs(7, 8, 9)
+		if err != nil {
+			t.Error("unexpected error when making the path", err)
+		}
+		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		res := rec.Result()

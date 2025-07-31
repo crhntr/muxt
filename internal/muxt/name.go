@@ -1,6 +1,8 @@
 package muxt
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -191,13 +193,17 @@ func routePathFunc(imports *source.File, t *Template, urlHelperTypeName string) 
 		}
 		if last != nil && len(fields) > 0 && types.Identical(last, pathValueType) {
 			fields[len(fields)-1].Names = append(fields[len(fields)-1].Names, ast.NewIdent(ident))
-			continue
+		} else {
+			fields = append(fields, &ast.Field{
+				Names: []*ast.Ident{ast.NewIdent(ident)},
+				Type:  tpNode,
+			})
+			last = pathValueType
 		}
-		fields = append(fields, &ast.Field{
-			Names: []*ast.Ident{ast.NewIdent(ident)},
-			Type:  tpNode,
-		})
-		last = pathValueType
+
+		summer := sha1.New()
+		summer.Write([]byte(t.name))
+		pathHash := hex.EncodeToString(summer.Sum(nil))
 
 		if types.Implements(pathValueType, textMarshalerInterface) {
 			hasErrorResult = true
@@ -206,7 +212,7 @@ func routePathFunc(imports *source.File, t *Template, urlHelperTypeName string) 
 					Type: ast.NewIdent("error"),
 				})
 			}
-			segmentIdent := fmt.Sprintf("segment%d", si)
+			segmentIdent := fmt.Sprintf("segment%d_%s", si, pathHash[:8])
 			method.Body.List = append(method.Body.List, &ast.AssignStmt{
 				Rhs: []ast.Expr{&ast.CallExpr{
 					Fun: &ast.SelectorExpr{
@@ -226,7 +232,10 @@ func routePathFunc(imports *source.File, t *Template, urlHelperTypeName string) 
 						&ast.ReturnStmt{
 							Results: []ast.Expr{
 								&ast.BasicLit{Kind: token.STRING, Value: `""`},
-								ast.NewIdent("err"),
+								imports.Call("fmt", "fmt", "Errorf", []ast.Expr{
+									source.String(fmt.Sprintf("failed to marshal path value {%s} (segment %d) in %s: %%w", ident, si, t.path)),
+									ast.NewIdent("err"),
+								}),
 							},
 						},
 					},
