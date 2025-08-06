@@ -783,13 +783,15 @@ func TestTree(t *testing.T) {
 				sourceFunctions[name] = fn
 			}
 
-			if checkErr := check.ParseTree(templates.Tree, dataType, testPkg.Types, testPkg.Fset, check.FindTreeFunc(func(name string) (*parse.Tree, bool) {
+			global := check.NewGlobal(testPkg.Types, testPkg.Fset, check.FindTreeFunc(func(name string) (*parse.Tree, bool) {
 				ts := templates.Lookup(name)
 				if ts == nil {
 					return nil, false
 				}
 				return ts.Tree, true
-			}), sourceFunctions); tt.Error != nil {
+			}), sourceFunctions)
+
+			if checkErr := check.ParseTree(global, templates.Tree, dataType); tt.Error != nil {
 				execErr := templates.Execute(io.Discard, tt.Data)
 				tt.Error(t, checkErr, execErr, dataType)
 			} else {
@@ -807,8 +809,9 @@ func TestTree(t *testing.T) {
 		obj, _, _ := types.LookupFieldOrMethod(fooer, false, testPkg.Types, "Foo")
 		require.NotNil(t, obj)
 
-		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, check.ParseTree(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		tm := template.Must(template.New("").Parse(`{{.Foo}}`))
+		global := check.NewGlobal(testPkg.Types, testPkg.Fset, nil, nil)
+		require.NoError(t, check.ParseTree(global, tm.Tree, fooer))
 	})
 	t.Run("field on parenthesized interface", func(t *testing.T) {
 		tp := testPkg.Types.Scope().Lookup("Fooer").Type()
@@ -818,7 +821,8 @@ func TestTree(t *testing.T) {
 		require.NotNil(t, obj)
 
 		templ := template.Must(template.New("").Parse(`{{.Foo}}`))
-		require.NoError(t, check.ParseTree(templ.Tree, fooer, testPkg.Types, testPkg.Fset, nil, nil))
+		global := check.NewGlobal(testPkg.Types, testPkg.Fset, nil, nil)
+		require.NoError(t, check.ParseTree(global, templ.Tree, fooer))
 	})
 }
 

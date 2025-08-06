@@ -569,7 +569,9 @@ func TestExec(t *testing.T) {
 			dataType := stdlibTestRowType(t, testPkg, ttRows, tt.name)
 			require.NotNil(t, dataType)
 
-			checkErr := check.ParseTree(tmpl.Tree, dataType, testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
+			global := check.NewGlobal(testPkg.Types, testPkg.Fset, findTextTree(tmpl), MortalFunctions(funcSource))
+
+			checkErr := check.ParseTree(global, tmpl.Tree, dataType)
 			switch {
 			case !tt.ok && checkErr == nil:
 				t.Logf("exec error: %s", execErr)

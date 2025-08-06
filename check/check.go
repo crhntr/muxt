@@ -10,6 +10,25 @@ import (
 	"text/template/parse"
 )
 
+type Global struct {
+	trees TreeFinder
+	calls CallChecker
+
+	pkg             *types.Package
+	fileSet         *token.FileSet
+	typeNodeMapping TypeNodeMapping
+}
+
+func NewGlobal(pkg *types.Package, fileSet *token.FileSet, trees TreeFinder, fnChecker CallChecker) *Global {
+	return &Global{
+		trees:           trees,
+		calls:           fnChecker,
+		pkg:             pkg,
+		fileSet:         fileSet,
+		typeNodeMapping: make(TypeNodeMapping),
+	}
+}
+
 // TreeFinder should wrap https://pkg.go.dev/html/template#Template.Lookup and return the Tree field from the Template
 // If you are using text/template the lookup function from that package should also work.
 type TreeFinder interface {
@@ -26,14 +45,11 @@ type CallChecker interface {
 	CheckCall(string, []parse.Node, []types.Type) (types.Type, error)
 }
 
-func ParseTree(tree *parse.Tree, data types.Type, pkg *types.Package, fileSet *token.FileSet, trees TreeFinder, fnChecker CallChecker) error {
+type TypeNodeMapping map[types.Type][]parse.Node
+
+func ParseTree(global *Global, tree *parse.Tree, data types.Type) error {
 	s := &scope{
-		global: global{
-			TreeFinder:  trees,
-			CallChecker: fnChecker,
-			pkg:         pkg,
-			fileSet:     fileSet,
-		},
+		global: global,
 		variables: map[string]types.Type{
 			"$": data,
 		},
@@ -42,16 +58,8 @@ func ParseTree(tree *parse.Tree, data types.Type, pkg *types.Package, fileSet *t
 	return err
 }
 
-type global struct {
-	TreeFinder
-	CallChecker
-
-	pkg     *types.Package
-	fileSet *token.FileSet
-}
-
 type scope struct {
-	global
+	global    *Global
 	variables map[string]types.Type
 }
 
@@ -238,7 +246,7 @@ func (s *scope) checkTemplateNode(tree *parse.Tree, dot types.Type, n *parse.Tem
 	} else {
 		x = types.Typ[types.UntypedNil]
 	}
-	childTree, ok := s.FindTree(n.Name)
+	childTree, ok := s.global.trees.FindTree(n.Name)
 	if !ok {
 		return fmt.Errorf("template %q not found", n.Name)
 	}
@@ -300,7 +308,7 @@ func (s *scope) checkCommandNode(tree *parse.Tree, dot, prev types.Type, cmd *pa
 		if err != nil {
 			return nil, err
 		}
-		tp, err := s.CallChecker.CheckCall(n.Ident, cmd.Args[1:], argTypes)
+		tp, err := s.global.calls.CheckCall(n.Ident, cmd.Args[1:], argTypes)
 		if err != nil {
 			return nil, s.error(tree, cmd, err)
 		}
@@ -391,7 +399,7 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 			if !token.IsExported(ident) {
 				return nil, s.error(tree, n, fmt.Errorf("field or method %s is not exported", ident))
 			}
-			obj, _, _ := types.LookupFieldOrMethod(x, true, s.pkg, ident)
+			obj, _, _ := types.LookupFieldOrMethod(x, true, s.global.pkg, ident)
 			if obj == nil {
 				loc, _ := tree.ErrorContext(n)
 				return nil, fmt.Errorf("type check failed: %s: %s not found on %s", loc, ident, x)
@@ -404,12 +412,12 @@ func (s *scope) checkIdentifiers(tree *parse.Tree, dot types.Type, n parse.Node,
 				resultLen := sig.Results().Len()
 				if resultLen < 1 || resultLen > 2 {
 					loc, _ := tree.ErrorContext(n)
-					methodPos := s.fileSet.Position(o.Pos())
+					methodPos := s.global.fileSet.Position(o.Pos())
 					return nil, fmt.Errorf("type check failed: %s: function %s has %d return values; should be 1 or 2: incorrect signature at %s", loc, ident, resultLen, methodPos)
 				}
 				if resultLen > 1 {
 					loc, _ := tree.ErrorContext(n)
-					methodPos := s.fileSet.Position(obj.Pos())
+					methodPos := s.global.fileSet.Position(obj.Pos())
 					finalResult := sig.Results().At(sig.Results().Len() - 1)
 					errorType := types.Universe.Lookup("error")
 					if !types.Identical(errorType.Type(), finalResult.Type()) {
@@ -567,7 +575,7 @@ func isIter2(signature *types.Signature) (types.Type, types.Type, bool) {
 
 func (s *scope) checkIdentifierNode(tree *parse.Tree, n *parse.IdentifierNode) (types.Type, error) {
 	if !strings.HasPrefix(n.Ident, "$") {
-		tp, err := s.CheckCall(n.Ident, nil, nil)
+		tp, err := s.global.calls.CheckCall(n.Ident, nil, nil)
 		if err != nil {
 			return nil, s.error(tree, n, err)
 		}

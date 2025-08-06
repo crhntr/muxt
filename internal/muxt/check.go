@@ -52,6 +52,8 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 	fns := check.DefaultFunctions(routesPkg.Types)
 	fns = fns.Add(check.Functions(fm))
 
+	global := check.NewGlobal(routesPkg.Types, routesPkg.Fset, newForrest(ts), fns)
+
 	var errs []error
 	for _, file := range routesPkg.Syntax {
 		for node := range ast.Preorder(file) {
@@ -65,7 +67,7 @@ func Check(wd string, log *log.Logger, config RoutesFileConfiguration) error {
 				return fmt.Errorf("template %q not found in %q (try running generate again)", templateName, config.TemplatesVariable)
 			}
 			tree := ts2.Tree
-			if err := check.ParseTree(tree, dataType, routesPkg.Types, routesPkg.Fset, newForrest(ts), fns); err != nil {
+			if err := check.ParseTree(global, tree, dataType); err != nil {
 				log.Println("ERROR", err)
 				log.Println()
 				errs = append(errs, err)
