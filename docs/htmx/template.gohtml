@@ -1,0 +1,73 @@
+{{define "imports"}}
+	<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
+	        integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
+	        crossorigin="anonymous"></script>
+{{end}}
+
+{{define "/ Count()"}}
+<!DOCTYPE html>
+<html lang="us-en">
+<head>
+	<meta charset="utf-8">
+	<title>HTMX Example</title>
+
+	{{template "imports"}}
+</head>
+<body>
+	{{template "count" .Result}}
+	{{- /*
+		This is not great usage of HTMX, you'd probably want to use something like "POST /increment-count" endpoint instead
+		This example here is to show use of `HXTriggerElementID` on the "POST /count" endpoint to differentiate the source
+		button.
+	*/}}
+	<button id='increment' hx-target="#count" hx-post='/count'>Increment</button>
+	<button id='decrement' hx-target="#count" hx-post='/count'>Decrement</button>
+</body>
+</html>
+{{end}}
+
+{{define "/decrement-count Decrement()"}}
+	{{- if .HXRequest}}
+    {{- template "count" .Result}}
+	{{- else}}<!DOCTYPE html>
+<html lang="us-en">
+<head>
+	<meta charset="utf-8">
+	<title>HTMX Example</title>
+
+	{{template "imports"}}
+</head>
+<body>{{template "count" .Result}}</body>
+</html>
+	{{- end}}
+{{- end}}
+
+{{define "/increment-count Increment()"}}
+	{{- if .HXRequest}}
+		{{- template "count" .Result}}
+	{{- else}}<!DOCTYPE html>
+<html lang="us-en">
+<head>
+	<meta charset="utf-8">
+	<title>HTMX Example</title>
+
+	{{template "imports"}}
+</head>
+<body>{{template "count" .Result}}</body>
+</html>
+	{{- end}}
+{{- end}}
+
+{{define "count" -}}
+		<div id='count'>{{.}}</div>
+{{- end}}
+
+{{define "POST /count" -}}
+	{{- if eq .HXTriggerElementID "decrement"}}
+		{{- template "count" .Receiver.Decrement}}
+  {{- else if eq .HXTriggerElementID "increment"}}
+    {{- template "count" .Receiver.Increment}}
+  {{- else}}
+    {{- template "count" .Receiver.Count}}
+	{{- end}}
+{{- end}}
