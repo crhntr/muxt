@@ -7,4 +7,4 @@ Using these methods in templates may let you increase locality of behavior of yo
 
 ## Usage
 
-Copy `htmx.go` and `htmx_test.go` into whatever package you have the generated `template_routes.go` written.
+Copy `htmx.go` and `htmx_test.go` into whatever package you have your generated `template_routes.go` file.
