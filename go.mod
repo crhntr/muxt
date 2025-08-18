@@ -3,7 +3,7 @@ module github.com/crhntr/muxt
 go 1.24
 
 require (
-	github.com/crhntr/dom v0.5.3
+	github.com/crhntr/dom v0.5.4
 	github.com/ettle/strcase v0.2.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.43.0
@@ -16,7 +16,7 @@ require (
 	github.com/crhntr/txtarfmt v0.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	golang.org/x/mod v0.27.0 // indirect
