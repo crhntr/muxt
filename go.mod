@@ -1,11 +1,12 @@
 module github.com/crhntr/muxt
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/crhntr/dom v0.5.4
 	github.com/ettle/strcase v0.2.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
+	github.com/typelate/check v0.0.1
 	golang.org/x/net v0.43.0
 	golang.org/x/tools v0.36.0
 	rsc.io/script v0.0.2

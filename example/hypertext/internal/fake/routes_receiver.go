@@ -244,12 +244,6 @@ func (fake *Backend) SubmitFormEditRowReturnsOnCall(i int, result1 hypertext.Row
 func (fake *Backend) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getFormEditRowMutex.RLock()
-	defer fake.getFormEditRowMutex.RUnlock()
-	fake.listMutex.RLock()
-	defer fake.listMutex.RUnlock()
-	fake.submitFormEditRowMutex.RLock()
-	defer fake.submitFormEditRowMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -8,9 +8,9 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/typelate/check"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/crhntr/muxt/check"
 	"github.com/crhntr/muxt/internal/source"
 )
 
